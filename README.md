@@ -173,14 +173,14 @@ xcodegen generate
 open CPAManager.xcodeproj
 ```
 
-### 2. Add a real app icon (required — the current one is a placeholder)
+### 2. App icon
 
-`CPAManager/Resources/Assets.xcassets/AppIcon.appiconset` currently declares the
-slot but has **no image**. App Store Connect rejects builds without a 1024×1024
-icon. Easiest path: in Xcode, select `Assets.xcassets → AppIcon` and drag a
-1024×1024 PNG (no transparency, no rounded corners — iOS applies the mask) onto
-the single "App Icon" slot; Xcode's single-size icon feature generates the rest.
-If you'd like, I can generate a simple placeholder icon for you — just ask.
+A placeholder app icon (a checklist card on the app's brand-blue gradient) is
+already included at `CPAManager/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
+and wired up in `Contents.json`, so this won't block a TestFlight upload. Swap it
+for your own branding whenever you like: replace that PNG (1024×1024, RGB, no
+transparency — iOS applies the corner mask) or drag a new one onto the "App Icon"
+slot in Xcode's asset catalog editor.
 
 ### 3. Finish the signing setup from the main README
 
