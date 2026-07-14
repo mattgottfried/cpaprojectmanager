@@ -1,0 +1,25 @@
+# Xcode / build artifacts
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+
+# XcodeGen generates this from project.yml — do not commit it.
+CPAManager.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Fastlane / misc
+fastlane/report.xml
+*.ipa
+*.dSYM.zip
+*.dSYM
