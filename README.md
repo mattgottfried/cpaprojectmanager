@@ -150,6 +150,107 @@ Run through this on your Mac to confirm everything works end-to-end:
 
 ---
 
+## Getting it onto TestFlight
+
+TestFlight distribution requires a few things beyond just running on your own
+device in Xcode. Do these **in order**.
+
+### 0. Prerequisite: a paid Apple Developer Program account
+
+Running the app on your own iPhone/iPad works with a **free** Apple ID. TestFlight
+does not — it requires an active **Apple Developer Program membership ($99/year)**
+enrolled at [developer.apple.com](https://developer.apple.com/programs/). If you
+haven't enrolled yet, do that first; approval can take a few hours.
+
+### 1. Get the code onto your Mac
+
+```sh
+git clone <this repo's URL>
+cd cpaprojectmanager
+git checkout claude/cpa-project-manager-k5vauq
+brew install xcodegen
+xcodegen generate
+open CPAManager.xcodeproj
+```
+
+### 2. Add a real app icon (required — the current one is a placeholder)
+
+`CPAManager/Resources/Assets.xcassets/AppIcon.appiconset` currently declares the
+slot but has **no image**. App Store Connect rejects builds without a 1024×1024
+icon. Easiest path: in Xcode, select `Assets.xcassets → AppIcon` and drag a
+1024×1024 PNG (no transparency, no rounded corners — iOS applies the mask) onto
+the single "App Icon" slot; Xcode's single-size icon feature generates the rest.
+If you'd like, I can generate a simple placeholder icon for you — just ask.
+
+### 3. Finish the signing setup from the main README
+
+Do the "Getting started" steps above first (Team selected on **both** targets,
+iCloud/CloudKit + App Group capabilities enabled) if you haven't already. With
+**Automatically manage signing** checked, Xcode registers the bundle IDs and the
+iCloud container/App Group with your developer account the first time you build.
+
+### 4. Deploy the CloudKit schema to Production
+
+CloudKit has two environments: **Development** (what Debug/simulator runs use)
+and **Production** (what Release/Archive/TestFlight builds use). Your schema
+only exists in Development until you promote it — an Archive build will fail to
+sync (or throw CloudKit errors) against Production until you do this:
+
+1. Run the app once from Xcode (Debug) so the schema is created in Development.
+2. Open **[icloud.developer.apple.com](https://icloud.developer.apple.com)** →
+   your `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema**.
+3. Click **Deploy Schema to Production** and confirm.
+
+Repeat this any time you add/change a SwiftData model before your next TestFlight
+build.
+
+### 5. Create the app record in App Store Connect
+
+1. Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → **Apps**
+   → **+** → **New App**.
+2. Platform: iOS. Name: whatever you'd like (e.g. "CPA Manager"). Primary
+   language, and **Bundle ID**: select `com.gottfriedcpa.ProjectManager` from the
+   dropdown (it appears here once Xcode has registered it via step 3 — if it's
+   not listed yet, build once in Xcode first, or register it manually at
+   [developer.apple.com/account/resources/identifiers](https://developer.apple.com/account/resources/identifiers/list)).
+3. Set a SKU (any unique string, e.g. `cpamanager1`) and create the app.
+
+### 6. Archive and upload
+
+1. In Xcode, select the **CPAManager** scheme and **Any iOS Device (arm64)** as
+   the destination (not a simulator).
+2. **Product → Archive.** The widget extension is embedded automatically since
+   `project.yml` declares it as a dependency of the app target.
+3. When the Organizer opens, select the archive → **Distribute App** → **App
+   Store Connect** → **Upload**. Use automatic signing options unless you have a
+   reason not to.
+4. Wait for Apple to finish processing the build (an email arrives, and it shows
+   up under **TestFlight** in App Store Connect) — usually 10–30 minutes.
+
+### 7. Add yourself (and others) as testers
+
+1. In App Store Connect → your app → **TestFlight** tab, the processed build
+   appears. You may need to answer an **export compliance** question — the app
+   sets `ITSAppUsesNonExemptEncryption = false`, so answer "No" / it should
+   auto-clear.
+2. Under **Internal Testing**, create a group (e.g. "Just Me"), add your own
+   Apple ID (must have a role on the App Store Connect team — the account owner
+   always does), and assign the build. Internal testers get access **immediately**,
+   no App Review needed.
+3. Install the **TestFlight** app from the App Store on your iPhone/iPad, accept
+   the email invite, and install the build.
+4. (Only if you later want to invite people outside your account) **External
+   Testing** groups go through a brief **Beta App Review** (usually faster than
+   full App Store review) before testers can install.
+
+### Repeating for future builds
+
+Bump `CURRENT_PROJECT_VERSION` in `project.yml` (or in Xcode's target settings)
+for each new upload, re-run `xcodegen generate` if you edited `project.yml`, and
+repeat step 6. Internal testers on the same group auto-see new builds.
+
+---
+
 ## Notes & next steps
 
 - **Notifications** are local only (no push server needed). iOS caps pending local
