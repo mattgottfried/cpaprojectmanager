@@ -21,6 +21,9 @@ struct ProjectFormView: View {
     @State private var hasDueDate = false
     @State private var dueDate = Date.now
     @State private var selectedTemplateID: UUID?
+    @State private var nextAction = ""
+    @State private var hasReceivedDate = false
+    @State private var receivedDate = Date.now
     @State private var loaded = false
 
     private var isEditing: Bool { project != nil }
@@ -68,6 +71,14 @@ struct ProjectFormView: View {
                     }
                 }
 
+                Section("Workflow") {
+                    TextField("Next action", text: $nextAction)
+                    Toggle("Has received date", isOn: $hasReceivedDate)
+                    if hasReceivedDate {
+                        DatePicker("Received", selection: $receivedDate, displayedComponents: .date)
+                    }
+                }
+
                 Section("Notes") {
                     TextField("Notes", text: $detail, axis: .vertical)
                         .lineLimit(3...8)
@@ -95,6 +106,9 @@ struct ProjectFormView: View {
             selectedClientID = project.client?.id
             hasDueDate = project.dueDate != nil
             dueDate = project.dueDate ?? .now
+            nextAction = project.nextAction
+            hasReceivedDate = project.receivedDate != nil
+            receivedDate = project.receivedDate ?? .now
         } else if let defaultClient {
             selectedClientID = defaultClient.id
         }
@@ -108,6 +122,8 @@ struct ProjectFormView: View {
     private func save() {
         let client = resolvedClient()
 
+        let trimmedNextAction = nextAction.trimmingCharacters(in: .whitespaces)
+
         if let project {
             project.title = title
             project.detail = detail
@@ -116,6 +132,8 @@ struct ProjectFormView: View {
             project.priority = priority
             project.client = client
             project.dueDate = hasDueDate ? dueDate : nil
+            project.nextAction = trimmedNextAction
+            project.receivedDate = hasReceivedDate ? receivedDate : nil
         } else if let templateID = selectedTemplateID,
                   let template = templates.first(where: { $0.id == templateID }) {
             let created = WorkflowEngine.instantiate(
@@ -129,6 +147,8 @@ struct ProjectFormView: View {
             created.status = status
             created.priority = priority
             if hasDueDate { created.dueDate = dueDate }
+            created.nextAction = trimmedNextAction
+            created.receivedDate = hasReceivedDate ? receivedDate : nil
         } else {
             let created = Project(
                 title: title,
@@ -139,6 +159,8 @@ struct ProjectFormView: View {
                 dueDate: hasDueDate ? dueDate : nil,
                 client: client
             )
+            created.nextAction = trimmedNextAction
+            created.receivedDate = hasReceivedDate ? receivedDate : nil
             context.insert(created)
         }
 

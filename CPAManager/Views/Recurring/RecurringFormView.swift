@@ -17,6 +17,7 @@ struct RecurringFormView: View {
     @State private var selectedTemplateID: UUID?
     @State private var nextDueDate = Date.now
     @State private var leadTimeDays = 14
+    @State private var adjustForWeekends = true
     @State private var isActive = true
     @State private var loaded = false
 
@@ -50,6 +51,7 @@ struct RecurringFormView: View {
                 Section {
                     DatePicker("Next due", selection: $nextDueDate, displayedComponents: .date)
                     Stepper("Start \(leadTimeDays) days before", value: $leadTimeDays, in: 0...90)
+                    Toggle("Adjust for weekends", isOn: $adjustForWeekends)
                     Toggle("Active", isOn: $isActive)
                 } footer: {
                     Text("A project is created automatically \(leadTimeDays) days before each due date, then the schedule advances.")
@@ -76,6 +78,7 @@ struct RecurringFormView: View {
         selectedTemplateID = engagement.template?.id
         nextDueDate = engagement.nextDueDate
         leadTimeDays = engagement.leadTimeDays
+        adjustForWeekends = engagement.adjustForWeekends
         isActive = engagement.isActive
     }
 
@@ -98,6 +101,7 @@ struct RecurringFormView: View {
         target.template = template
         target.nextDueDate = nextDueDate
         target.leadTimeDays = leadTimeDays
+        target.adjustForWeekends = adjustForWeekends
         target.isActive = isActive
 
         try? context.save()

@@ -68,8 +68,8 @@ enum WorkflowEngine {
         let name = client?.displayName ?? "New"
         if template.serviceType == .taxReturn {
             let year = Calendar.current.component(.year, from: .now) - 1
-            return "\(name) \(year) — \(template.name)"
+            return "\(year) - \(name) - \(template.name)"
         }
-        return "\(name) — \(template.name)"
+        return "\(name) - \(template.name)"
     }
 }

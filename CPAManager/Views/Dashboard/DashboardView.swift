@@ -5,6 +5,7 @@ struct DashboardView: View {
     @Environment(TimerController.self) private var timer
     @Query private var projects: [Project]
     @Query private var tasks: [TaskItem]
+    @State private var showingNewTaxReturn = false
 
     private var agenda: [AgendaItem] { Agenda.items(projects: projects, tasks: tasks) }
 
@@ -30,6 +31,8 @@ struct DashboardView: View {
                         TimerCard()
                     }
 
+                    quickActions
+
                     statGrid
 
                     dueSoonCard
@@ -43,7 +46,21 @@ struct DashboardView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle(greeting)
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
+            .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }
         }
+    }
+
+    private var quickActions: some View {
+        Button {
+            showingNewTaxReturn = true
+        } label: {
+            Label("New Tax Return", systemImage: "doc.badge.plus")
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(Theme.brand)
     }
 
     private var statGrid: some View {

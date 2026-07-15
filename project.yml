@@ -37,6 +37,7 @@ targets:
         CFBundleDisplayName: CPA Manager
         NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false
+        NSRemindersFullAccessUsageDescription: "CPA Manager can import your existing Apple Reminders workflow (clients, projects, and recurring work) into the app. Nothing in Reminders is changed or deleted."
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations:

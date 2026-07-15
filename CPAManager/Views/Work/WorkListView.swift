@@ -7,6 +7,7 @@ struct WorkListView: View {
     @State private var search = ""
     @State private var filter: WorkFilter = .open
     @State private var showingAdd = false
+    @State private var showingNewTaxReturn = false
 
     enum WorkFilter: String, CaseIterable, Identifiable {
         case open = "Open"
@@ -50,6 +51,17 @@ struct WorkListView: View {
                             NavigationLink(value: project) {
                                 ProjectRow(project: project)
                             }
+                            .swipeActions(edge: .leading) {
+                                if let next = project.nextStatusPreview {
+                                    Button {
+                                        project.advance()
+                                        persistChange()
+                                    } label: {
+                                        Label("Advance to \(next.label)", systemImage: "arrow.right.circle.fill")
+                                    }
+                                    .tint(Theme.brand)
+                                }
+                            }
                         }
                         .onDelete(perform: delete)
                     }
@@ -65,11 +77,21 @@ struct WorkListView: View {
                     .pickerStyle(.menu)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
+                    Menu {
+                        Button { showingNewTaxReturn = true } label: {
+                            Label("New Tax Return", systemImage: "doc.text.fill")
+                        }
+                        Button { showingAdd = true } label: {
+                            Label("New Project", systemImage: "folder.badge.plus")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingAdd) { ProjectFormView() }
+            .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }
         }
     }
 
@@ -77,6 +99,12 @@ struct WorkListView: View {
         for index in offsets { context.delete(filtered[index]) }
         try? context.save()
         SnapshotBuilder.rebuild(context: context)
+    }
+
+    private func persistChange() {
+        try? context.save()
+        SnapshotBuilder.rebuild(context: context)
+        NotificationScheduler.rescheduleAll(context: context)
     }
 }
 
@@ -106,6 +134,17 @@ struct ProjectRow: View {
                 }
                 if let due = project.dueDate {
                     DueDatePill(date: due, isComplete: project.status.isComplete)
+                }
+                if project.isOnHold, let reason = project.holdReason {
+                    Label(reason.label, systemImage: "pause.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .lineLimit(1)
+                } else if !project.nextAction.isEmpty {
+                    Label(project.nextAction, systemImage: "bolt.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
                 }
             }
             Spacer()

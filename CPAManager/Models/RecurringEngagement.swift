@@ -17,6 +17,9 @@ final class RecurringEngagement {
     var leadTimeDays: Int = 14
     /// The due date we most recently generated a project for (dedupe guard).
     var lastGeneratedDueDate: Date? = nil
+    /// If the computed next due date lands on a weekend, push it to the following
+    /// business day (see `DateMath.skippingWeekend`).
+    var adjustForWeekends: Bool = true
     var createdAt: Date = Date.now
 
     var client: Client? = nil
@@ -29,6 +32,7 @@ final class RecurringEngagement {
         isActive: Bool = true,
         nextDueDate: Date = .now,
         leadTimeDays: Int = 14,
+        adjustForWeekends: Bool = true,
         client: Client? = nil,
         template: WorkflowTemplate? = nil
     ) {
@@ -39,6 +43,7 @@ final class RecurringEngagement {
         self.isActive = isActive
         self.nextDueDate = nextDueDate
         self.leadTimeDays = leadTimeDays
+        self.adjustForWeekends = adjustForWeekends
         self.client = client
         self.template = template
         self.createdAt = .now

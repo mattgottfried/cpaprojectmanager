@@ -17,6 +17,17 @@ final class Project {
     var templateName: String? = nil
     var createdAt: Date = Date.now
 
+    /// Date documents/data were received from the client (tax-return intake).
+    var receivedDate: Date? = nil
+    /// Free-text "what happens next" note, shown alongside the project (e.g.
+    /// "Request documents from client").
+    var nextAction: String = ""
+    /// Hold bookkeeping — set together by `putOnHold(reason:detail:)` and cleared
+    /// by `takeOffHold()`. `holdResumeStatusRaw` remembers the stage to return to.
+    var holdReasonRaw: String = ""
+    var holdDetail: String = ""
+    var holdResumeStatusRaw: String = ""
+
     var client: Client? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \TaskItem.project)
@@ -67,6 +78,62 @@ final class Project {
     var priority: Priority {
         get { Priority(rawValue: priorityRaw) ?? .normal }
         set { priorityRaw = newValue.rawValue }
+    }
+
+    var holdReason: HoldReason? {
+        get { HoldReason(rawValue: holdReasonRaw) }
+        set { holdReasonRaw = newValue?.rawValue ?? "" }
+    }
+
+    // MARK: Workflow (advance / hold)
+    //
+    // Mirrors the firm's "Auto Advance" and "Put On Hold" / "Take Off Hold"
+    // Shortcuts: `advance()` steps a project to the next pipeline stage and pushes
+    // the due date out (see `DateMath.advancedDueDate`); holding stashes the current
+    // stage so taking it off hold can resume there.
+
+    private static let advanceSequence: [ProjectStatus] = [
+        .notStarted, .awaitingDocs, .inProgress, .review,
+        .awaitingSignature, .readyToFile, .filed, .complete,
+    ]
+
+    var isOnHold: Bool { status == .waitingOnClient }
+
+    /// The stage `advance()` would move to, or `nil` if already on hold/complete.
+    var nextStatusPreview: ProjectStatus? {
+        guard status != .waitingOnClient else { return nil }
+        guard let index = Project.advanceSequence.firstIndex(of: status),
+              index + 1 < Project.advanceSequence.count else { return nil }
+        return Project.advanceSequence[index + 1]
+    }
+
+    var canAdvance: Bool { nextStatusPreview != nil }
+
+    @discardableResult
+    func advance() -> Bool {
+        guard let next = nextStatusPreview else { return false }
+        status = next
+        if status != .complete {
+            dueDate = DateMath.advancedDueDate()
+        }
+        return true
+    }
+
+    func putOnHold(reason: HoldReason, detail: String) {
+        guard status != .waitingOnClient, status != .complete else { return }
+        holdResumeStatusRaw = statusRaw
+        holdReason = reason
+        holdDetail = detail
+        status = .waitingOnClient
+    }
+
+    func takeOffHold() {
+        guard status == .waitingOnClient else { return }
+        status = ProjectStatus(rawValue: holdResumeStatusRaw) ?? .inProgress
+        dueDate = DateMath.advancedDueDate()
+        holdReasonRaw = ""
+        holdDetail = ""
+        holdResumeStatusRaw = ""
     }
 
     // MARK: Convenience

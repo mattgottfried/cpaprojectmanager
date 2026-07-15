@@ -10,6 +10,7 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
     @State private var showingTemplatePicker = false
+    @State private var showingHoldSheet = false
 
     private var isTimingThisProject: Bool {
         timer.isRunning && timer.runningEntryID != nil && timer.label == project.title
@@ -18,6 +19,7 @@ struct ProjectDetailView: View {
     var body: some View {
         List {
             headerSection
+            workflowSection
             statusSection
             tasksSection
             if !project.detail.isEmpty {
@@ -39,6 +41,7 @@ struct ProjectDetailView: View {
                 persist()
             }
         }
+        .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
     }
 
     // MARK: Sections
@@ -63,6 +66,52 @@ struct ProjectDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private var workflowSection: some View {
+        Section("Workflow") {
+            if let received = project.receivedDate {
+                LabeledContent("Received", value: Format.mediumDate.string(from: received))
+            }
+
+            if project.isOnHold {
+                if let reason = project.holdReason {
+                    LabeledContent("On hold", value: reason.label)
+                }
+                if !project.holdDetail.isEmpty {
+                    Text(project.holdDetail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    project.takeOffHold()
+                    persist()
+                } label: {
+                    Label("Take off hold", systemImage: "play.circle.fill")
+                }
+            } else {
+                if !project.nextAction.isEmpty {
+                    Label(project.nextAction, systemImage: "bolt.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.orange)
+                }
+                if let next = project.nextStatusPreview {
+                    Button {
+                        project.advance()
+                        persist()
+                    } label: {
+                        Label("Advance to \(next.label)", systemImage: "arrow.right.circle.fill")
+                    }
+                }
+                if !project.status.isComplete {
+                    Button {
+                        showingHoldSheet = true
+                    } label: {
+                        Label("Put on hold…", systemImage: "pause.circle")
+                    }
+                }
             }
         }
     }

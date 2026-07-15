@@ -9,6 +9,7 @@ struct SettingsView: View {
 
     @State private var showingRestoreConfirm = false
     @State private var restoreMessage: String?
+    @State private var showingRemindersImport = false
 
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -39,6 +40,18 @@ struct SettingsView: View {
                 Text("Reminders")
             } footer: {
                 Text("Local notifications fire on the morning a project or task is due.")
+            }
+
+            Section {
+                Button {
+                    showingRemindersImport = true
+                } label: {
+                    Label("Import from Apple Reminders", systemImage: "list.bullet.clipboard")
+                }
+            } header: {
+                Text("Data Import")
+            } footer: {
+                Text("One-time migration of your existing Reminders-based workflow. Shows a preview before creating anything; Reminders itself is never changed.")
             }
 
             Section {
@@ -81,5 +94,6 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+        .sheet(isPresented: $showingRemindersImport) { RemindersImportView() }
     }
 }

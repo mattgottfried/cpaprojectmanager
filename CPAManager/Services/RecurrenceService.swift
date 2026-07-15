@@ -31,7 +31,11 @@ enum RecurrenceService {
                     engagement.lastGeneratedDueDate = engagement.nextDueDate
                     created += 1
                 }
-                engagement.nextDueDate = engagement.frequency.nextDate(after: engagement.nextDueDate)
+                var next = engagement.frequency.nextDate(after: engagement.nextDueDate)
+                if engagement.adjustForWeekends {
+                    next = DateMath.skippingWeekend(next, calendar: calendar)
+                }
+                engagement.nextDueDate = next
             }
         }
 
@@ -66,9 +70,20 @@ enum RecurrenceService {
         project.serviceType = engagement.serviceType
     }
 
+    /// Titles the generated project by the period it covers, not its due date —
+    /// e.g. a bookkeeping close due 6/27 is titled "05/2026" (matches the firm's
+    /// `Client - MM/YYYY` naming convention).
     private static func title(for engagement: RecurringEngagement) -> String {
+        let period = engagement.frequency.previousDate(before: engagement.nextDueDate)
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM yyyy"
-        return "\(engagement.name) — \(formatter.string(from: engagement.nextDueDate))"
+        switch engagement.frequency {
+        case .monthly, .quarterly:
+            formatter.dateFormat = "MM/yyyy"
+        case .weekly, .biweekly:
+            formatter.dateFormat = "MMM d"
+        case .annually:
+            formatter.dateFormat = "yyyy"
+        }
+        return "\(engagement.name) - \(formatter.string(from: period))"
     }
 }
