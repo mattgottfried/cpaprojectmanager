@@ -3,6 +3,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
+    @Environment(SyncStatus.self) private var syncStatus
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
@@ -80,13 +81,25 @@ struct SettingsView: View {
             }
 
             Section {
-                Label("Syncs across your devices via iCloud", systemImage: "icloud.fill")
-                    .foregroundStyle(Theme.brand)
-                Text("Sign into the same iCloud account on each device. Your data is stored privately in your iCloud — no third-party server.")
+                if syncStatus.isCloudKitActive {
+                    Label("Active — syncing via iCloud", systemImage: "checkmark.icloud.fill")
+                        .foregroundStyle(.green)
+                } else {
+                    Label("Local Only — not syncing", systemImage: "exclamationmark.icloud.fill")
+                        .foregroundStyle(.red)
+                    if let error = syncStatus.containerError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                LabeledContent("iCloud account", value: syncStatus.accountStatusDescription)
+                LabeledContent("Container", value: SyncStatus.containerIdentifier)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
             } header: {
-                Text("Sync")
+                Text("iCloud Sync")
+            } footer: {
+                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section.")
             }
 
             Section {

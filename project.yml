@@ -40,6 +40,8 @@ targets:
         NSRemindersFullAccessUsageDescription: "CPA Manager can import your existing Apple Reminders workflow (clients, projects, and recurring work) into the app. Nothing in Reminders is changed or deleted."
         NSCameraUsageDescription: "CPA Manager uses the camera to scan documents and attach them to a client or project."
         NSCalendarsWriteOnlyAccessUsageDescription: "CPA Manager can add a deadline to your calendar when you tap \"Add to Calendar.\" It doesn't read your existing calendar events."
+        UIBackgroundModes:
+          - remote-notification
         UILaunchScreen: {}
         UIApplicationSupportsIndirectInputEvents: true
         UISupportedInterfaceOrientations:

@@ -110,12 +110,43 @@ time entries appear everywhere. Nothing leaves your iCloud; there is no third-pa
 backend.
 
 If CloudKit isn't configured yet (e.g. no iCloud account on the simulator), the app
-**falls back to a local store** so it still runs — see `CPAManagerApp.swift`.
+**falls back to a local store** so it still runs — see `CPAManagerApp.swift`. That
+fallback used to be silent; **Settings → iCloud Sync** now shows whether each device
+is actually "Active" or stuck on "Local Only" (and why), so you don't have to guess.
 
 > **First-run note:** seeding runs when the local store is empty. If you install on
 > a second device before the first device's data has finished syncing down, both may
 > seed the default templates and you'll see duplicates. Just delete the extras (or
 > use *Settings → Restore default templates* as needed).
+
+### Sync not working?
+
+Check **Settings → iCloud Sync on each device first** — it tells you exactly what's
+going on instead of guessing:
+
+1. **If any device shows "Local Only — not syncing"** with an error message: that
+   device's SwiftData container failed to connect to CloudKit at all. The single most
+   common cause, especially if you're on TestFlight: **the CloudKit schema was never
+   deployed to Production** (record types only exist in the Development environment
+   until you manually promote them). Fix: run the app once from Xcode in **Debug**
+   (creates the schema in Development), then go to
+   [icloud.developer.apple.com](https://icloud.developer.apple.com) → your
+   `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema** → **Deploy Schema
+   to Production**. Re-upload/reinstall after.
+2. **If both devices show "Active"** but data still isn't appearing on the other:
+   - Confirm the **iCloud account** shown matches on both (Settings shows the raw
+     account status too — "No iCloud account," "Restricted," etc. means the account
+     itself is the problem, not the app).
+   - On each device, go to **Settings (system) → [your name] → iCloud → Apps Using
+     iCloud** (or "See All") and make sure this app is toggled **on**. A TestFlight
+     install can end up with this off without ever prompting you.
+   - Give it a minute and **relaunch** the app on both ends — SwiftData does an
+     import pass on launch/foreground; it isn't always instant, especially for the
+     very first sync between two devices.
+3. Still stuck? Check **Settings → iCloud Sync → Container** matches
+   `iCloud.com.gottfriedcpa.ProjectManager` on both devices — a mismatched bundle ID
+   or container (e.g. one device on an older build before a rename) would put them
+   in two different CloudKit containers that can never sync with each other.
 
 ---
 

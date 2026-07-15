@@ -14,5 +14,10 @@
 	<array>
 		<string>group.com.gottfriedcpa.ProjectManager</string>
 	</array>
+	<!-- Xcode swaps this to "production" automatically when archiving for
+	     TestFlight/App Store, based on your provisioning profile — always leave
+	     it as "development" here, or Debug runs to a device will fail to sign. -->
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>
