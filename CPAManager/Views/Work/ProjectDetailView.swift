@@ -11,6 +11,7 @@ struct ProjectDetailView: View {
     @State private var showingEdit = false
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
+    @State private var calendarRequest: CalendarEventRequest?
 
     private var isTimingThisProject: Bool {
         timer.isRunning && timer.runningEntryID != nil && timer.label == project.title
@@ -43,6 +44,7 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
+        .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
     }
 
     // MARK: Sections
@@ -126,8 +128,13 @@ struct ProjectDetailView: View {
                 ForEach(Priority.allCases) { Text($0.label).tag($0) }
             }
             Toggle("Has due date", isOn: hasDueDateBinding)
-            if project.dueDate != nil {
+            if let due = project.dueDate {
                 DatePicker("Due", selection: dueDateBinding, displayedComponents: .date)
+                Button {
+                    calendarRequest = CalendarEventRequest(title: project.title, date: due, notes: project.clientName)
+                } label: {
+                    Label("Add to Calendar", systemImage: "calendar.badge.plus")
+                }
             }
         }
     }

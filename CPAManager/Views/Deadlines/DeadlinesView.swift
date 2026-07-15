@@ -5,6 +5,7 @@ struct DeadlinesView: View {
     @Query private var projects: [Project]
     @Query private var tasks: [TaskItem]
     @State private var showingTaxDates = false
+    @State private var calendarRequest: CalendarEventRequest?
 
     private var grouped: [(bucket: String, items: [AgendaItem])] {
         let items = Agenda.items(projects: projects, tasks: tasks)
@@ -44,6 +45,7 @@ struct DeadlinesView: View {
             .navigationTitle("Deadlines")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingTaxDates) { TaxDatesView() }
+            .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
         }
     }
 
@@ -67,10 +69,19 @@ struct DeadlinesView: View {
             DueDatePill(date: item.dueDate, isComplete: item.isComplete)
         }
 
-        if let project = item.project {
-            NavigationLink(value: project) { content }
-        } else {
-            content
+        Group {
+            if let project = item.project {
+                NavigationLink(value: project) { content }
+            } else {
+                content
+            }
+        }
+        .contextMenu {
+            Button {
+                calendarRequest = CalendarEventRequest(title: item.title, date: item.dueDate, notes: item.subtitle)
+            } label: {
+                Label("Add to Calendar", systemImage: "calendar.badge.plus")
+            }
         }
     }
 }

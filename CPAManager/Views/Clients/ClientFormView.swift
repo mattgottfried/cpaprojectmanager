@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Contacts
 
 /// Add or edit a client. Pass an existing `client` to edit; omit it to create.
 struct ClientFormView: View {
@@ -15,6 +16,7 @@ struct ClientFormView: View {
     @State private var email = ""
     @State private var phone = ""
     @State private var notes = ""
+    @State private var showingContactPicker = false
 
     private var isEditing: Bool { client != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty || !company.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -25,6 +27,11 @@ struct ClientFormView: View {
                 Section {
                     TextField("Name", text: $name)
                     TextField("Company (optional)", text: $company)
+                    Button {
+                        showingContactPicker = true
+                    } label: {
+                        Label("Import from Contacts", systemImage: "person.crop.circle.badge.plus")
+                    }
                 }
                 Section {
                     Picker("Entity type", selection: $entityType) {
@@ -58,7 +65,22 @@ struct ClientFormView: View {
                 }
             }
             .onAppear(perform: loadIfEditing)
+            .sheet(isPresented: $showingContactPicker) {
+                ContactPickerView { contact in
+                    if let contact { fill(from: contact) }
+                    showingContactPicker = false
+                }
+                .ignoresSafeArea()
+            }
         }
+    }
+
+    private func fill(from contact: CNContact) {
+        let fullName = [contact.givenName, contact.familyName].filter { !$0.isEmpty }.joined(separator: " ")
+        if !fullName.isEmpty { name = fullName }
+        if !contact.organizationName.isEmpty { company = contact.organizationName }
+        if let firstEmail = contact.emailAddresses.first { email = firstEmail.value as String }
+        if let firstPhone = contact.phoneNumbers.first { phone = firstPhone.value.stringValue }
     }
 
     private func loadIfEditing() {
