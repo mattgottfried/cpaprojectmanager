@@ -102,7 +102,7 @@ enum QBOSyncService {
         struct CreateBody: Encodable {
             struct Ref: Encodable { let value: String }
             let Name: String
-            let Type: String
+            let `Type`: String
             let IncomeAccountRef: Ref
         }
         let body = CreateBody(Name: serviceItemName, Type: "Service", IncomeAccountRef: .init(value: incomeAccount.Id))
