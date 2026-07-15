@@ -38,6 +38,31 @@ struct EntityBadge: View {
     }
 }
 
+struct InvoiceStatusBadge: View {
+    let status: InvoiceStatus
+    var body: some View {
+        Text(status.label)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(status.color.opacity(0.15), in: Capsule())
+            .foregroundStyle(status.color)
+    }
+}
+
+struct QBOSyncStateBadge: View {
+    let state: QBOSyncState
+    var body: some View {
+        Label(state.label, systemImage: state.systemImage)
+            .font(.caption2.weight(.semibold))
+            .labelStyle(.titleAndIcon)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(state.color.opacity(0.15), in: Capsule())
+            .foregroundStyle(state.color)
+    }
+}
+
 struct PriorityBadge: View {
     let priority: Priority
     var body: some View {

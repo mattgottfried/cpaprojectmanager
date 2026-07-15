@@ -14,6 +14,8 @@ final class TimeEntry {
     var projectTitle: String = ""
     var clientName: String = ""
     var createdAt: Date = Date.now
+    /// Set once this entry has been added to an invoice's line items.
+    var invoiceID: UUID? = nil
 
     var project: Project? = nil
 
@@ -38,6 +40,8 @@ final class TimeEntry {
     }
 
     var isRunning: Bool { endedAt == nil }
+    var isBilled: Bool { invoiceID != nil }
+    var isUnbilled: Bool { !isRunning && isBillable && invoiceID == nil }
 
     /// Elapsed seconds — live if running, otherwise the fixed span.
     var durationSeconds: Double {

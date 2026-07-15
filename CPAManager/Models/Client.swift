@@ -16,6 +16,8 @@ final class Client {
     var phone: String = ""
     var notes: String = ""
     var createdAt: Date = Date.now
+    /// This client's QuickBooks Online Customer Id, once synced (see Services/QBO).
+    var qboCustomerId: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []

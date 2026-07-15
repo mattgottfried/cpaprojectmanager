@@ -17,6 +17,9 @@ struct TimeLogView: View {
     }
     private var monthSeconds: Double { monthEntries.reduce(0) { $0 + $1.durationSeconds } }
     private var monthBillable: Double { monthEntries.reduce(0) { $0 + $1.billableAmount } }
+    private var unbilledTotal: Double {
+        completed.filter(\.isUnbilled).reduce(0) { $0 + $1.billableAmount }
+    }
 
     var body: some View {
         List {
@@ -52,6 +55,14 @@ struct TimeLogView: View {
                 LabeledContent("Billable", value: Format.currency(monthBillable))
             }
 
+            if unbilledTotal > 0 {
+                Section {
+                    LabeledContent("Unbilled", value: Format.currency(unbilledTotal))
+                } footer: {
+                    Text("Create an invoice from Invoices to bill this time.")
+                }
+            }
+
             Section("Entries") {
                 if completed.isEmpty {
                     Text("No time logged yet.").foregroundStyle(.secondary)
@@ -83,6 +94,11 @@ struct TimeLogView: View {
                     Text(Format.currency(entry.billableAmount))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                if entry.isBilled {
+                    Text("Billed").font(.caption2).foregroundStyle(.green)
+                } else if entry.isUnbilled {
+                    Text("Unbilled").font(.caption2).foregroundStyle(.orange)
                 }
             }
         }

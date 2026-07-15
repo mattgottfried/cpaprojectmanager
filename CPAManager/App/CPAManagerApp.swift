@@ -5,6 +5,7 @@ import SwiftData
 struct CPAManagerApp: App {
     let container: ModelContainer
     @State private var timer = TimerController()
+    @State private var qboAuth = QBOAuthService()
 
     init() {
         let schema = Schema([
@@ -16,6 +17,8 @@ struct CPAManagerApp: App {
             RecurringEngagement.self,
             TimeEntry.self,
             Document.self,
+            Invoice.self,
+            InvoiceLine.self,
         ])
 
         // Primary configuration syncs through the user's private iCloud (CloudKit).
@@ -47,6 +50,7 @@ struct CPAManagerApp: App {
         WindowGroup {
             RootView()
                 .environment(timer)
+                .environment(qboAuth)
                 .tint(Theme.brand)
         }
         .modelContainer(container)

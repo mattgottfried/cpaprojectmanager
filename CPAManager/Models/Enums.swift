@@ -245,6 +245,66 @@ enum Frequency: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+// MARK: - Invoice status
+
+enum InvoiceStatus: String, CaseIterable, Identifiable, Codable {
+    case draft
+    case sent
+    case paid
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .draft: return "Draft"
+        case .sent:  return "Sent"
+        case .paid:  return "Paid"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .draft: return .gray
+        case .sent:  return .blue
+        case .paid:  return .green
+        }
+    }
+}
+
+// MARK: - QuickBooks Online sync state
+
+enum QBOSyncState: String, CaseIterable, Identifiable, Codable {
+    case notSynced
+    case synced
+    case failed
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .notSynced: return "Not Synced"
+        case .synced:    return "Synced"
+        case .failed:    return "Sync Failed"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .notSynced: return .gray
+        case .synced:    return .green
+        case .failed:    return .red
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .notSynced: return "icloud.slash"
+        case .synced:    return "checkmark.icloud.fill"
+        case .failed:    return "exclamationmark.icloud.fill"
+        }
+    }
+}
+
 // MARK: - Priority
 
 enum Priority: String, CaseIterable, Identifiable, Codable {

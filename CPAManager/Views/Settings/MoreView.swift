@@ -21,6 +21,11 @@ struct MoreView: View {
                     } label: {
                         Label("Time & Billing", systemImage: "clock.fill")
                     }
+                    NavigationLink {
+                        InvoicesListView()
+                    } label: {
+                        Label("Invoices", systemImage: "doc.text.image.fill")
+                    }
                 }
 
                 Section {

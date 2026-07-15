@@ -55,6 +55,18 @@ struct SettingsView: View {
             }
 
             Section {
+                NavigationLink {
+                    QBOSettingsView()
+                } label: {
+                    Label("QuickBooks Online", systemImage: "building.columns.fill")
+                }
+            } header: {
+                Text("Integrations")
+            } footer: {
+                Text("Connect to push invoices directly into QuickBooks Online.")
+            }
+
+            Section {
                 Button {
                     showingRestoreConfirm = true
                 } label: {
