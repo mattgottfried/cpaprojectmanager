@@ -17,17 +17,30 @@ It includes the Apple-native touches that make an iPhone app feel great:
 
 | Area | What it does |
 |------|--------------|
-| **Dashboard** | Overdue / due-today / open-work counts, an active-timer banner, "coming up" and "in progress" lists. |
-| **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, and tap-to-call / text / email. |
-| **Work** | Projects (e.g. "Smith 2025 — 1040 Individual Return") broken into checkable tasks, with status, priority, due date, and progress. |
-| **Deadlines** | Everything due, grouped **Overdue / Today / This Week / Later**, plus a reference list of standard US filing dates. |
+| **Dashboard** | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
+| **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
+| **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
+| **Deadlines** | Everything due, grouped **Overdue / Today / This Week / Later**, a reference list of standard US filing dates, and **Add to Calendar** on any item. |
+| **Documents** | Scan paper documents with the camera (combined into one PDF), or attach a photo or file, on any client or project. Tap to preview; synced like everything else. |
 | **Templates** | Reusable engagement checklists. Instantiating one creates a project with tasks whose due dates are computed from each step's day-offset. |
-| **Recurring work** | Monthly bookkeeping, quarterly estimates, payroll, etc. — auto-generates a project from a template when its lead-time window opens, then advances the schedule. |
-| **Time & billing** | Start/stop timer (also a Live Activity), a running billable total for the month, and a time log. |
+| **Recurring work** | Monthly bookkeeping, quarterly estimates, payroll (weekly/biweekly/monthly/quarterly/annually), etc. — auto-generates a project from a template when its lead-time window opens, then advances the schedule. |
+| **Time & billing** | Start/stop timer (also a Live Activity), a running billable total for the month, and a time log with an unbilled-time indicator. |
+| **Invoicing** | Build an invoice from a client's unbilled time (one line per entry), generate a clean PDF, and share it by email/Messages/AirDrop. Optionally **push it straight into QuickBooks Online** — see the QuickBooks section below. |
+| **Reports** | Billable hours & amount by client for month/quarter/YTD, unbilled work in progress, open work by pipeline stage, and what's overdue. |
 
 The app **seeds itself on first launch** with a few sample clients and five default
 templates (1040, 1120-S, Monthly Bookkeeping, Quarterly Estimates, Payroll Run) so
 it isn't empty. You can edit or delete anything.
+
+### Migrating from Apple Reminders
+
+If you've been tracking client work in Apple Reminders, **Settings → Import from
+Apple Reminders** does a one-time migration: it scans your Reminders lists, parses
+them using common conventions (`YYYY - Client - 1040`, `Client - MM/YYYY` for
+bookkeeping, "Waiting on ___" hold suffixes, biweekly payroll, etc.), and shows a
+**preview you can review and deselect items from** before anything is created.
+Likely duplicates (matched by title against what's already in the app) are
+pre-unchecked. It never modifies or deletes anything in Reminders — read-only.
 
 ---
 
@@ -114,21 +127,87 @@ CPAManager/
   App/            App entry (@main), settings keys
   Models/         SwiftData @Model types + enums (CloudKit-safe)
   Services/       WorkflowEngine, RecurrenceService, NotificationScheduler,
-                  TimerController, SnapshotBuilder, SeedData
+                  TimerController, SnapshotBuilder, SeedData, RemindersImporter,
+                  InvoicePDF, KeychainStore, QBO/ (OAuth, client, sync)
   Shared/         Compiled into BOTH app & widget — Live Activity attributes,
-                  App-Group dashboard snapshot, formatters, theme
-  Views/          Dashboard, Clients, Work, Deadlines, Templates, Recurring,
-                  Time, Settings, and reusable Components
-  Resources/      Asset catalog (accent color; placeholder app icon)
+                  App-Group dashboard snapshot, formatters, theme, DateMath
+  Views/          Dashboard, Clients, Work (+ Board), Deadlines, Documents,
+                  Templates, Recurring, Time, Invoices, Reports, Settings,
+                  and reusable Components
+  Resources/      Asset catalog (accent color; app icon)
   Entitlements/   iCloud (CloudKit) + App Group
 CPAWidgets/       Widget extension: Due-Today widget + Timer Live Activity
+docs/qbo-redirect/  Static HTTPS redirect page for QuickBooks OAuth (see below)
 ```
 
 ### Data model
-`Client 1—* Project 1—* TaskItem`, plus `WorkflowTemplate 1—* TemplateTask`,
-`RecurringEngagement` (links a client + template on a schedule), and `TimeEntry`
-(owned by a project). All attributes have defaults and all relationships are
-optional — the requirements for SwiftData + CloudKit.
+`Client 1—* Project 1—* TaskItem`, `Client 1—* Document` and `Project 1—* Document`,
+`WorkflowTemplate 1—* TemplateTask`, `RecurringEngagement` (links a client +
+template on a schedule), `TimeEntry` (owned by a project; `invoiceID` marks it
+billed), and `Invoice 1—* InvoiceLine` (owned by a client). All attributes have
+defaults and all relationships are optional — the requirements for SwiftData +
+CloudKit.
+
+### Permissions the app asks for
+
+Each is requested only the first time the relevant feature is used, with a plain-
+language explanation (already wired up in `project.yml`'s Info.plist entries):
+
+| Permission | Used for | Requested by |
+|---|---|---|
+| Camera | Scanning documents | Tapping "Scan Document" |
+| Reminders (full access) | The one-time Reminders import | Settings → Import from Apple Reminders |
+| Calendar (write-only) | Adding a single deadline | Tapping "Add to Calendar" |
+| Contacts | *(none needed)* — the picker runs out-of-process | Tapping "Import from Contacts" |
+
+---
+
+## Connecting QuickBooks Online
+
+This is entirely optional — invoices work fine without it, you'll just skip the
+"Send to QuickBooks" button. If you want the sync, you need your own free Intuit
+developer app (Matt's app talks directly to Intuit; there's no middleman server).
+
+### 1. Create an Intuit developer app
+
+1. Go to [developer.intuit.com](https://developer.intuit.com), sign in with your
+   QuickBooks account, and create a new app (**Accounting** scope).
+2. You'll get a **sandbox** Client ID/Secret immediately for testing against a fake
+   company file — start there before touching real data.
+3. Under the app's **Keys & OAuth** settings, you'll set a **Redirect URI** — that's
+   the GitHub Pages URL from the next step.
+
+### 2. Host the redirect page
+
+Intuit requires an **HTTPS** redirect URI (custom URL schemes aren't accepted
+directly), so this repo includes a tiny static page at `docs/qbo-redirect/index.html`
+that immediately forwards back into the app. The easiest free host is GitHub Pages:
+
+1. In your GitHub repo settings → **Pages**, set the source to the `docs/` folder
+   on this branch (or `main`, once merged).
+2. Your redirect URL will be something like
+   `https://<your-username>.github.io/cpaprojectmanager/qbo-redirect/`.
+3. Paste that **exact URL** into the Intuit app's Redirect URI field, and also into
+   the app's QuickBooks settings (next step) — they must match exactly.
+
+### 3. Connect in the app
+
+1. In the app: **Settings → QuickBooks Online**.
+2. Pick **Sandbox** (start here), and enter your Client ID, Client Secret, and the
+   Redirect URL from step 2.
+3. Tap **Connect to QuickBooks** — this opens a secure in-app browser
+   (`ASWebAuthenticationSession`) to Intuit's login/authorize page, then returns you
+   to the app automatically. Your Client ID/Secret and tokens are stored in the
+   device **Keychain** only — never in code, UserDefaults, or iCloud.
+4. Open an invoice and tap **Send to QuickBooks**. The app automatically creates a
+   matching Customer (or reuses one by name) and an "Accounting Services" line item
+   in your sandbox company the first time, then creates the invoice.
+5. Once you're confident it's working, create a **second, production** Intuit app
+   (or just flip the same app to production keys per Intuit's process), switch the
+   Environment picker to **Production**, and reconnect.
+
+No CFBundleURLTypes / URL-scheme registration is needed in Xcode —
+`ASWebAuthenticationSession` handles the `cpamanager://` callback internally.
 
 ---
 
@@ -141,12 +220,28 @@ Run through this on your Mac to confirm everything works end-to-end:
 3. Create a **client → project → tasks**; check tasks off and watch progress update.
 4. **Apply a template** to a project (or create a project *from* a template) and
    confirm tasks appear with computed due dates.
-5. On a **real device**, **start the timer** on a project → a **Live Activity**
-   shows on the lock screen / Dynamic Island; **stop** ends it.
-6. Add the **"Due Today" widget** to the home screen; it reflects your data.
-7. Install on a **second device** with the same iCloud account → data **syncs**.
-8. Leave a due date for tomorrow; confirm a **local notification** is scheduled
-   (allow notifications when prompted).
+5. Use **Work → + → New Tax Return**; confirm the due date and "Awaiting Docs"
+   status match (received date + 9 days, weekend-adjusted).
+6. On a project, tap **Advance** a couple of times, then **Put on hold…** and
+   **Take off hold** — confirm it resumes at the right stage with a new due date.
+7. Toggle **Work → board icon**; drag a card to a different column on an iPad
+   (or iPad simulator) and confirm the status updates.
+8. **Scan a document** on a **real device** (VisionKit doesn't work in Simulator)
+   and confirm it attaches and previews; also try "Choose Photo" and "Choose File".
+9. Log some time, then **More → Invoices → +** to build an invoice from it; **Share
+   PDF** and confirm it looks right; check the entry now shows "Billed" in Time.
+10. If you've connected QuickBooks (see above), tap **Send to QuickBooks** on an
+    invoice and confirm it appears in your sandbox company.
+11. **Import from Contacts** on a new client, and **Add to Calendar** on a deadline.
+12. If you use Apple Reminders for client work, try **Settings → Import from Apple
+    Reminders** and review the preview (safe to cancel — nothing is created until
+    you tap Import).
+13. On a **real device**, **start the timer** on a project → a **Live Activity**
+    shows on the lock screen / Dynamic Island; **stop** ends it.
+14. Add the **"Due Today" widget** to the home screen; it reflects your data.
+15. Install on a **second device** with the same iCloud account → data **syncs**.
+16. Leave a due date for tomorrow; confirm a **local notification** is scheduled
+    (allow notifications when prompted).
 
 ---
 
@@ -154,6 +249,12 @@ Run through this on your Mac to confirm everything works end-to-end:
 
 TestFlight distribution requires a few things beyond just running on your own
 device in Xcode. Do these **in order**.
+
+> **Already on TestFlight from before?** This update added new SwiftData models
+> (Document, Invoice, InvoiceLine) and fields. Before your next upload, run the app
+> once in Debug so the new schema is created in Development, then **deploy it to
+> Production** again — see step 4 below. Skipping this makes the next Release build
+> fail to sync those new pieces.
 
 ### 0. Prerequisite: a paid Apple Developer Program account
 
@@ -255,5 +356,14 @@ repeat step 6. Internal testers on the same group auto-see new builds.
 
 - **Notifications** are local only (no push server needed). iOS caps pending local
   notifications at 64; the scheduler keeps to the soonest ~60.
-- Ideas for later: document storage, client portal / e-signature, invoicing &
-  payments, and QuickBooks import — the model layer is structured to grow into these.
+- **Document scanning** requires a real device — VisionKit's document camera isn't
+  available in the iOS Simulator.
+- **QuickBooks sync** is intentionally minimal (v1): it creates/reuses one Customer
+  per client and one shared "Accounting Services" line item, then posts the
+  invoice. It doesn't yet sync payments back, handle multiple service items/rates,
+  or import anything *from* QuickBooks — all reasonable next steps if useful.
+- The Apple Reminders importer covers the conventions seen in your existing lists;
+  if you have reminders that don't fit the patterns (odd titles, no due date), they
+  land in a generic bucket you can review and edit rather than being dropped.
+- Ideas for later: a client portal / e-signature requests, recording payments
+  against invoices, and pulling paid/overdue status back from QuickBooks.
