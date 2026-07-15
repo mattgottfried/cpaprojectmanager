@@ -26,6 +26,11 @@ struct MoreView: View {
                     } label: {
                         Label("Invoices", systemImage: "doc.text.image.fill")
                     }
+                    NavigationLink {
+                        ReportsView()
+                    } label: {
+                        Label("Reports", systemImage: "chart.bar.fill")
+                    }
                 }
 
                 Section {

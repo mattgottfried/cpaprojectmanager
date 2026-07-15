@@ -8,6 +8,7 @@ struct WorkListView: View {
     @State private var filter: WorkFilter = .open
     @State private var showingAdd = false
     @State private var showingNewTaxReturn = false
+    @AppStorage("workShowsBoard") private var showBoard = false
 
     enum WorkFilter: String, CaseIterable, Identifiable {
         case open = "Open"
@@ -45,6 +46,8 @@ struct WorkListView: View {
                         message: "Create a project, or start one from a template.",
                         systemImage: "checklist"
                     )
+                } else if showBoard {
+                    BoardView()
                 } else {
                     List {
                         ForEach(filtered) { project in
@@ -75,6 +78,14 @@ struct WorkListView: View {
                         ForEach(WorkFilter.allCases) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.menu)
+                    .disabled(showBoard)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showBoard.toggle()
+                    } label: {
+                        Image(systemName: showBoard ? "list.bullet" : "rectangle.split.3x1")
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
