@@ -20,6 +20,9 @@ final class Client {
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \Document.client)
+    var documents: [Document]? = []
+
     init(
         name: String = "",
         company: String = "",

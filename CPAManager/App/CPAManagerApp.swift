@@ -15,6 +15,7 @@ struct CPAManagerApp: App {
             TemplateTask.self,
             RecurringEngagement.self,
             TimeEntry.self,
+            Document.self,
         ])
 
         // Primary configuration syncs through the user's private iCloud (CloudKit).

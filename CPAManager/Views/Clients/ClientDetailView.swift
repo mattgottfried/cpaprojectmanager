@@ -66,6 +66,8 @@ struct ClientDetailView: View {
                     Label("New project", systemImage: "plus")
                 }
             }
+
+            DocumentsSectionView(client: client)
         }
         .navigationTitle(client.displayName)
         .navigationBarTitleDisplayMode(.inline)

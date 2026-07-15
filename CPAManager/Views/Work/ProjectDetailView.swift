@@ -26,6 +26,7 @@ struct ProjectDetailView: View {
                 Section("Notes") { Text(project.detail) }
             }
             timeSection
+            DocumentsSectionView(project: project)
         }
         .navigationTitle("Project")
         .navigationBarTitleDisplayMode(.inline)

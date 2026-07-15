@@ -36,6 +36,9 @@ final class Project {
     @Relationship(deleteRule: .cascade, inverse: \TimeEntry.project)
     var timeEntries: [TimeEntry]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \Document.project)
+    var documents: [Document]? = []
+
     init(
         title: String = "",
         detail: String = "",
