@@ -22,7 +22,28 @@ final class SyncStatus {
 
     func recordContainerResult(isCloudKitActive: Bool, error: Error?) {
         self.isCloudKitActive = isCloudKitActive
-        self.containerError = error?.localizedDescription
+        self.containerError = error.map(Self.fullDescription)
+    }
+
+    /// SwiftData/CloudKit errors are often generic at the top level (e.g.
+    /// "SwiftDataError error 1") with the actually-useful explanation buried in
+    /// the underlying-error chain or a debug-description key. Walk both so the
+    /// Settings screen shows something a person can act on.
+    private static func fullDescription(for error: Error) -> String {
+        var lines: [String] = []
+        var current: Error? = error
+        var depth = 0
+        while let err = current, depth < 6 {
+            let nsError = err as NSError
+            lines.append("[\(nsError.domain) \(nsError.code)] \(nsError.localizedDescription)")
+            if let debugDescription = nsError.userInfo[NSDebugDescriptionErrorKey] as? String,
+               !debugDescription.isEmpty {
+                lines.append("Detail: \(debugDescription)")
+            }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? Error
+            depth += 1
+        }
+        return lines.joined(separator: "\n")
     }
 
     func refreshAccountStatus() {

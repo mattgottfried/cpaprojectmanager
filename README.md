@@ -124,15 +124,31 @@ is actually "Active" or stuck on "Local Only" (and why), so you don't have to gu
 Check **Settings → iCloud Sync on each device first** — it tells you exactly what's
 going on instead of guessing:
 
-1. **If any device shows "Local Only — not syncing"** with an error message: that
-   device's SwiftData container failed to connect to CloudKit at all. The single most
-   common cause, especially if you're on TestFlight: **the CloudKit schema was never
-   deployed to Production** (record types only exist in the Development environment
-   until you manually promote them). Fix: run the app once from Xcode in **Debug**
-   (creates the schema in Development), then go to
-   [icloud.developer.apple.com](https://icloud.developer.apple.com) → your
-   `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema** → **Deploy Schema
-   to Production**. Re-upload/reinstall after.
+1. **If any device shows "Local Only — not syncing"** with an error message: tap
+   **Copy error** (or select/copy the text directly — it's selectable) and check
+   what it says. Two different failure modes look the same at a glance but need
+   different fixes:
+   - **If the error mentions `SwiftDataError`** (e.g. "SwiftDataError error 1"):
+     this happens locally, before any network call, so it's not a
+     schema-deployment issue. Try, in order:
+     a. **Delete the app and reinstall fresh** from TestFlight on that device.
+        Across several TestFlight builds the data model has grown; a stale local
+        database from an older build can conflict with the current schema. Since
+        nothing has synced yet, there's nothing to lose.
+     b. If that doesn't help, in Xcode → target **CPAManager** → **Signing &
+        Capabilities** → confirm the **iCloud** capability shows the
+        `iCloud.com.gottfriedcpa.ProjectManager` container **checked with no
+        warning triangle**. A warning here means the container never finished
+        provisioning for your team — click it again / re-add it to force Xcode to
+        re-provision, then rebuild.
+   - **Otherwise** (a CloudKit-specific error, e.g. mentioning "zone" or "record
+     type"): the single most common cause on TestFlight is that **the CloudKit
+     schema was never deployed to Production** (record types only exist in the
+     Development environment until you manually promote them). Fix: run the app
+     once from Xcode in **Debug** (creates the schema in Development), then go to
+     [icloud.developer.apple.com](https://icloud.developer.apple.com) → your
+     `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema** → **Deploy
+     Schema to Production**. Re-upload/reinstall after.
 2. **If both devices show "Active"** but data still isn't appearing on the other:
    - Confirm the **iCloud account** shown matches on both (Settings shows the raw
      account status too — "No iCloud account," "Restricted," etc. means the account

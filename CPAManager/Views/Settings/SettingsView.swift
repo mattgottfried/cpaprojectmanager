@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
@@ -89,8 +90,16 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                     if let error = syncStatus.containerError {
                         Text(error)
-                            .font(.caption)
+                            .font(.caption.monospaced())
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                        Button {
+                            UIPasteboard.general.string = error
+                        } label: {
+                            Label("Copy error", systemImage: "doc.on.doc")
+                        }
+                        .font(.caption)
                     }
                 }
                 LabeledContent("iCloud account", value: syncStatus.accountStatusDescription)
