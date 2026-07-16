@@ -12,9 +12,7 @@ settings:
     CURRENT_PROJECT_VERSION: "2"
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
-    # ↓↓↓ Set this to your Apple Developer Team ID (Xcode > Settings > Accounts),
-    #     or just pick your team in the Signing & Capabilities tab after generating.
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: X796Z5UW4P
 
 targets:
   CPAManager:
