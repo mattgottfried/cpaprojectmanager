@@ -16,6 +16,9 @@ final class WorkflowTemplate {
     @Relationship(deleteRule: .cascade, inverse: \TemplateTask.template)
     var tasks: [TemplateTask]? = []
 
+    @Relationship(inverse: \RecurringEngagement.template)
+    var recurringEngagements: [RecurringEngagement]? = []
+
     init(
         name: String = "",
         detail: String = "",

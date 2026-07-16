@@ -25,6 +25,12 @@ final class Client {
     @Relationship(deleteRule: .cascade, inverse: \Document.client)
     var documents: [Document]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \Invoice.client)
+    var invoices: [Invoice]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \RecurringEngagement.client)
+    var recurringEngagements: [RecurringEngagement]? = []
+
     init(
         name: String = "",
         company: String = "",
@@ -60,6 +66,10 @@ final class Client {
     // MARK: Convenience
 
     var projectList: [Project] { projects ?? [] }
+
+    var invoiceList: [Invoice] { invoices ?? [] }
+
+    var recurringEngagementList: [RecurringEngagement] { recurringEngagements ?? [] }
 
     var openProjects: [Project] {
         projectList.filter { !$0.status.isComplete }

@@ -130,17 +130,18 @@ going on instead of guessing:
    different fixes:
    - **If the error mentions `SwiftDataError`** (e.g. "SwiftDataError error 1"):
      this happens locally, before any network call, so it's not a
-     schema-deployment issue. Try, in order:
-     a. **Delete the app and reinstall fresh** from TestFlight on that device.
-        Across several TestFlight builds the data model has grown; a stale local
-        database from an older build can conflict with the current schema. Since
-        nothing has synced yet, there's nothing to lose.
-     b. If that doesn't help, in Xcode → target **CPAManager** → **Signing &
-        Capabilities** → confirm the **iCloud** capability shows the
-        `iCloud.com.gottfriedcpa.ProjectManager` container **checked with no
-        warning triangle**. A warning here means the container never finished
-        provisioning for your team — click it again / re-add it to force Xcode to
-        re-provision, then rebuild.
+     schema-deployment or provisioning issue — it means the local Core Data/
+     CloudKit store failed to load. The generic error hides the real reason;
+     to see it, run the app directly from Xcode (▶, Debug scheme, device or
+     **My Mac**) with the console open and look for a line like:
+     `CloudKit integration requires that all relationships have an inverse,
+     the following do not: ...`. **Every `@Relationship` needs both sides
+     declared** — a collection property with `@Relationship(inverse:)` on one
+     model, and a plain optional property (no macro) on the other. If you add
+     a new relationship later and forget the inverse side, this is the error
+     you'll get; add the missing `@Relationship(inverse:)` array property to
+     the referenced model (see `Client.swift`'s `projects`/`documents`/
+     `invoices`/`recurringEngagements` for the pattern) and rebuild.
    - **Otherwise** (a CloudKit-specific error, e.g. mentioning "zone" or "record
      type"): the single most common cause on TestFlight is that **the CloudKit
      schema was never deployed to Production** (record types only exist in the
