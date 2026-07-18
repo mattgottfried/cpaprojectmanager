@@ -2,6 +2,7 @@ import Foundation
 
 /// Formatting helpers shared by the app and the widget.
 enum Format {
+    static let placeholder = "____________"
     static let mediumDate: DateFormatter = {
         let f = DateFormatter()
         f.dateStyle = .medium

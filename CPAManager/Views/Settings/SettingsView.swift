@@ -6,6 +6,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var context
     @Environment(SyncStatus.self) private var syncStatus
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
+    @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
+    @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
 
@@ -21,8 +23,14 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Firm") {
+            Section {
                 TextField("Firm name", text: $firmName)
+                TextField("Tagline (e.g. \"Certified Public Accountants  •  Ocoee, FL\")", text: $firmTagline)
+                TextField("Contact (e.g. \"you@example.com  •  555-555-0100\")", text: $firmContact)
+            } header: {
+                Text("Firm")
+            } footer: {
+                Text("Shown on printed routing sheets and invoices.")
             }
 
             Section("Billing") {

@@ -7,6 +7,8 @@ struct ProjectDetailView: View {
     @Environment(TimerController.self) private var timer
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
+    @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
+    @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
 
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
@@ -255,7 +257,12 @@ struct ProjectDetailView: View {
     }
 
     private func generateRoutingSheet() {
-        let url = RoutingSheetPDF.generate(project: project, firmName: firmName.isEmpty ? "My Firm" : firmName)
+        let url = RoutingSheetPDF.generate(
+            project: project,
+            firmName: firmName.isEmpty ? "My Firm" : firmName,
+            firmTagline: firmTagline,
+            firmContact: firmContact
+        )
         routingSheetURL = url
         showingRoutingSheetShare = url != nil
     }
