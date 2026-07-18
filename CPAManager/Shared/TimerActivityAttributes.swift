@@ -1,6 +1,9 @@
 import Foundation
 
-#if canImport(ActivityKit)
+// Live Activities have no Mac Catalyst equivalent — ActivityKit is importable
+// there, but ActivityAttributes conformance is explicitly unavailable, so guard
+// on targetEnvironment too, not just canImport.
+#if canImport(ActivityKit) && !targetEnvironment(macCatalyst)
 import ActivityKit
 
 /// Describes the billable-hours Live Activity shown on the lock screen and in the

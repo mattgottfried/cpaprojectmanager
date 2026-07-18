@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 import Observation
-#if canImport(ActivityKit)
+#if canImport(ActivityKit) && !targetEnvironment(macCatalyst)
 import ActivityKit
 #endif
 
@@ -78,7 +78,7 @@ final class TimerController {
     // MARK: Live Activity
 
     private func startLiveActivity(startedAt: Date, isBillable: Bool) {
-        #if canImport(ActivityKit)
+        #if canImport(ActivityKit) && !targetEnvironment(macCatalyst)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = TimerActivityAttributes(clientName: clientName, projectTitle: label)
         let state = TimerActivityAttributes.ContentState(startedAt: startedAt, isBillable: isBillable)
@@ -95,7 +95,7 @@ final class TimerController {
     }
 
     private func endLiveActivity() {
-        #if canImport(ActivityKit)
+        #if canImport(ActivityKit) && !targetEnvironment(macCatalyst)
         Task {
             for activity in Activity<TimerActivityAttributes>.activities {
                 await activity.end(nil, dismissalPolicy: .immediate)
