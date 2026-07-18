@@ -177,10 +177,19 @@ struct ProjectDetailView: View {
             }
 
             if !project.taskList.isEmpty {
-                Button {
-                    generateRoutingSheet()
+                Menu {
+                    Button {
+                        printRoutingSheet()
+                    } label: {
+                        Label("Print", systemImage: "printer")
+                    }
+                    Button {
+                        shareRoutingSheet()
+                    } label: {
+                        Label("Share…", systemImage: "square.and.arrow.up")
+                    }
                 } label: {
-                    Label("Print / Share Routing Sheet", systemImage: "printer")
+                    Label("Routing Sheet", systemImage: "printer")
                 }
             }
         }
@@ -256,13 +265,22 @@ struct ProjectDetailView: View {
         NotificationScheduler.rescheduleAll(context: context)
     }
 
-    private func generateRoutingSheet() {
-        let url = RoutingSheetPDF.generate(
+    private func generateRoutingSheet() -> URL? {
+        RoutingSheetPDF.generate(
             project: project,
             firmName: firmName.isEmpty ? "My Firm" : firmName,
             firmTagline: firmTagline,
             firmContact: firmContact
         )
+    }
+
+    private func printRoutingSheet() {
+        guard let url = generateRoutingSheet() else { return }
+        PrintHelper.printPDF(at: url, jobName: "Routing Sheet - \(project.title)")
+    }
+
+    private func shareRoutingSheet() {
+        let url = generateRoutingSheet()
         routingSheetURL = url
         showingRoutingSheetShare = url != nil
     }
