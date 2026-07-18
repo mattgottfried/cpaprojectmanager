@@ -175,6 +175,7 @@ enum ServiceType: String, CaseIterable, Identifiable, Codable {
     case bookkeeping
     case payroll
     case advisory
+    case irsNotice
     case other
 
     var id: String { rawValue }
@@ -185,6 +186,7 @@ enum ServiceType: String, CaseIterable, Identifiable, Codable {
         case .bookkeeping: return "Bookkeeping"
         case .payroll:     return "Payroll"
         case .advisory:    return "Advisory"
+        case .irsNotice:   return "IRS Notice"
         case .other:       return "Other"
         }
     }
@@ -195,6 +197,7 @@ enum ServiceType: String, CaseIterable, Identifiable, Codable {
         case .bookkeeping: return "book.closed.fill"
         case .payroll:     return "dollarsign.circle.fill"
         case .advisory:    return "lightbulb.fill"
+        case .irsNotice:   return "envelope.open.fill"
         case .other:       return "folder.fill"
         }
     }

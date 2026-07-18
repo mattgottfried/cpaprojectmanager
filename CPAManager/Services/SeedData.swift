@@ -29,7 +29,8 @@ enum SeedData {
     // MARK: Templates
 
     private static func seedTemplates(context: ModelContext) {
-        for spec in defaultTemplates {
+        let existingNames = Set((try? context.fetch(FetchDescriptor<WorkflowTemplate>()))?.map(\.name) ?? [])
+        for spec in defaultTemplates where !existingNames.contains(spec.name) {
             let template = WorkflowTemplate(
                 name: spec.name,
                 detail: spec.detail,
@@ -124,6 +125,44 @@ enum SeedData {
                 Step(title: "Process payroll", dayOffset: 2),
                 Step(title: "Submit tax deposits", dayOffset: 3),
                 Step(title: "Distribute pay stubs", dayOffset: 4),
+            ]
+        ),
+        TemplateSpec(
+            name: "Tax Return Routing Sheet",
+            detail: "Firm routing sheet: intake through file closed & archived.",
+            serviceType: .taxReturn,
+            durationDays: 45,
+            steps: [
+                Step(title: "Intake — documents & engagement letter received", dayOffset: 0),
+                Step(title: "Organizer / source docs reviewed for completeness", dayOffset: 5),
+                Step(title: "Data entry / return preparation", dayOffset: 15),
+                Step(title: "Self-review & diagnostics cleared", dayOffset: 25),
+                Step(title: "Client copy assembled & sent for signature (8879 / e-sign)", dayOffset: 30),
+                Step(title: "Signed authorization received", dayOffset: 33),
+                Step(title: "E-filed / submitted", dayOffset: 36),
+                Step(title: "Acknowledgment received (accepted)", dayOffset: 38),
+                Step(title: "Invoice issued", dayOffset: 40),
+                Step(title: "Payment received", dayOffset: 43),
+                Step(title: "File closed & archived", dayOffset: 45),
+            ]
+        ),
+        TemplateSpec(
+            name: "IRS Notice Routing Sheet",
+            detail: "Firm routing sheet for handling an IRS notice, from receipt to resolution.",
+            serviceType: .irsNotice,
+            durationDays: 30,
+            steps: [
+                Step(title: "Notice received & logged", dayOffset: 0),
+                Step(title: "Notice reviewed — issue & IRS deadline identified", dayOffset: 1),
+                Step(title: "Client contacted re: notice", dayOffset: 2),
+                Step(title: "Form 2848 confirmed on file (or obtained)", dayOffset: 5),
+                Step(title: "PPS call placed / IRS correspondence reviewed", dayOffset: 8),
+                Step(title: "Response strategy determined", dayOffset: 12),
+                Step(title: "Response drafted & self-reviewed", dayOffset: 18),
+                Step(title: "Client reviewed & signed (if required)", dayOffset: 21),
+                Step(title: "Mailed (certified #) / submitted", dayOffset: 24),
+                Step(title: "IRS confirmation or resolution received", dayOffset: 28),
+                Step(title: "Follow-up date set / File closed", dayOffset: 30),
             ]
         ),
     ]
