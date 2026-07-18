@@ -18,6 +18,7 @@ targets:
   CPAManager:
     type: application
     platform: iOS
+    supportedDestinations: [iOS, macCatalyst]
     sources:
       - path: CPAManager
         excludes:
@@ -29,6 +30,11 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Keep the same bundle ID under Mac Catalyst instead of Xcode's default
+        # ".maccatalyst" suffix — CloudKit container, entitlements, and App Group
+        # are all keyed to com.gottfriedcpa.ProjectManager; a different bundle ID
+        # would mean a completely separate (unsynced) app on Mac.
+        DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
     info:
       path: CPAManager/Info.plist
       properties:

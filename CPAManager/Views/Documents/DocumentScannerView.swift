@@ -2,6 +2,11 @@ import SwiftUI
 import VisionKit
 import PDFKit
 
+// VNDocumentCameraViewController has no Mac Catalyst equivalent — guard the whole
+// file so a Catalyst build doesn't even try to compile against it. The one caller
+// (DocumentsSectionView) already hides the entry point on Catalyst to match.
+#if !targetEnvironment(macCatalyst)
+
 /// Wraps `VNDocumentCameraViewController` to scan one or more pages with the
 /// camera and combine them into a single PDF, handed back via `onComplete`.
 struct DocumentScannerView: UIViewControllerRepresentable {
@@ -58,3 +63,5 @@ struct DocumentScannerView: UIViewControllerRepresentable {
         }
     }
 }
+
+#endif

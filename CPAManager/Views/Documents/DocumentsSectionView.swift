@@ -56,9 +56,12 @@ struct DocumentsSectionView: View {
             .onDelete(perform: delete)
 
             Menu {
+                #if !targetEnvironment(macCatalyst)
+                // VisionKit's document camera scanner has no Mac Catalyst equivalent.
                 Button { showingScanner = true } label: {
                     Label("Scan Document", systemImage: "doc.viewfinder")
                 }
+                #endif
                 Button { showingPhotosPicker = true } label: {
                     Label("Choose Photo", systemImage: "photo")
                 }
@@ -69,12 +72,14 @@ struct DocumentsSectionView: View {
                 Label("Add Document", systemImage: "plus")
             }
         }
+        #if !targetEnvironment(macCatalyst)
         .fullScreenCover(isPresented: $showingScanner) {
             DocumentScannerView { pdfData in
                 save(data: pdfData, filename: "Scan \(Format.shortDate.string(from: .now))", ext: "pdf")
             }
             .ignoresSafeArea()
         }
+        #endif
         .photosPicker(isPresented: $showingPhotosPicker, selection: $selectedPhotos, maxSelectionCount: 1, matching: .images)
         .onChange(of: selectedPhotos) { _, items in
             guard let item = items.first else { return }
