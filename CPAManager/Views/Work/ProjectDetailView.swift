@@ -6,12 +6,15 @@ struct ProjectDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(TimerController.self) private var timer
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
+    @AppStorage(SettingsKeys.firmName) private var firmName = ""
 
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
     @State private var calendarRequest: CalendarEventRequest?
+    @State private var routingSheetURL: URL?
+    @State private var showingRoutingSheetShare = false
 
     private var isTimingThisProject: Bool {
         timer.isRunning && timer.runningEntryID != nil && timer.label == project.title
@@ -45,6 +48,11 @@ struct ProjectDetailView: View {
         }
         .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
         .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
+        .sheet(isPresented: $showingRoutingSheetShare) {
+            if let routingSheetURL {
+                ShareSheet(items: [routingSheetURL])
+            }
+        }
     }
 
     // MARK: Sections
@@ -165,6 +173,14 @@ struct ProjectDetailView: View {
             } label: {
                 Label("Apply template", systemImage: "square.stack.3d.up")
             }
+
+            if !project.taskList.isEmpty {
+                Button {
+                    generateRoutingSheet()
+                } label: {
+                    Label("Print / Share Routing Sheet", systemImage: "printer")
+                }
+            }
         }
     }
 
@@ -236,6 +252,12 @@ struct ProjectDetailView: View {
         try? context.save()
         SnapshotBuilder.rebuild(context: context)
         NotificationScheduler.rescheduleAll(context: context)
+    }
+
+    private func generateRoutingSheet() {
+        let url = RoutingSheetPDF.generate(project: project, firmName: firmName.isEmpty ? "My Firm" : firmName)
+        routingSheetURL = url
+        showingRoutingSheetShare = url != nil
     }
 }
 

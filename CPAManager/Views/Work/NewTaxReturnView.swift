@@ -9,6 +9,7 @@ struct NewTaxReturnView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Client.name) private var clients: [Client]
+    @Query private var templates: [WorkflowTemplate]
 
     @State private var selectedClientID: UUID?
     @State private var newClientName = ""
@@ -84,6 +85,10 @@ struct NewTaxReturnView: View {
         project.receivedDate = receivedDate
         project.nextAction = "Request documents from client"
         context.insert(project)
+
+        if let routingSheet = templates.first(where: { $0.name == "Tax Return Routing Sheet" }) {
+            WorkflowEngine.applyTemplate(routingSheet, to: project, startDate: receivedDate, into: context)
+        }
 
         try? context.save()
         SnapshotBuilder.rebuild(context: context)
