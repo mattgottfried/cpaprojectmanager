@@ -7,7 +7,7 @@ enum PrintHelper {
     static func printPDF(at url: URL, jobName: String) {
         guard let data = try? Data(contentsOf: url) else { return }
 
-        let printInfo = UIPrintInfo(dutyCycle: .low)
+        let printInfo = UIPrintInfo()
         printInfo.outputType = .general
         printInfo.jobName = jobName
 
