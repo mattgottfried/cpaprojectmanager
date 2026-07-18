@@ -59,6 +59,11 @@ targets:
           - UIInterfaceOrientationLandscapeRight
     dependencies:
       - target: CPAWidgets
+        # CPAWidgets is iOS-only (Live Activities/widgets have no Mac Catalyst
+        # equivalent) — without this filter, Xcode refuses to embed an iOS-only
+        # .appex in a Mac Catalyst host at all ("built for macOS but contains
+        # embedded content built for iOS").
+        platformFilter: ios
 
   CPAWidgets:
     type: app-extension
