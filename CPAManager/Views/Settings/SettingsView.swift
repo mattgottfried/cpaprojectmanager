@@ -105,10 +105,30 @@ struct SettingsView: View {
                 LabeledContent("iCloud account", value: syncStatus.accountStatusDescription)
                 LabeledContent("Container", value: SyncStatus.containerIdentifier)
                     .font(.caption)
+
+                if syncStatus.isCloudKitActive {
+                    Button {
+                        syncStatus.syncNow(context: context)
+                    } label: {
+                        if syncStatus.isSyncing {
+                            Label("Syncing…", systemImage: "arrow.triangle.2.circlepath")
+                        } else {
+                            Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+                        }
+                    }
+                    .disabled(syncStatus.isSyncing)
+
+                    LabeledContent("Last sent to iCloud") {
+                        syncEventValue(date: syncStatus.lastExportDate, error: syncStatus.lastExportError)
+                    }
+                    LabeledContent("Last received from iCloud") {
+                        syncEventValue(date: syncStatus.lastImportDate, error: syncStatus.lastImportError)
+                    }
+                }
             } header: {
                 Text("iCloud Sync")
             } footer: {
-                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section.")
+                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section. iOS syncs with iCloud automatically in the background; \"Sync Now\" just saves any pending changes and checks your account status right away rather than waiting.")
             }
 
             Section {
@@ -129,5 +149,21 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $showingRemindersImport) { RemindersImportView() }
+    }
+
+    @ViewBuilder
+    private func syncEventValue(date: Date?, error: String?) -> some View {
+        if let error {
+            Text(error)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .textSelection(.enabled)
+        } else if let date {
+            Text(date.formatted(date: .abbreviated, time: .shortened))
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Not yet")
+                .foregroundStyle(.secondary)
+        }
     }
 }

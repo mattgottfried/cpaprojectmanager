@@ -65,6 +65,7 @@ struct CPAManagerApp: App {
                 .tint(Theme.brand)
                 .task {
                     syncStatus.refreshAccountStatus()
+                    syncStatus.startObservingCloudKitEvents()
                     // Lets CloudKit's remote-change notifications reach this
                     // device in the background rather than only on next launch.
                     UIApplication.shared.registerForRemoteNotifications()
