@@ -10,7 +10,7 @@ enum PrintHelper {
             return
         }
 
-        let printInfo = UIPrintInfo()
+        let printInfo = UIPrintInfo.printInfo()
         printInfo.outputType = .general
         printInfo.jobName = jobName
 
