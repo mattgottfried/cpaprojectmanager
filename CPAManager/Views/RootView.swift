@@ -36,6 +36,11 @@ struct RootView: View {
         }
         .task { bootstrap() }
         .onOpenURL { router.handle(url: $0) }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsSync.didApplyRemote)) { _ in
+            // Another device changed a setting (e.g. reminder time) — re-time reminders.
+            let hour = UserDefaults.standard.object(forKey: SettingsKeys.reminderHour) as? Int ?? 8
+            NotificationScheduler.rescheduleAll(context: context, morningHour: hour)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { refresh() }
         }
@@ -159,6 +164,7 @@ struct RootView: View {
     }
 
     private func bootstrap() {
+        SettingsSync.shared.start()
         SeedData.seedIfNeeded(context: context)
         applyHandoffs()
         RecurrenceService.run(context: context)
@@ -196,6 +202,8 @@ struct RootView: View {
     }
 
     private func refresh() {
+        qboAuth.refreshConnectionState()
+        googleAuth.refreshConnectionState()
         syncIntegrations()
         applyHandoffs()
         RecurrenceService.run(context: context)

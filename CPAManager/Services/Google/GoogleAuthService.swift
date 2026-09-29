@@ -55,6 +55,12 @@ final class GoogleAuthService: NSObject {
         isConnected = KeychainStore.get(Keys.refreshToken) != nil
     }
 
+    /// Re-reads the Keychain — a connection made on another device arrives through
+    /// iCloud Keychain while the app is already running.
+    func refreshConnectionState() {
+        isConnected = KeychainStore.get(Keys.refreshToken) != nil
+    }
+
     // MARK: Connect / disconnect
 
     @MainActor

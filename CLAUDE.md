@@ -104,6 +104,15 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Hands-free capture:** `CaptureThoughtIntent` (Siri/Action button) → Inbox. iOS 18
   controls in `CPAWidgets/QuickCaptureControls.swift` are behind `#if compiler(>=6.0)`.
 
+### What syncs (and what deliberately doesn't)
+
+- Data: SwiftData/CloudKit. Settings: `SettingsSync` mirrors `SettingsKeys.synced` between
+  UserDefaults and `NSUbiquitousKeyValueStore` (iCloud wins when it has a value). **Add any
+  new user-facing preference key to `SettingsKeys.synced`**; leave per-device state and
+  caches out. Secrets: `KeychainStore` writes *synchronizable* items (iCloud Keychain) and
+  upgrades legacy device-only ones on first read; `QBOAuthService`/`GoogleAuthService`
+  re-read connection state on foreground via `refreshConnectionState()`.
+
 ### Platforms
 
 - **iOS/iPadOS** (`CPAManager` target) and **Mac Catalyst** (same target) as before.
