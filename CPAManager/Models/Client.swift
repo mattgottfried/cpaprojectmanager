@@ -28,6 +28,12 @@ final class Client {
     var leadValue: Double = 0
     /// Comma-separated tax years for which an extension has been filed ("2025, 2024").
     var extensionYearsRaw: String = ""
+    /// Yearly occasions (only month/day matter for the birthday; the anniversary's year
+    /// is the year they became a client). `*AckYear` is the year we last acknowledged it.
+    var birthday: Date? = nil
+    var anniversary: Date? = nil
+    var birthdayAckYear: Int = 0
+    var anniversaryAckYear: Int = 0
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []

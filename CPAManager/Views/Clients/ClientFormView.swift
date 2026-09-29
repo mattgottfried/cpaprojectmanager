@@ -16,6 +16,10 @@ struct ClientFormView: View {
     @State private var email = ""
     @State private var phone = ""
     @State private var notes = ""
+    @State private var hasBirthday = false
+    @State private var birthday = Date.now
+    @State private var hasAnniversary = false
+    @State private var anniversary = Date.now
     @State private var tagsText = ""
     @State private var showingContactPicker = false
     @Query private var allClients: [Client]
@@ -72,9 +76,27 @@ struct ClientFormView: View {
                 } footer: {
                     Text("e.g. referral, bookkeeping, side-hustle. Use tags to filter the client list.")
                 }
-                Section("Notes") {
+                Section {
+                    Toggle("Birthday", isOn: $hasBirthday.animation())
+                    if hasBirthday {
+                        DatePicker("Date", selection: $birthday, displayedComponents: .date)
+                    }
+                    Toggle("Client since (anniversary)", isOn: $hasAnniversary.animation())
+                    if hasAnniversary {
+                        DatePicker("Date", selection: $anniversary, in: ...Date.now, displayedComponents: .date)
+                    }
+                } header: {
+                    Text("Dates to remember")
+                } footer: {
+                    Text("Shows on Today the day it comes up, so you can send a note.")
+                }
+                Section {
                     TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(3...8)
+                        .lineLimit(3...12)
+                } header: {
+                    Text("Notes")
+                } footer: {
+                    Text("Formatting: # heading, - bullet, - [ ] checkbox (tick it on the client screen), **bold**.")
                 }
             }
             .navigationTitle(isEditing ? "Edit Client" : "New Client")
@@ -130,6 +152,10 @@ struct ClientFormView: View {
         phone = client.phone
         notes = client.notes
         tagsText = client.tagsRaw
+        hasBirthday = client.birthday != nil
+        birthday = client.birthday ?? birthday
+        hasAnniversary = client.anniversary != nil
+        anniversary = client.anniversary ?? anniversary
     }
 
     private func save() {
@@ -142,6 +168,8 @@ struct ClientFormView: View {
             client.phone = phone
             client.notes = notes
             client.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
+            client.birthday = hasBirthday ? birthday : nil
+            client.anniversary = hasAnniversary ? anniversary : nil
         } else {
             let newClient = Client(
                 name: name,
@@ -153,6 +181,8 @@ struct ClientFormView: View {
                 notes: notes
             )
             newClient.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
+            newClient.birthday = hasBirthday ? birthday : nil
+            newClient.anniversary = hasAnniversary ? anniversary : nil
             context.insert(newClient)
         }
         try? context.save()

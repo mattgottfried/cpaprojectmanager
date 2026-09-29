@@ -232,6 +232,8 @@ struct TodayView: View {
                         .listRowBackground(Color.clear)
                     }
 
+                    TodayOccasionsSection(clients: clients)
+
                     ForEach(TodaySection.allCases) { section in
                         let ids = currentPlan.ids(section)
                         if !ids.isEmpty {

@@ -53,7 +53,7 @@ enum NotificationActionParser {
             switch parts.prefix {
             case "task":     return .open(.task(id))
             case "project":  return .open(.project(id))
-            case "followup": return .open(.client(id))
+            case "followup", "birthday", "anniversary": return .open(.client(id))
             case "invoice":  return .open(.invoice(id))
             default:         return nil
             }

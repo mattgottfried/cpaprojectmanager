@@ -37,6 +37,11 @@ struct MoreView: View {
                         Label("Templates", systemImage: "square.stack.3d.up.fill")
                     }
                     NavigationLink {
+                        TemplateLibraryView()
+                    } label: {
+                        Label("Letters & Emails", systemImage: "doc.richtext")
+                    }
+                    NavigationLink {
                         PipelinesListView(embedded: true)
                     } label: {
                         Label("Pipelines", systemImage: "rectangle.split.3x1.fill")

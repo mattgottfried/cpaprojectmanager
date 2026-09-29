@@ -67,9 +67,24 @@ struct ClientDetailView: View {
                 }
             }
 
+            occasionsSection
+
             if !client.notes.isEmpty {
-                Section("Notes") { Text(client.notes) }
+                Section {
+                    MarkdownNotesView(text: $client.notes)
+                } header: {
+                    let progress = MarkdownBlocks.checkboxProgress(client.notes)
+                    HStack {
+                        Text("Notes")
+                        if progress.total > 0 {
+                            Spacer()
+                            Text("\(progress.done)/\(progress.total) done")
+                        }
+                    }
+                }
             }
+
+            ClientCommunicationSection(client: client)
 
             activitySection
 
@@ -115,6 +130,30 @@ struct ClientDetailView: View {
 }
 
 extension ClientDetailView {
+    /// Upcoming birthday / anniversary for this client (Today shows the day-of nudge).
+    @ViewBuilder
+    var occasionsSection: some View {
+        let sources = [OccasionSource(
+            clientID: client.id, clientName: client.displayName,
+            birthday: client.birthday, anniversary: client.anniversary,
+            birthdayAckYear: client.birthdayAckYear, anniversaryAckYear: client.anniversaryAckYear,
+            isActive: true
+        )]
+        let upcoming = Occasions.upcoming(sources, withinDays: 366)
+        if !upcoming.isEmpty {
+            Section("Dates to remember") {
+                ForEach(upcoming) { occasion in
+                    HStack {
+                        Label(occasion.kind.label, systemImage: occasion.kind.systemImage)
+                        Spacer()
+                        Text(occasion.daysAway == 0 ? "Today" : Format.shortDate.string(from: occasion.date))
+                            .foregroundStyle(occasion.daysAway <= 7 ? Theme.brand : .secondary)
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     var followUpSection: some View {
         Section {

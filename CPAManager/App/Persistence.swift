@@ -23,6 +23,8 @@ enum Persistence {
         RecurringInvoice.self,
         Expense.self,
         Pipeline.self,
+        LetterTemplate.self,
+        EmailTemplate.self,
         SavedClientFilter.self,
     ])
 
