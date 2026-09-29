@@ -146,3 +146,61 @@ final class OccasionsTests: XCTestCase {
         XCTAssertEqual(Occasions.title(for: occasion), "Alice — 1st year as a client")
     }
 }
+
+final class TimeAndHelpLogicTests: XCTestCase {
+    func testRoundingUpToIncrement() {
+        XCTAssertEqual(TimeRounding.roundedSeconds(0, incrementMinutes: 15), 0)
+        XCTAssertEqual(TimeRounding.roundedSeconds(1, incrementMinutes: 15), 900, "any time bills at least one block")
+        XCTAssertEqual(TimeRounding.roundedSeconds(900, incrementMinutes: 15), 900, "exact multiples are unchanged")
+        XCTAssertEqual(TimeRounding.roundedSeconds(901, incrementMinutes: 15), 1800)
+        XCTAssertEqual(TimeRounding.roundedSeconds(1234, incrementMinutes: 0), 1234, "off means exact")
+        XCTAssertEqual(TimeRounding.hours(seconds: 40 * 60, incrementMinutes: 30), 1.0)
+        XCTAssertEqual(TimeRounding.hours(seconds: 7 * 60, incrementMinutes: 6), 0.2, accuracy: 1e-9)
+    }
+
+    func testBilledHoursOnEntry() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let entry = TimeEntry(startedAt: start, endedAt: start.addingTimeInterval(20 * 60), isBillable: true, hourlyRate: 100)
+        XCTAssertEqual(entry.billedHours(incrementMinutes: 0), 1.0 / 3.0, accuracy: 1e-9)
+        XCTAssertEqual(entry.billedHours(incrementMinutes: 15), 0.5, accuracy: 1e-9)
+    }
+
+    func testTimerReminderPlan() {
+        let start = Date(timeIntervalSince1970: 0)
+        XCTAssertNil(TimerReminderPlan.fireDate(startedAt: start, afterHours: 0))
+        XCTAssertEqual(TimerReminderPlan.fireDate(startedAt: start, afterHours: 3), Date(timeIntervalSince1970: 10_800))
+    }
+
+    func testHelpSearchFindsTopicsByTitleAndKeyword() {
+        XCTAssertEqual(HelpCatalog.search("pipelines").first?.id, "pipelines")
+        XCTAssertTrue(HelpCatalog.search("taxdome").contains { $0.id == "pipelines" })
+        XCTAssertTrue(HelpCatalog.search("rounding").contains { $0.id == "time" })
+        XCTAssertTrue(HelpCatalog.search("zzzzqqq").isEmpty)
+        XCTAssertEqual(Set(HelpCatalog.topics.map { $0.id }).count, HelpCatalog.topics.count, "topic ids are unique")
+    }
+
+    func testTipRotatesDailyAndIsStableWithinADay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let day = calendar.date(from: DateComponents(year: 2026, month: 5, day: 1, hour: 8))!
+        let sameDay = calendar.date(from: DateComponents(year: 2026, month: 5, day: 1, hour: 20))!
+        let next = calendar.date(from: DateComponents(year: 2026, month: 5, day: 2, hour: 8))!
+        XCTAssertEqual(Tips.tip(forDay: day, calendar: calendar), Tips.tip(forDay: sameDay, calendar: calendar))
+        XCTAssertNotEqual(Tips.tip(forDay: day, calendar: calendar), Tips.tip(forDay: next, calendar: calendar))
+    }
+
+    func testOnboardingPolicy() {
+        XCTAssertTrue(OnboardingPolicy.shouldShow(hasOnboarded: false, firmName: "", invoiceCount: 0, timeEntryCount: 0, lastReviewTime: 0))
+        XCTAssertFalse(OnboardingPolicy.shouldShow(hasOnboarded: true, firmName: "", invoiceCount: 0, timeEntryCount: 0, lastReviewTime: 0))
+        XCTAssertFalse(OnboardingPolicy.shouldShow(hasOnboarded: false, firmName: "GP CPA", invoiceCount: 0, timeEntryCount: 0, lastReviewTime: 0))
+        XCTAssertFalse(OnboardingPolicy.shouldShow(hasOnboarded: false, firmName: " ", invoiceCount: 2, timeEntryCount: 0, lastReviewTime: 0))
+        XCTAssertFalse(OnboardingPolicy.shouldShow(hasOnboarded: false, firmName: "", invoiceCount: 0, timeEntryCount: 0, lastReviewTime: 5))
+    }
+
+    func testSampleClientDetection() {
+        XCTAssertTrue(SeedData.isSample(email: "owner@acme.example.com"))
+        XCTAssertTrue(SeedData.isSample(email: "smith.family@example.com"))
+        XCTAssertFalse(SeedData.isSample(email: "dana@gmail.com"))
+        XCTAssertFalse(SeedData.isSample(email: ""))
+    }
+}

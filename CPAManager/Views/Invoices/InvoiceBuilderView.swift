@@ -120,7 +120,7 @@ struct InvoiceBuilderView: View {
 
         let selected = unbilledEntries.filter { selectedEntryIDs.contains($0.id) }
         for (index, entry) in selected.enumerated() {
-            let hours = ((entry.durationSeconds / 3600.0) * 100).rounded() / 100
+            let hours = (entry.billedHours() * 100).rounded() / 100
             let projectLabel = entry.projectTitle.isEmpty ? "General time" : entry.projectTitle
             let line = InvoiceLine(
                 detail: "\(Format.shortDate.string(from: entry.startedAt)) — \(projectLabel)",

@@ -23,6 +23,13 @@ enum SettingsKeys {
     /// Days without logged contact before an active client with open work shows as "gone quiet".
     static let quietThresholdDays = "quietThresholdDays"
 
+    /// Billing increment in minutes (0 = exact); see `TimeRounding`.
+    static let timeRoundingMinutes = "timeRoundingMinutes"
+    /// Notify if a timer is still running after this many hours (0 = never).
+    static let timerReminderHours = "timerReminderHours"
+    /// Set once the first-run walkthrough has been finished or skipped.
+    static let hasOnboarded = "hasOnboarded"
+
     // Google integrations (non-secret preferences; tokens live in the Keychain).
     static let googleGmailEnabled = "googleGmailEnabled"
     static let googleGmailQuery = "googleGmailQuery"

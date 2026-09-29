@@ -37,6 +37,11 @@ struct MoreView: View {
                         Label("Templates", systemImage: "square.stack.3d.up.fill")
                     }
                     NavigationLink {
+                        HelpView()
+                    } label: {
+                        Label("Help & Tips", systemImage: "questionmark.circle.fill")
+                    }
+                    NavigationLink {
                         TemplateLibraryView()
                     } label: {
                         Label("Letters & Emails", systemImage: "doc.richtext")

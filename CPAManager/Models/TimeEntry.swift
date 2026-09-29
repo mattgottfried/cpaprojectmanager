@@ -49,8 +49,13 @@ final class TimeEntry {
         return max(0, end.timeIntervalSince(startedAt))
     }
 
+    /// Hours as billed: rounded up to the user's billing increment, if one is set.
+    func billedHours(incrementMinutes: Int = TimeRounding.currentIncrement) -> Double {
+        TimeRounding.hours(seconds: durationSeconds, incrementMinutes: incrementMinutes)
+    }
+
     var billableAmount: Double {
         guard isBillable else { return 0 }
-        return (durationSeconds / 3600.0) * hourlyRate
+        return billedHours() * hourlyRate
     }
 }

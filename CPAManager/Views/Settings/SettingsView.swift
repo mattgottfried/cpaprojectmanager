@@ -9,6 +9,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.timeRoundingMinutes) private var roundingMinutes = 0
+    @AppStorage(SettingsKeys.timerReminderHours) private var timerReminderHours = 0
     @AppStorage(SettingsKeys.quietThresholdDays) private var quietDays = 14
     @AppStorage(SettingsKeys.focusEnabled) private var focusEnabled = false
     @AppStorage(SettingsKeys.focusStartHour) private var focusStart = 18
@@ -47,6 +49,12 @@ struct SettingsView: View {
                     TextField("Rate", value: $defaultHourlyRate, format: .currency(code: "USD"))
                         .multilineTextAlignment(.trailing)
                         .decimalKeyboard()
+                }
+                Picker("Round billed time up to", selection: $roundingMinutes) {
+                    ForEach(TimeRounding.options, id: \.self) { Text(TimeRounding.label($0)).tag($0) }
+                }
+                Picker("Warn if a timer runs longer than", selection: $timerReminderHours) {
+                    ForEach(TimerReminderPlan.hourOptions, id: \.self) { Text($0 == 0 ? "Never" : "\($0) hr").tag($0) }
                 }
             }
 

@@ -95,14 +95,14 @@ enum MailtoBuilder {
     static func url(to address: String, subject: String, body: String) -> URL? {
         let trimmed = address.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, trimmed.contains("@") else { return nil }
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = trimmed
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body),
-        ]
-        return components.url
+        // Percent-encode by hand: URLComponents leaves "&", "=" and "+" alone in query
+        // values, which would corrupt a subject like "Q&A".
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        func encode(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        }
+        let path = trimmed.addingPercentEncoding(withAllowedCharacters: CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "@.-_+,"))) ?? trimmed
+        return URL(string: "mailto:\(path)?subject=\(encode(subject))&body=\(encode(body))")
     }
 }
 

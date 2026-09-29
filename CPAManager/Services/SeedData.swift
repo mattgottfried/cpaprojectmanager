@@ -19,6 +19,20 @@ enum SeedData {
         try? context.save()
     }
 
+    /// True for the placeholder clients this file creates (their emails use example domains).
+    static func isSample(email: String) -> Bool {
+        let e = email.lowercased()
+        return e.contains("@example.") || e.contains(".example.")
+    }
+
+    /// Removes the sample clients (and, by cascade, their sample projects). Used by
+    /// onboarding's "start with a clean slate".
+    static func removeSampleClients(context: ModelContext) {
+        let clients = (try? context.fetch(FetchDescriptor<Client>())) ?? []
+        for client in clients where isSample(email: client.email) { context.delete(client) }
+        try? context.save()
+    }
+
     /// Re-add the default templates (used by the Settings "Restore default templates"
     /// action). Does not remove existing ones.
     static func restoreDefaultTemplates(context: ModelContext) {
