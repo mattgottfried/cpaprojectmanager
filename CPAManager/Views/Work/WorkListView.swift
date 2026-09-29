@@ -54,6 +54,7 @@ struct WorkListView: View {
                             NavigationLink(value: project) {
                                 ProjectRow(project: project)
                             }
+                            .cardListRow()
                             .swipeActions(edge: .leading) {
                                 if let next = project.nextStatusPreview {
                                     Button {
@@ -68,6 +69,9 @@ struct WorkListView: View {
                         }
                         .onDelete(perform: delete)
                     }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("Work")
@@ -122,8 +126,33 @@ struct WorkListView: View {
 struct ProjectRow: View {
     let project: Project
     var showClient: Bool = true
+    /// Render as a free-standing card (Work list). Off inside grouped forms/lists.
+    var card: Bool = true
 
     var body: some View {
+        if card {
+            rowContent
+                .rowCard(dimmed: project.status.isComplete)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(project.title)
+                .accessibilityValue(accessibilityValue)
+                .accessibilityHint("Opens the project")
+        } else {
+            rowContent
+        }
+    }
+
+    private var accessibilityValue: String {
+        var parts = [project.status.label]
+        if showClient { parts.append(project.clientName) }
+        if let due = project.dueDate { parts.append("due \(Format.relativeDay(due))") }
+        if project.totalTaskCount > 0 { parts.append("\(project.completedTaskCount) of \(project.totalTaskCount) tasks done") }
+        if project.isOnHold, let reason = project.holdReason { parts.append("on hold: \(reason.label)") }
+        else if !project.nextAction.isEmpty { parts.append("next: \(project.nextAction)") }
+        return parts.joined(separator: ", ")
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 12) {
             ServiceTypeIcon(serviceType: project.serviceType)
             VStack(alignment: .leading, spacing: 4) {
@@ -149,12 +178,12 @@ struct ProjectRow: View {
                 if project.isOnHold, let reason = project.holdReason {
                     Label(reason.label, systemImage: "pause.circle.fill")
                         .font(.caption2)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Theme.bad)
                         .lineLimit(1)
                 } else if !project.nextAction.isEmpty {
                     Label(project.nextAction, systemImage: "bolt.fill")
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.alert)
                         .lineLimit(1)
                 }
             }
@@ -164,6 +193,5 @@ struct ProjectRow: View {
                 PriorityBadge(priority: project.priority)
             }
         }
-        .padding(.vertical, 4)
     }
 }

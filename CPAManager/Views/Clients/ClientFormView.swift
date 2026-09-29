@@ -16,7 +16,9 @@ struct ClientFormView: View {
     @State private var email = ""
     @State private var phone = ""
     @State private var notes = ""
+    @State private var tagsText = ""
     @State private var showingContactPicker = false
+    @Query private var allClients: [Client]
 
     private var isEditing: Bool { client != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty || !company.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -48,6 +50,27 @@ struct ClientFormView: View {
                         .autocorrectionDisabled()
                     TextField("Phone", text: $phone)
                         .keyboardType(.phonePad)
+                }
+                Section {
+                    TextField("Tags, separated by commas", text: $tagsText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    if !suggestedTags.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(suggestedTags, id: \.self) { tag in
+                                    Button { addTag(tag) } label: {
+                                        CapsuleBadge(text: "#\(tag)", systemImage: "plus", state: .info)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Tags")
+                } footer: {
+                    Text("e.g. referral, bookkeeping, side-hustle. Use tags to filter the client list.")
                 }
                 Section("Notes") {
                     TextField("Notes", text: $notes, axis: .vertical)
@@ -83,6 +106,16 @@ struct ClientFormView: View {
         if let firstPhone = contact.phoneNumbers.first { phone = firstPhone.value.stringValue }
     }
 
+    /// Existing tags in use that this client doesn't have yet.
+    private var suggestedTags: [String] {
+        let current = Set(TagSet.parse(tagsText))
+        return TagSet.counts(allClients.map { $0.tags }).map { $0.tag }.filter { !current.contains($0) }.prefix(8).map { $0 }
+    }
+
+    private func addTag(_ tag: String) {
+        tagsText = TagSet.encode(TagSet.parse(tagsText) + [tag])
+    }
+
     private func loadIfEditing() {
         guard let client else { return }
         name = client.name
@@ -92,6 +125,7 @@ struct ClientFormView: View {
         email = client.email
         phone = client.phone
         notes = client.notes
+        tagsText = client.tagsRaw
     }
 
     private func save() {
@@ -103,6 +137,7 @@ struct ClientFormView: View {
             client.email = email
             client.phone = phone
             client.notes = notes
+            client.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
         } else {
             let newClient = Client(
                 name: name,
@@ -113,6 +148,7 @@ struct ClientFormView: View {
                 phone: phone,
                 notes: notes
             )
+            newClient.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
             context.insert(newClient)
         }
         try? context.save()

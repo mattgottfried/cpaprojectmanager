@@ -52,6 +52,32 @@ CPAManagerTests/  XCTest for the pure logic above.
   Email uses a share-sheet Shortcut. `NoteDigestParser` splits lines and dedupes so
   re-running is safe. Direct Outlook (Microsoft Graph) sync is a possible later step.
 
+### CRM, review, widget, and layout (batch 2)
+
+- **Interaction** (call/email/text/meeting/note) is a client's communication log;
+  `Client.lastContactedAt` derives from it. Inbox items can be filed as an Interaction.
+- **Tags** are one normalized comma-separated string on `Client.tagsRaw` (`TagSet`).
+  **ClientFilter** (pure) drives the client list; **SavedClientFilter** is a synced model.
+- **WeeklyReviewPlanner** decides when the review is due and which active clients with
+  open work have gone quiet (14+ days). Finishing stores `SettingsKeys.lastWeeklyReview`.
+- **FocusHours** ("side business hours"): moves due-date reminders to the window start
+  on weekdays and drives the Today "Off hours" banner. Keys in `SettingsKeys`.
+- **Widget** (`CPAWidgets/`): reads `DashboardSnapshot` from the App Group. Tapping a
+  row's circle runs `CompleteTaskIntent` in the *extension*, which can't open the
+  CloudKit store, so it (a) edits the snapshot for instant feedback and (b) queues the
+  id in `PendingActions`; `WidgetActions.applyPending` completes the real task next time
+  the app launches or becomes active. Widget links use `cpamanager://today|capture|inbox|review`.
+- **Layout:** `RootView` is a sidebar (`NavigationSplitView`) at regular width (iPad/Mac)
+  and tabs on iPhone. `AppRouter` (+ `AppSection`) is the single source of navigation
+  truth for the sidebar, Mac menu commands (⌘N, ⇧⌘N, ⌘1–6), and widget URLs.
+- **macOS:** still Mac Catalyst. A true native macOS target means porting UIKit-only
+  code (VisionKit scanner, UIPrintInfo, Contacts/EventKit UI pickers, ActivityKit) —
+  do it deliberately with a compiler on hand, not blind.
+- **DESIGN.md kit:** `Views/Components/DesignKit.swift` (`rowCard`, `StatusTile`,
+  `SectionCard`, `StatChip`, `CapsuleBadge`). Restyled: Today, Inbox, Clients, Work,
+  Deadlines, Dashboard. Still to restyle: Invoices, Time, Reports, Templates, Recurring,
+  project detail, settings.
+
 ## Rules that already bit us
 
 - Adding a relationship without its inverse → `SwiftDataError` on launch. Declare both.

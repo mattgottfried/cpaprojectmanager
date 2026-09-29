@@ -71,4 +71,28 @@ enum InboxService {
         try? context.save()
         return task
     }
+
+    /// Files the item as a communication-log entry on a client instead of a task
+    /// ("Pat texted: needs W-2 copy" is history, not a to-do), and marks it processed.
+    @discardableResult
+    static func log(_ item: InboxItem, to client: Client, context: ModelContext) -> Interaction {
+        let entry = Interaction(
+            kind: interactionKind(for: item.source),
+            summary: item.text,
+            occurredAt: item.createdAt,
+            client: client
+        )
+        context.insert(entry)
+        item.markProcessed()
+        try? context.save()
+        return entry
+    }
+
+    static func interactionKind(for source: InboxSource) -> InteractionKind {
+        switch source {
+        case .text:  return .text
+        case .email: return .email
+        default:     return .note
+        }
+    }
 }

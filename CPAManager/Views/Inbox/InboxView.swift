@@ -13,7 +13,9 @@ struct InboxView: View {
            sort: \InboxItem.createdAt, order: .reverse)
     private var items: [InboxItem]
 
+    @Environment(AppRouter.self) private var router
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @FocusState private var captureFocused: Bool
     @State private var quickText = ""
     @State private var triaging: InboxItem?
     @State private var toast: UndoToastState?
@@ -83,6 +85,17 @@ struct InboxView: View {
         }
         .undoToast($toast)
         .sensoryFeedback(.success, trigger: addedCount)
+        .onAppear(perform: consumeFocusRequest)
+        .onChange(of: router.pendingFocus) { _, _ in consumeFocusRequest() }
+    }
+
+    private func consumeFocusRequest() {
+        guard router.pendingFocus == .inboxCapture else { return }
+        router.pendingFocus = nil
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            captureFocused = true
+        }
     }
 
     private var captureBar: some View {
@@ -92,6 +105,7 @@ struct InboxView: View {
                 .foregroundStyle(Theme.info)
                 .accessibilityHidden(true)
             TextField("Capture a thought — sort it later", text: $quickText)
+                .focused($captureFocused)
                 .submitLabel(.done)
                 .onSubmit(capture)
                 .accessibilityLabel("Capture to inbox")

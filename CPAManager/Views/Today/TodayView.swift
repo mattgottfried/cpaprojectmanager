@@ -8,7 +8,14 @@ struct TodayView: View {
     @Query private var projects: [Project]
     @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
+    @Environment(AppRouter.self) private var router
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.focusEnabled) private var focusEnabled = false
+    @AppStorage(SettingsKeys.focusStartHour) private var focusStart = 18
+    @AppStorage(SettingsKeys.focusEndHour) private var focusEnd = 22
+    @AppStorage(SettingsKeys.focusWeekends) private var focusWeekends = true
+    /// `timeIntervalSince1970` of the last finished weekly review; 0 = never.
+    @AppStorage(SettingsKeys.lastWeeklyReview) private var lastReviewTime: Double = 0
     @State private var quickText = ""
     @State private var addedCount = 0
     @State private var toast: UndoToastState?
@@ -76,6 +83,22 @@ struct TodayView: View {
             VStack(spacing: 0) {
                 quickAddBar
                 List {
+                    if isOutsideFocusHours {
+                        focusBanner
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                    }
+
+                    if reviewDue {
+                        NavigationLink {
+                            WeeklyReviewView(embedded: true)
+                        } label: {
+                            reviewBanner
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                    }
+
                     if !inbox.isEmpty {
                         NavigationLink {
                             InboxView(embedded: true)
@@ -135,6 +158,62 @@ struct TodayView: View {
             .sheet(isPresented: $showingSetup) { CaptureSetupView() }
             .undoToast($toast)
             .sensoryFeedback(.success, trigger: addedCount)
+            .onAppear(perform: consumeFocusRequest)
+            .onChange(of: router.pendingFocus) { _, _ in consumeFocusRequest() }
+        }
+    }
+
+    // MARK: Focus hours & weekly review
+
+    private var focusHours: FocusHours {
+        FocusHours(isEnabled: focusEnabled, startHour: focusStart, endHour: focusEnd, weekendsAllDay: focusWeekends)
+    }
+
+    private var isOutsideFocusHours: Bool {
+        focusEnabled && !focusHours.isWithin(.now)
+    }
+
+    private var reviewDue: Bool {
+        let last: Date? = lastReviewTime > 0 ? Date(timeIntervalSince1970: lastReviewTime) : nil
+        return WeeklyReviewPlanner.isDue(lastReview: last)
+    }
+
+    private var focusBanner: some View {
+        HStack(spacing: 12) {
+            StatusTile(systemImage: "moon.stars.fill", state: .neutral)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Off hours").font(.body.weight(.semibold))
+                Text("Your side-business window opens at \(FocusHours.hourLabel(focusStart)). Nothing here needs you right now.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .rowCard()
+        .accessibilityElement(children: .combine)
+    }
+
+    private var reviewBanner: some View {
+        HStack(spacing: 12) {
+            StatusTile(systemImage: "checkmark.seal.fill", state: .caution)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Weekly review due").font(.body.weight(.semibold))
+                Text("10 minutes to clear the inbox and reset your week")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .rowCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Weekly review due")
+        .accessibilityHint("Opens the weekly review")
+    }
+
+    private func consumeFocusRequest() {
+        guard router.pendingFocus == .newTask else { return }
+        router.pendingFocus = nil
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(200))
+            quickFocused = true
         }
     }
 

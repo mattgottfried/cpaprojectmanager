@@ -75,18 +75,15 @@ struct DashboardView: View {
     }
 
     private var statGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            StatCard(value: "\(overdueCount)", label: "Overdue", systemImage: "exclamationmark.triangle.fill", color: overdueCount > 0 ? .red : Theme.brand)
-            StatCard(value: "\(dueTodayCount)", label: "Due today", systemImage: "calendar.badge.clock", color: dueTodayCount > 0 ? .orange : Theme.brand)
-            StatCard(value: "\(openProjectCount)", label: "Open work", systemImage: "checklist", color: Theme.brand)
+        HStack(spacing: 10) {
+            StatChip(value: "\(overdueCount)", label: "Overdue", state: overdueCount > 0 ? .bad : .neutral)
+            StatChip(value: "\(dueTodayCount)", label: "Due today", state: dueTodayCount > 0 ? .alert : .neutral)
+            StatChip(value: "\(openProjectCount)", label: "Open work", state: .info)
         }
     }
 
     private var dueSoonCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Coming up")
-                .font(.headline)
-
+        SectionCard(title: "Coming up", systemImage: "calendar", state: .info) {
             let upcoming = Array(agenda.prefix(6))
             if upcoming.isEmpty {
                 Text("Nothing due. You're all caught up.")
@@ -101,8 +98,6 @@ struct DashboardView: View {
                 }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
@@ -129,9 +124,7 @@ struct DashboardView: View {
     }
 
     private var inProgressCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("In progress")
-                .font(.headline)
+        SectionCard(title: "In progress", systemImage: "hammer.fill", state: .info) {
             ForEach(inProgress.prefix(5)) { project in
                 NavigationLink(value: project) {
                     HStack {
@@ -151,7 +144,5 @@ struct DashboardView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

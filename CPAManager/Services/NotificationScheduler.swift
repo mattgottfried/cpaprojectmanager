@@ -27,7 +27,7 @@ enum NotificationScheduler {
     }
 
     /// Rebuild all reminders from current data. Call after edits or on launch.
-    static func rescheduleAll(context: ModelContext, morningHour: Int = 8) {
+    static func rescheduleAll(context: ModelContext, morningHour: Int = 8, focus: FocusHours = .load()) {
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()
 
@@ -63,7 +63,10 @@ enum NotificationScheduler {
 
         let soonest = candidates.sorted { $0.due < $1.due }.prefix(maxScheduled)
         for item in soonest {
-            schedule(id: item.id, title: item.title, body: item.body, on: item.due, hour: morningHour)
+            schedule(
+                id: item.id, title: item.title, body: item.body, on: item.due,
+                hour: focus.alertHour(on: item.due, defaultHour: morningHour)
+            )
         }
     }
 
