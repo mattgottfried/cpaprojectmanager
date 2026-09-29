@@ -96,7 +96,9 @@ struct PipelineEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!errors.isEmpty) }
+                #if os(iOS)
                 ToolbarItem(placement: .leading) { EditButton() }
+                #endif
             }
             .onAppear(perform: loadOnce)
         }
