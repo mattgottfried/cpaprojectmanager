@@ -6,17 +6,22 @@ import Foundation
 
 enum MergeFields {
     /// Tokens offered in the template editors, with what they fill in.
-    static let tokens: [(token: String, label: String)] = [
-        ("client", "Client name"),
-        ("firstname", "First name"),
-        ("company", "Company"),
-        ("email", "Client email"),
-        ("firm", "Your firm name"),
-        ("date", "Today's date"),
-        ("year", "Current year"),
-        ("taxyear", "Tax year (prior year)"),
-        ("fee", "Fee"),
-        ("service", "Service"),
+    struct Token: Equatable {
+        let token: String
+        let label: String
+    }
+
+    static let tokens: [Token] = [
+        Token(token: "client", label: "Client name"),
+        Token(token: "firstname", label: "First name"),
+        Token(token: "company", label: "Company"),
+        Token(token: "email", label: "Client email"),
+        Token(token: "firm", label: "Your firm name"),
+        Token(token: "date", label: "Today's date"),
+        Token(token: "year", label: "Current year"),
+        Token(token: "taxyear", label: "Tax year (prior year)"),
+        Token(token: "fee", label: "Fee"),
+        Token(token: "service", label: "Service"),
     ]
 
     /// Replaces `{token}` (case-insensitive) with values. Unknown tokens are left as

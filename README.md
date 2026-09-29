@@ -38,6 +38,15 @@ It includes the Apple-native touches that make an iPhone app feel great:
 | **Search (⌘K)** | One box to jump to any client, project, task or invoice, or run a command. Also in Spotlight. |
 | **Activity** | A timeline of what you did — tasks finished, payments, emails, new clients. |
 | **Export & backup** | CSV exports for spreadsheets and a full JSON backup/restore, independent of iCloud. |
+| **Pipelines** | Build your own workflows (Bookkeeping, Client Onboarding, Payroll, IRS Notice Response — or your own) with named, colored stages. A stage can add tasks and reset the due date when a job enters it. Drag jobs on a board per pipeline, filter the Work list by pipeline, and point a template at a pipeline + starting stage. The original tax-return pipeline stays built in. |
+| **Recurring work (revamped)** | Set the same recurring work up for many clients at once, name generated work with a pattern (`{client} {month} {year}`), preview upcoming dates, set an end date, and skip or pause from a swipe. |
+| **Letters & proposals** | Engagement letters and proposals from merge-field templates (`{client}`, `{fee}`, `{taxyear}`…) → PDF with a signature block, saved to the client's documents. |
+| **Email templates** | Fill a template for a client and open it in your mail app; the email is logged on the client. |
+| **Rich client notes** | Notes support headings, bullets, **bold** and `- [ ]` checkboxes you tick on the client screen. |
+| **Birthdays & anniversaries** | Add them to a client; Today shows them the day they come up, with a reminder notification. |
+| **Time tracking upgrades** | Round billed time up to 6/15/30/60 minutes, get warned when a timer runs long, and start a timer from a task's menu on Today. |
+| **Apple Watch** | Today's tasks on your wrist: tick tasks off and start/stop the timer. |
+| **Help & first run** | A short welcome walkthrough for new installs, searchable Help & Tips (More tab), and a tip of the day on Today. |
 | **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
@@ -292,10 +301,18 @@ CPAManager/
   Resources/      Asset catalog (accent color; app icon)
   Entitlements/   iCloud (CloudKit) + App Group
 CPAWidgets/       Widget extension: Due-Today widget + Timer Live Activity
+CPAWatch/         Apple Watch app (today list, complete tasks, timer) — talks to the
+                  iPhone app over WatchConnectivity
 docs/qbo-redirect/  Static HTTPS redirect page for QuickBooks OAuth (see below)
 ```
 
 ### Data model
+Batch 5 added `Pipeline` (custom stages as JSON), `LetterTemplate`, `EmailTemplate`,
+and fields on `Client` (birthday, anniversary), `Project` (`pipelineID`, `stageKey`),
+`WorkflowTemplate` (`pipelineID`, `startStageKey`) and `RecurringEngagement`
+(`endDate`, `namingPattern`) — **redeploy the CloudKit schema** before the next
+TestFlight build.
+
 `Client 1—* Project 1—* TaskItem`, `Client 1—* Document` and `Project 1—* Document`,
 `WorkflowTemplate 1—* TemplateTask`, `RecurringEngagement` (links a client +
 template on a schedule), `TimeEntry` (owned by a project; `invoiceID` marks it

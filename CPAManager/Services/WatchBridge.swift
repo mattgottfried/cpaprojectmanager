@@ -53,7 +53,7 @@ final class WatchBridge: NSObject, WCSessionDelegate {
         handle(message)
     }
 
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         handle(userInfo)
     }
 
@@ -61,6 +61,7 @@ final class WatchBridge: NSObject, WCSessionDelegate {
 
     private func handle(_ message: [String: Any]) {
         guard let command = WatchCommand(message: message) else { return }
+        let timer = self.timer
         Task { @MainActor in
             let context = Persistence.shared.container.mainContext
             switch command {

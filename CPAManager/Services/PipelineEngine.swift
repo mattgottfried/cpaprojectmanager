@@ -6,7 +6,6 @@ import SwiftData
 enum PipelineEngine {
     /// Puts `project` into `stage`: updates its stage key and coarse status, resets the
     /// due date if the stage says so, and creates the stage's tasks.
-    @MainActor
     static func enter(_ project: Project, stage: PipelineStage, context: ModelContext, now: Date = .now) {
         let plan = PipelineMove.plan(entering: stage, now: now)
         project.stageKey = stage.id
@@ -25,7 +24,6 @@ enum PipelineEngine {
 
     /// Assigns a job to a pipeline (nil = the built-in one) and enters the given stage
     /// (default: the first). Switching to the built-in pipeline keeps the current status.
-    @MainActor
     static func assign(_ project: Project, to pipeline: Pipeline?, startStageKey: String = "", context: ModelContext) {
         guard let pipeline else {
             project.pipelineID = nil
@@ -39,7 +37,6 @@ enum PipelineEngine {
     }
 
     /// Moves a custom-pipeline job to the next stage. Returns false at the end.
-    @MainActor
     @discardableResult
     static func advance(_ project: Project, in pipeline: Pipeline, context: ModelContext) -> Bool {
         guard let next = pipeline.definition.next(after: project.stageKey) else { return false }
@@ -54,7 +51,11 @@ enum PipelineEngine {
     }
 
     static func info(for project: Project, in pipelines: [Pipeline]) -> StageInfo {
-        PipelineResolver.info(
+        // "On Hold" is a job-level state in every pipeline, so show it as such.
+        if project.isOnHold {
+            return PipelineResolver.info(definition: nil, stageKey: "", status: project.status)
+        }
+        return PipelineResolver.info(
             definition: pipeline(for: project, in: pipelines)?.definition,
             stageKey: project.stageKey,
             status: project.status
@@ -70,7 +71,6 @@ enum PipelineEngine {
     }
 
     /// One-tap advance for either kind of pipeline.
-    @MainActor
     static func advanceAny(_ project: Project, pipelines: [Pipeline], context: ModelContext) {
         if let custom = pipeline(for: project, in: pipelines) {
             advance(project, in: custom, context: context)

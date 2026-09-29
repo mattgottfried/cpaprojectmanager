@@ -74,7 +74,7 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **DESIGN.md kit:** `Views/Components/DesignKit.swift` (`rowCard`, `StatusTile`,
   `SectionCard`, `StatChip`, `CapsuleBadge`). Restyled: Today, Inbox, Clients, Work,
   Deadlines, Dashboard. Still to restyle: Invoices, Time, Reports, Templates, Recurring,
-  project detail, settings.
+  project detail, settings, Pipelines, Help.
 
 ### Batch 3: follow-ups, leads, recurring, payments, Google, extensions, Mac
 
@@ -127,6 +127,40 @@ CPAManagerTests/  XCTest for the pure logic above.
   **Siri**: `ClientEntity` + `ClientStatusIntent`/`OpenClientIntent`/`TodaySummaryIntent`;
   summaries come from pure `Briefing`.
 - **Mac icons**: `AppIcon.appiconset` has the ten `mac_*` sizes generated from the 1024 master.
+
+### Batch 5: pipelines, recurring revamp, letters, notes, time, Watch
+
+- **Pipelines** (`PipelineLogic.swift` pure, `PipelineEngine` store-facing, `Pipeline` model).
+  Custom pipelines are user data: `Pipeline.stagesData` is JSON `[PipelineStage]` (stage `id`
+  is a UUID string). The original tax-return pipeline is **virtual** (`PipelineDefinition.standard`,
+  stage id = `ProjectStatus.rawValue`) — projects with `pipelineID == nil` live there and
+  `status` is authoritative. Custom-stage projects keep `status` in sync via
+  `StageKind.legacyStatus`, so reports/overdue/widget keep working. Always move stages through
+  `PipelineEngine.enter/advance/assign` (runs the stage's entry automation: tasks + due date).
+  `WorkflowTemplate.pipelineID/startStageKey` make `WorkflowEngine.instantiate` start jobs there.
+  Deleting a pipeline sends its jobs back to the built-in one.
+- **Recurring work**: `RecurringNaming` (`{name} {client} {period} {month} {monthnum} {year}
+  {quarter} {due} {frequency}`; blank pattern = old "Name - MM/yyyy" behavior),
+  `RecurrencePreview` mirrors the generator's stepping, `endDate` deactivates in
+  `RecurrenceService`, `RecurringBulkSetupView` makes one engagement per client.
+- **Letters/emails** (`CommunicationLogic.swift`): `MergeFields`, `MailtoBuilder`, starter
+  templates; `LetterPDF` renders via `PlatformPDF`; emails open with `mailto:` and log an
+  Interaction. **Notes** stay a plain string on `Client.notes`; `MarkdownBlocks` parses a small
+  subset and toggles checkboxes. **Occasions**: `Client.birthday/anniversary` + `*AckYear`;
+  `Occasions.upcoming` (pure) feeds `TodayOccasionsSection` and notification ids
+  `birthday-/anniversary-<uuid>`.
+- **Time**: `TimeRounding` applies at billing time through `TimeEntry.billedHours()` (reads the
+  synced `timeRoundingMinutes`), so timer totals, reports and invoice lines agree.
+  `TimerController` schedules a "still running" notification (`timerReminderHours`).
+- **Onboarding/help**: `OnboardingPolicy` (only brand-new installs), synced `hasOnboarded`;
+  `HelpCatalog` topics are searched with `GlobalSearch`. **Update the catalog when a feature
+  changes.**
+- **Apple Watch** (`CPAWatch/`, target `CPAWatch`, embedded via `platformFilter: iOS`): the
+  Watch never opens the store. `WatchBridge` (iPhone, `#if os(iOS) && !targetEnvironment(macCatalyst)`)
+  pushes `WatchPayload` (in `Shared/`, plain Foundation) through the application context whenever
+  `SnapshotBuilder.rebuild` runs, and applies `WatchCommand`s (complete task, start/stop timer).
+- **Backup**: new collections/fields are *optional* in `BackupFile` so older backups decode
+  (`testBackupFromBeforeBatch5StillDecodes`).
 
 ### What syncs (and what deliberately doesn't)
 

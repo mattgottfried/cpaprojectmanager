@@ -55,11 +55,11 @@ struct OnboardingView: View {
 
     // MARK: Pages
 
-    private func page(_ image: String, _ title: String, _ message: String) -> some View {
-        page(image, title, message) { EmptyView() }
+    private func pageContent(_ image: String, _ title: String, _ message: String) -> some View {
+        pageContent(image, title, message) { EmptyView() }
     }
 
-    private func page<Extra: View>(_ image: String, _ title: String, _ message: String, @ViewBuilder extra: () -> Extra) -> some View {
+    private func pageContent<Extra: View>(_ image: String, _ title: String, _ message: String, @ViewBuilder extra: () -> Extra) -> some View {
         VStack(spacing: 18) {
             Spacer(minLength: 12)
             Image(systemName: image)
@@ -80,7 +80,7 @@ struct OnboardingView: View {
     }
 
     private var welcomePage: some View {
-        page(
+        pageContent(
             "checkmark.circle.fill",
             "Never lose track of what you owe",
             "One place for clients, jobs and the daily to-do list for your practice. Today shows what matters; the Inbox catches everything else."
@@ -88,7 +88,7 @@ struct OnboardingView: View {
     }
 
     private var firmPage: some View {
-        page("building.2.fill", "Your practice", "Used on invoices, letters and routing sheets. You can change these any time in Settings.") {
+        pageContent("building.2.fill", "Your practice", "Used on invoices, letters and routing sheets. You can change these any time in Settings.") {
             VStack(spacing: 12) {
                 TextField("Firm name", text: $firmName)
                     .textFieldStyle(.roundedBorder)
@@ -106,7 +106,7 @@ struct OnboardingView: View {
     }
 
     private var capturePage: some View {
-        page(
+        pageContent(
             "tray.and.arrow.down.fill",
             "Capture without thinking",
             "Texts, emails and stray thoughts land in the Inbox. Use Siri or the Action button, the Share Sheet, or paste from a note — then decide later. Find the setup steps under Today ▸ Capture options."
@@ -114,7 +114,7 @@ struct OnboardingView: View {
     }
 
     private var remindersPage: some View {
-        page("bell.badge.fill", "Reminders", "Due dates and follow-ups can notify you each morning.") {
+        pageContent("bell.badge.fill", "Reminders", "Due dates and follow-ups can notify you each morning.") {
             VStack(spacing: 12) {
                 Stepper("Remind at \(reminderHour):00", value: $reminderHour, in: 0...23)
                 Button {
@@ -130,7 +130,7 @@ struct OnboardingView: View {
     }
 
     private var startPage: some View {
-        page("sparkles", "You're set", "Sample clients are included so you can explore. Help & Tips (More tab) explains every feature.") {
+        pageContent("sparkles", "You're set", "Sample clients are included so you can explore. Help & Tips (More tab) explains every feature.") {
             if !replay {
                 Toggle("Keep the sample clients", isOn: $keepSamples)
                     .padding(.top, 4)
