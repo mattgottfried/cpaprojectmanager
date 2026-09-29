@@ -184,6 +184,19 @@ is actually "Active" or stuck on "Local Only" (and why), so you don't have to gu
 > seed the default templates and you'll see duplicates. Just delete the extras (or
 > use *Settings → Restore default templates* as needed).
 
+### What syncs across iPhone, iPad and Mac
+
+| What | How |
+|---|---|
+| Clients, work, tasks, invoices, inbox, everything you create | SwiftData → your private CloudKit database |
+| Settings (firm info, hourly rate, reminder time, side-business hours, check-in threshold, Google preferences) | iCloud key-value storage (`SettingsSync`). Changes appear on the other devices within moments and re-time your reminders. |
+| Google and QuickBooks connections (tokens, client IDs) | iCloud Keychain — connect once, the other devices pick it up. Needs **Passwords & Keychain** turned on under Apple ID → iCloud. |
+| Per-device only | Which Work view you last used, quick-capture mode, last Gmail sync time, widget snapshot. |
+
+Settings → iCloud Sync shows whether settings sync is on. After the first launch of this
+version, run Debug once so Xcode registers the new *iCloud key-value storage* capability
+for your App ID (automatic signing does this for you).
+
 ### Sync not working?
 
 Check **Settings → iCloud Sync on each device first** — it tells you exactly what's

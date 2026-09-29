@@ -150,6 +150,8 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent("iCloud account", value: syncStatus.accountStatusDescription)
+                LabeledContent("Settings sync", value: SettingsSync.isAvailable ? "On" : "Sign into iCloud")
+                    .font(.caption)
                 LabeledContent("Container", value: SyncStatus.containerIdentifier)
                     .font(.caption)
 
@@ -175,7 +177,7 @@ struct SettingsView: View {
             } header: {
                 Text("iCloud Sync")
             } footer: {
-                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section. iOS syncs with iCloud automatically in the background; \"Sync Now\" just saves any pending changes and checks your account status right away rather than waiting.")
+                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section. Your settings sync through iCloud too, and Google / QuickBooks connections sync through iCloud Keychain (System Settings → Apple ID → iCloud → Passwords & Keychain) — connect once and the other devices pick it up. iOS syncs with iCloud automatically in the background; \"Sync Now\" just saves any pending changes and checks your account status right away rather than waiting.")
             }
 
             Section {
