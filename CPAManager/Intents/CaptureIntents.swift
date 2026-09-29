@@ -11,7 +11,7 @@ enum CaptureSourceOption: String, AppEnum {
         .text:  "Text message",
         .email: "Email",
         .note:  "Note",
-        .siri:  "Siri",
+        .siri:  "Voice",
     ]
 
     var inboxSource: InboxSource {
