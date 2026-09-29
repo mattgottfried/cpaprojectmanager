@@ -10,9 +10,14 @@ struct RecurringListView: View {
     var body: some View {
         List {
             if engagements.isEmpty {
-                Text("No recurring work yet. Add monthly bookkeeping, quarterly estimates, and more — they generate projects automatically.")
-                    .foregroundStyle(.secondary)
-                    .font(.subheadline)
+                ContentUnavailableView {
+                    Label("No recurring work yet", systemImage: "arrow.triangle.2.circlepath")
+                } description: {
+                    Text("Add monthly bookkeeping, quarterly estimates, and more — they generate projects automatically.")
+                } actions: {
+                    Button("Add recurring work") { showingNew = true }.buttonStyle(.borderedProminent)
+                }
+                .cardListRow()
             }
             ForEach(engagements) { engagement in
                 Button {
@@ -20,9 +25,14 @@ struct RecurringListView: View {
                 } label: {
                     row(engagement)
                 }
+                .buttonStyle(.plain)
+                .cardListRow()
             }
             .onDelete(perform: delete)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.appGroupedBackground)
         .navigationTitle("Recurring")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -35,10 +45,10 @@ struct RecurringListView: View {
 
     private func row(_ engagement: RecurringEngagement) -> some View {
         HStack(spacing: 12) {
-            ServiceTypeIcon(serviceType: engagement.serviceType, size: 38)
-            VStack(alignment: .leading, spacing: 2) {
+            ServiceTypeIcon(serviceType: engagement.serviceType, size: 40)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(engagement.name)
-                    .font(.body.weight(.medium))
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
                 Text("\(engagement.frequency.label) · Next due \(Format.shortDate.string(from: engagement.nextDueDate))")
                     .font(.caption)
@@ -47,11 +57,16 @@ struct RecurringListView: View {
                     Text(client.displayName).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            Spacer()
+            Spacer(minLength: 0)
             if !engagement.isActive {
-                Image(systemName: "pause.circle.fill").foregroundStyle(.secondary)
+                CapsuleBadge(text: "Paused", systemImage: "pause.fill", state: .neutral)
             }
         }
+        .rowCard(dimmed: !engagement.isActive)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(engagement.name)
+        .accessibilityValue("\(engagement.frequency.label), next due \(Format.shortDate.string(from: engagement.nextDueDate))\(engagement.isActive ? "" : ", paused")")
+        .accessibilityHint("Opens the recurring work")
     }
 
     private func delete(_ offsets: IndexSet) {

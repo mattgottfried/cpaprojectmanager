@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UIKit
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
@@ -10,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.quietThresholdDays) private var quietDays = 14
     @AppStorage(SettingsKeys.focusEnabled) private var focusEnabled = false
     @AppStorage(SettingsKeys.focusStartHour) private var focusStart = 18
     @AppStorage(SettingsKeys.focusEndHour) private var focusEnd = 22
@@ -46,7 +46,7 @@ struct SettingsView: View {
                 LabeledContent("Default hourly rate") {
                     TextField("Rate", value: $defaultHourlyRate, format: .currency(code: "USD"))
                         .multilineTextAlignment(.trailing)
-                        .keyboardType(.decimalPad)
+                        .decimalKeyboard()
                 }
             }
 
@@ -59,6 +59,14 @@ struct SettingsView: View {
                 Text("Reminders")
             } footer: {
                 Text("Local notifications fire on the morning a project or task is due.")
+            }
+
+            Section {
+                Stepper("Nudge after \(quietDays) days", value: $quietDays, in: 3...90)
+            } header: {
+                Text("Client Check-Ins")
+            } footer: {
+                Text("Active clients with open work show as \"Gone quiet\" on Today when you haven't logged contact in this long — unless you've set a follow-up reminder for later.")
             }
 
             Section {
@@ -92,6 +100,11 @@ struct SettingsView: View {
 
             Section {
                 NavigationLink {
+                    GoogleSettingsView()
+                } label: {
+                    Label("Google (Gmail & Calendar)", systemImage: "g.circle.fill")
+                }
+                NavigationLink {
                     QBOSettingsView()
                 } label: {
                     Label("QuickBooks Online", systemImage: "building.columns.fill")
@@ -99,7 +112,7 @@ struct SettingsView: View {
             } header: {
                 Text("Integrations")
             } footer: {
-                Text("Connect to push invoices directly into QuickBooks Online.")
+                Text("Google brings starred emails into your Inbox and puts your schedule and due dates on Today and your calendar. QuickBooks pushes invoices and pulls payments.")
             }
 
             Section {
@@ -129,7 +142,7 @@ struct SettingsView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .textSelection(.enabled)
                         Button {
-                            UIPasteboard.general.string = error
+                            Clipboard.string = error
                         } label: {
                             Label("Copy error", systemImage: "doc.on.doc")
                         }
@@ -170,7 +183,7 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationTitle()
         .onChange(of: focusSignature) { _, _ in
             NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
         }

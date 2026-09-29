@@ -19,4 +19,16 @@ enum SettingsKeys {
     static let focusWeekends = "focusWeekends"
     /// Date of the last completed weekly review.
     static let lastWeeklyReview = "lastWeeklyReview"
+
+    /// Days without logged contact before an active client with open work shows as "gone quiet".
+    static let quietThresholdDays = "quietThresholdDays"
+
+    // Google integrations (non-secret preferences; tokens live in the Keychain).
+    static let googleGmailEnabled = "googleGmailEnabled"
+    static let googleGmailQuery = "googleGmailQuery"
+    static let googleScheduleEnabled = "googleScheduleEnabled"
+    static let googlePushEnabled = "googlePushEnabled"
+    static let googleCalendarID = "googleCalendarID"
+    static let googleLastGmailSync = "googleLastGmailSync"
+    static let googleSyncedEvents = "googleSyncedEvents"
 }

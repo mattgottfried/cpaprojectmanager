@@ -11,7 +11,7 @@ enum WidgetActions {
         let tasks = (try? context.fetch(FetchDescriptor<TaskItem>())) ?? []
         var changed = false
         for task in tasks where ids.contains(task.id) && !task.isDone {
-            task.toggle()
+            TaskCompletion.complete(task, context: context)
             changed = true
         }
         guard changed else { return }

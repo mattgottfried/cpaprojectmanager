@@ -11,29 +11,46 @@ struct TemplatesListView: View {
     var body: some View {
         List {
             if templates.isEmpty {
-                Text("No templates yet. Tap + to create one.")
-                    .foregroundStyle(.secondary)
+                ContentUnavailableView {
+                    Label("No templates yet", systemImage: "square.stack.3d.up")
+                } description: {
+                    Text("Templates are reusable checklists for engagements like a 1040 or monthly bookkeeping.")
+                } actions: {
+                    Button("New template") { showingNew = true }.buttonStyle(.borderedProminent)
+                }
+                .cardListRow()
             }
             ForEach(templates) { template in
                 Button {
                     editingTemplate = template
                 } label: {
                     HStack(spacing: 12) {
-                        ServiceTypeIcon(serviceType: template.serviceType, size: 38)
-                        VStack(alignment: .leading, spacing: 2) {
+                        ServiceTypeIcon(serviceType: template.serviceType, size: 40)
+                        VStack(alignment: .leading, spacing: 3) {
                             Text(template.name)
-                                .font(.body.weight(.medium))
+                                .font(.body.weight(.semibold))
                                 .foregroundStyle(.primary)
+                                .lineLimit(2)
                             Text("\(template.taskList.count) steps · \(template.defaultDurationDays)-day turnaround")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Spacer()
+                        Spacer(minLength: 0)
                     }
+                    .rowCard()
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(template.name)
+                    .accessibilityValue("\(template.taskList.count) steps, \(template.defaultDurationDays)-day turnaround")
+                    .accessibilityHint("Opens the template")
                 }
+                .buttonStyle(.plain)
+                .cardListRow()
             }
             .onDelete(perform: delete)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.appGroupedBackground)
         .navigationTitle("Templates")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -80,7 +97,7 @@ struct TemplatePickerSheet: View {
                 }
             }
             .navigationTitle("Choose Template")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }

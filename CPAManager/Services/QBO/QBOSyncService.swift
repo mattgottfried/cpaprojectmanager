@@ -110,4 +110,55 @@ enum QBOSyncService {
         guard let id = created.Item.Id else { throw QBOClientError.decoding }
         return id
     }
+
+    // MARK: Paid-status refresh
+
+    private static var lastRefresh = Date.distantPast
+
+    /// Asks QuickBooks how much of an invoice has been collected and records anything
+    /// we haven't seen yet. Silent on failure — the invoice just stays as it was.
+    @MainActor
+    @discardableResult
+    static func refreshPaidStatus(invoice: Invoice, auth: QBOAuthService, context: ModelContext) async -> Bool {
+        guard !invoice.qboId.isEmpty else { return false }
+        do {
+            let (token, realmID) = try await auth.validAccessToken()
+            let qbo = QBOClient(environment: auth.environment, realmID: realmID, accessToken: token)
+            let escaped = invoice.qboId.replacingOccurrences(of: "'", with: "\\'")
+            let result = try await qbo.query(
+                "SELECT Id, Balance, TotalAmt FROM Invoice WHERE Id = '\(escaped)'",
+                as: QBOInvoiceBalanceResponse.self
+            )
+            guard let row = result.QueryResponse.Invoice?.first,
+                  let total = row.TotalAmt, let balance = row.Balance else { return false }
+
+            var changed = false
+            if let missing = InvoiceMath.unrecordedQBOPayment(qboTotal: total, qboBalance: balance, locallyPaid: invoice.amountPaid) {
+                invoice.recordPayment(missing, method: .quickbooks, note: "Recorded in QuickBooks")
+                changed = true
+            }
+            if InvoiceMath.cents(balance) == 0 && invoice.status != .paid {
+                invoice.status = .paid   // QuickBooks says it's settled, even if totals differ slightly
+                changed = true
+            }
+            if changed { try? context.save() }
+            return changed
+        } catch {
+            return false
+        }
+    }
+
+    /// Refreshes every synced, unpaid invoice. Throttled so foregrounding the app
+    /// repeatedly doesn't hammer QuickBooks.
+    @MainActor
+    static func refreshOutstanding(auth: QBOAuthService, context: ModelContext, force: Bool = false) async {
+        guard auth.isConnected else { return }
+        if !force && Date.now.timeIntervalSince(lastRefresh) < 600 { return }
+        lastRefresh = .now
+
+        let invoices = (try? context.fetch(FetchDescriptor<Invoice>())) ?? []
+        for invoice in invoices where invoice.status == .sent && !invoice.qboId.isEmpty {
+            await refreshPaidStatus(invoice: invoice, auth: auth, context: context)
+        }
+    }
 }

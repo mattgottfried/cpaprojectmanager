@@ -39,6 +39,14 @@ final class InboxItem {
     var processedAt: Date? = nil
     /// Lowercased/collapsed text, used to skip duplicates on re-import.
     var dedupeKey: String = ""
+    /// Stable ID from the source system (e.g. "gmail:<messageID>") so a sync never
+    /// imports the same email twice, even if its subject repeats.
+    var externalID: String = ""
+    /// Web link back to the original (e.g. the Gmail thread).
+    var link: String = ""
+    /// A file from the share extension, stored in the App Group's shared attachments
+    /// folder until it's filed onto a client or project.
+    var attachmentName: String = ""
 
     var client: Client? = nil
 

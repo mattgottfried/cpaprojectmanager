@@ -23,85 +23,115 @@ struct TimeLogView: View {
 
     var body: some View {
         List {
-            Section {
-                if timer.isRunning {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(timer.label).font(.body.weight(.medium))
-                            if let start = timer.startedAt {
-                                Text(timerInterval: start...Date.distantFuture, countsDown: false)
-                                    .font(.subheadline.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Button(role: .destructive) {
-                            timer.stop(context: context)
-                        } label: {
-                            Label("Stop", systemImage: "stop.circle.fill")
-                        }
-                    }
-                } else {
-                    Button {
-                        timer.start(project: nil, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
-                    } label: {
-                        Label("Start general timer", systemImage: "play.circle.fill")
-                    }
-                }
-            }
+            timerCard
+                .cardListRow()
 
-            Section("This month") {
-                LabeledContent("Tracked", value: Format.hoursMinutes(monthSeconds))
-                LabeledContent("Billable", value: Format.currency(monthBillable))
+            HStack(spacing: 10) {
+                StatChip(value: Format.hoursMinutes(monthSeconds), label: "Tracked this month", state: .info)
+                StatChip(value: Format.currency(monthBillable), label: "Billable", state: .good)
+                StatChip(value: Format.currency(unbilledTotal), label: "Unbilled", state: unbilledTotal > 0 ? .caution : .neutral)
             }
+            .cardListRow()
 
             if unbilledTotal > 0 {
-                Section {
-                    LabeledContent("Unbilled", value: Format.currency(unbilledTotal))
-                } footer: {
-                    Text("Create an invoice from Invoices to bill this time.")
-                }
+                Label("Create an invoice from Invoices to bill this time.", systemImage: "doc.text.badge.plus")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .cardListRow()
             }
 
-            Section("Entries") {
+            Section {
                 if completed.isEmpty {
-                    Text("No time logged yet.").foregroundStyle(.secondary)
+                    ContentUnavailableView("No time logged yet", systemImage: "clock",
+                                           description: Text("Start a timer on a project, or a general timer above."))
+                        .cardListRow()
                 }
                 ForEach(completed) { entry in
                     entryRow(entry)
+                        .cardListRow()
                 }
                 .onDelete(perform: delete)
+            } header: {
+                Text("Entries").font(.headline).textCase(nil)
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(Color.appGroupedBackground)
         .navigationTitle("Time")
     }
 
+    private var timerCard: some View {
+        HStack(spacing: 12) {
+            StatusTile(systemImage: timer.isRunning ? "timer" : "play.fill", state: timer.isRunning ? .alert : .neutral)
+            if timer.isRunning {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(timer.label).font(.body.weight(.semibold)).lineLimit(2)
+                    if let start = timer.startedAt {
+                        Text(timerInterval: start...Date.distantFuture, countsDown: false)
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+                Button(role: .destructive) {
+                    timer.stop(context: context)
+                } label: {
+                    Label("Stop", systemImage: "stop.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.bad)
+            } else {
+                Text("No timer running").font(.body.weight(.semibold))
+                Spacer(minLength: 0)
+                Button {
+                    timer.start(project: nil, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+                } label: {
+                    Label("Start", systemImage: "play.circle.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.brand)
+            }
+        }
+        .rowCard(outline: timer.isRunning ? Theme.alert : nil)
+    }
+
     private func entryRow(_ entry: TimeEntry) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 12) {
+            StatusTile(
+                systemImage: entry.isBilled ? "checkmark.circle.fill" : "clock.fill",
+                state: entry.isBilled ? .good : (entry.isUnbilled ? .caution : .neutral),
+                size: 40
+            )
+            VStack(alignment: .leading, spacing: 3) {
                 Text(entry.projectTitle.isEmpty ? "General time" : entry.projectTitle)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
+                    .font(.body.weight(.semibold))
+                    .lineLimit(2)
                 Text("\(Format.shortDate.string(from: entry.startedAt))\(entry.clientName.isEmpty ? "" : " · \(entry.clientName)")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 3) {
                 Text(Format.hoursMinutes(entry.durationSeconds))
-                    .font(.subheadline.monospacedDigit())
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
                 if entry.isBillable && entry.billableAmount > 0 {
                     Text(Format.currency(entry.billableAmount))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 if entry.isBilled {
-                    Text("Billed").font(.caption2).foregroundStyle(.green)
+                    CapsuleBadge(text: "Billed", systemImage: "checkmark", state: .good)
                 } else if entry.isUnbilled {
-                    Text("Unbilled").font(.caption2).foregroundStyle(.orange)
+                    CapsuleBadge(text: "Unbilled", systemImage: "hourglass", state: .caution)
                 }
             }
         }
+        .rowCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(entry.projectTitle.isEmpty ? "General time" : entry.projectTitle)
+        .accessibilityValue("\(Format.hoursMinutes(entry.durationSeconds)), \(entry.isBilled ? "billed" : (entry.isUnbilled ? "unbilled" : "not billable")), \(Format.shortDate.string(from: entry.startedAt))")
     }
 
     private func delete(_ offsets: IndexSet) {

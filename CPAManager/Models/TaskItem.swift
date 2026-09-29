@@ -17,6 +17,8 @@ final class TaskItem {
     var isNextAction: Bool = false
     /// Hidden from Today until this day (start-of-day comparison).
     var snoozedUntil: Date? = nil
+    /// Raw `RepeatRule`; empty/"none" means it doesn't repeat.
+    var repeatRuleRaw: String = ""
 
     var project: Project? = nil
     /// Optional client link for tasks that don't belong to a project.
@@ -40,6 +42,11 @@ final class TaskItem {
         self.isNextAction = isNextAction
         self.project = project
         self.createdAt = .now
+    }
+
+    var repeatRule: RepeatRule {
+        get { RepeatRule(rawValue: repeatRuleRaw) ?? .none }
+        set { repeatRuleRaw = newValue == .none ? "" : newValue.rawValue }
     }
 
     /// Toggle done state and keep the completion timestamp in sync.

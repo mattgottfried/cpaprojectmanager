@@ -71,13 +71,13 @@ struct WorkListView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .background(Color(.systemGroupedBackground))
+                    .background(Color.appGroupedBackground)
                 }
             }
             .navigationTitle("Work")
             .searchable(text: $search, prompt: "Search work")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .leading) {
                     Picker("Filter", selection: $filter) {
                         ForEach(WorkFilter.allCases) { Text($0.rawValue).tag($0) }
                     }

@@ -29,13 +29,13 @@ struct QBOSettingsView: View {
                     ForEach(QBOEnvironment.allCases) { Text($0.label).tag($0) }
                 }
                 TextField("Client ID", text: clientIDBinding)
-                    .textInputAutocapitalization(.never)
+                    .noAutocapitalization()
                     .autocorrectionDisabled()
                 SecureField("Client Secret", text: clientSecretBinding)
                 TextField("Redirect URL", text: redirectURLBinding)
-                    .textInputAutocapitalization(.never)
+                    .noAutocapitalization()
                     .autocorrectionDisabled()
-                    .keyboardType(.URL)
+                    .urlKeyboard()
             } footer: {
                 Text("From your Intuit Developer app. The Redirect URL is the HTTPS page you host (e.g. on GitHub Pages) that forwards back into this app — see the README for setup steps.")
             }
@@ -63,7 +63,7 @@ struct QBOSettingsView: View {
             }
         }
         .navigationTitle("QuickBooks")
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationTitle()
     }
 
     private var clientIDBinding: Binding<String> {

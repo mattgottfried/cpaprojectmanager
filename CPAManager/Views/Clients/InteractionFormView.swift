@@ -60,6 +60,8 @@ struct InteractionFormView: View {
             interaction.occurredAt = occurredAt
         } else {
             context.insert(Interaction(kind: kind, summary: text, occurredAt: occurredAt, client: client))
+            // Reaching out satisfies a follow-up that's due; a future one stays put.
+            if ClientActivity.shouldClearFollowUp(client.followUpDate) { client.followUpDate = nil }
         }
         try? context.save()
         dismiss()

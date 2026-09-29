@@ -22,6 +22,9 @@ final class Invoice {
     @Relationship(deleteRule: .cascade, inverse: \InvoiceLine.invoice)
     var lines: [InvoiceLine]? = []
 
+    @Relationship(deleteRule: .cascade, inverse: \Payment.invoice)
+    var payments: [Payment]? = []
+
     init(
         number: Int = 1,
         issueDate: Date = .now,
@@ -58,8 +61,41 @@ final class Invoice {
         lineList.reduce(0) { $0 + $1.amount }
     }
 
+    var paymentList: [Payment] {
+        (payments ?? []).sorted { $0.date > $1.date }
+    }
+
+    var amountPaid: Double {
+        Double((payments ?? []).reduce(0) { $0 + InvoiceMath.cents($1.amount) }) / 100
+    }
+
+    /// What's still owed.
+    var balance: Double {
+        InvoiceMath.balance(total: total, payments: (payments ?? []).map(\.amount))
+    }
+
     var isOverdue: Bool {
-        status != .paid && dueDate < Calendar.current.startOfDay(for: .now)
+        InvoiceMath.isOverdue(status: status, dueDate: dueDate, balance: balance)
+    }
+
+    /// Records a payment and flips the invoice to Paid when nothing is owed.
+    @discardableResult
+    func recordPayment(_ amount: Double, on date: Date = .now, method: PaymentMethod = .check, note: String = "") -> Payment {
+        // Appending sets the inverse (`payment.invoice`) and inserts it with the invoice.
+        let payment = Payment(amount: amount, date: date, method: method, note: note)
+        if payments == nil { payments = [] }
+        payments?.append(payment)
+        refreshPaidStatus()
+        return payment
+    }
+
+    /// Re-derives Paid/Sent from the payments on file (call after adding or removing one).
+    func refreshPaidStatus() {
+        if InvoiceMath.isPaidInFull(total: total, payments: (payments ?? []).map(\.amount)) {
+            status = .paid
+        } else if status == .paid {
+            status = .sent
+        }
     }
 
     var displayNumber: String {

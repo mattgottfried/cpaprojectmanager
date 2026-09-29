@@ -12,7 +12,7 @@ struct RowCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, 12).padding(.vertical, 10)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(Color.appCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 if let outline {
@@ -70,7 +70,7 @@ struct SectionCard<Content: View>: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

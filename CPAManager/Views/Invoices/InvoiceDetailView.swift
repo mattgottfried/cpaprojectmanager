@@ -10,6 +10,9 @@ struct InvoiceDetailView: View {
     @State private var pdfURL: URL?
     @State private var showingShare = false
     @State private var isSyncing = false
+    @State private var showingPayment = false
+    @State private var toast: UndoToastState?
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         List {
@@ -50,6 +53,8 @@ struct InvoiceDetailView: View {
                     Text(Format.currency(invoice.total)).font(.headline)
                 }
             }
+
+            paymentsSection
 
             Section("Notes") {
                 TextField("Notes", text: notesBinding, axis: .vertical)
@@ -96,11 +101,95 @@ struct InvoiceDetailView: View {
             }
         }
         .navigationTitle(invoice.displayNumber)
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationTitle()
+        .undoToast($toast)
+        .sheet(isPresented: $showingPayment) {
+            RecordPaymentSheet(invoice: invoice) { payment in
+                toast = UndoToastState(message: "Recorded \(Format.currency(payment.amount))", systemImage: "banknote") {
+                    invoice.payments?.removeAll { $0.id == payment.id }
+                    context.delete(payment)
+                    invoice.refreshPaidStatus()
+                    persist()
+                }
+            }
+        }
         .sheet(isPresented: $showingShare) {
             if let pdfURL {
                 ShareSheet(items: [pdfURL])
             }
+        }
+    }
+
+    @ViewBuilder
+    private var paymentsSection: some View {
+        Section {
+            LabeledContent("Paid so far", value: Format.currency(invoice.amountPaid))
+            LabeledContent("Balance due") {
+                Text(Format.currency(invoice.balance))
+                    .font(.body.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(invoice.isOverdue ? Theme.bad : Color.primary)
+            }
+            ForEach(invoice.paymentList) { payment in
+                HStack {
+                    Label(payment.method.label, systemImage: payment.method.systemImage)
+                        .font(.subheadline)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(Format.currency(payment.amount)).font(.subheadline.monospacedDigit())
+                        Text(payment.date.formatted(date: .abbreviated, time: .omitted))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+            }
+            .onDelete { offsets in
+                let list = invoice.paymentList
+                for index in offsets {
+                    invoice.payments?.removeAll { $0.id == list[index].id }
+                    context.delete(list[index])
+                }
+                invoice.refreshPaidStatus()
+                persist()
+            }
+            if invoice.balance > 0 {
+                Button { showingPayment = true } label: {
+                    Label("Record payment", systemImage: "banknote")
+                }
+                if let email = invoice.client?.email, !email.isEmpty, invoice.status == .sent {
+                    Button { sendReminder(to: email) } label: {
+                        Label("Email a reminder", systemImage: "envelope.badge")
+                    }
+                }
+            }
+            if qboAuth.isConnected, !invoice.qboId.isEmpty, invoice.status != .paid {
+                Button {
+                    Task {
+                        let changed = await QBOSyncService.refreshPaidStatus(invoice: invoice, auth: qboAuth, context: context)
+                        toast = UndoToastState(
+                            message: changed ? "Updated from QuickBooks" : "No new payments in QuickBooks",
+                            systemImage: "arrow.triangle.2.circlepath"
+                        )
+                    }
+                } label: {
+                    Label("Check QuickBooks for payments", systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+        } header: {
+            Text("Payments")
+        }
+    }
+
+    private func sendReminder(to email: String) {
+        let firm = firmName.isEmpty ? "" : firmName
+        let body = InvoiceMath.reminderBody(
+            clientName: invoice.client?.displayName ?? "there",
+            number: invoice.displayNumber,
+            balance: invoice.balance,
+            dueDate: invoice.dueDate,
+            firm: firm
+        )
+        if let url = InvoiceMath.reminderURL(to: email, subject: "Reminder: invoice \(invoice.displayNumber)", body: body) {
+            openURL(url)
         }
     }
 

@@ -59,11 +59,11 @@ struct TemplateFormView: View {
                 }
             }
             .navigationTitle(isEditing ? "Edit Template" : "New Template")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!canSave) }
-                ToolbarItem(placement: .topBarLeading) { EditButton() }
+                ToolbarItem(placement: .leading) { EditButton() }
             }
             .onAppear(perform: loadOnce)
         }

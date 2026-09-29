@@ -112,6 +112,36 @@ final class ClientLogicTests: XCTestCase {
         // Longest silence first; never-contacted is measured from when they were added.
         XCTAssertEqual(quiet, [neverContactedOld.id, long.id, medium.id])
     }
+
+    func testQuietClientsSkipsThoseWithAFutureFollowUp() {
+        let now = date(2026, 9, 30)
+        let scheduled = WeeklyReviewPlanner.QuietInput(
+            id: UUID(), lastContact: date(2026, 8, 1), createdAt: date(2026, 1, 1),
+            hasOpenWork: true, isActive: true, followUpDate: date(2026, 10, 15)
+        )
+        let overdueFollowUp = WeeklyReviewPlanner.QuietInput(
+            id: UUID(), lastContact: date(2026, 8, 1), createdAt: date(2026, 1, 1),
+            hasOpenWork: true, isActive: true, followUpDate: date(2026, 9, 20)
+        )
+        let quiet = WeeklyReviewPlanner.quietClients([scheduled, overdueFollowUp], now: now, calendar: calendar)
+        XCTAssertEqual(quiet, [overdueFollowUp.id])
+    }
+
+    func testFollowUpPresets() {
+        let now = date(2026, 9, 30, hour: 15)
+        XCTAssertEqual(FollowUpPreset.tomorrow.date(from: now, calendar: calendar), date(2026, 10, 1))
+        XCTAssertEqual(FollowUpPreset.inAWeek.date(from: now, calendar: calendar), date(2026, 10, 7))
+        XCTAssertEqual(FollowUpPreset.inTwoWeeks.date(from: now, calendar: calendar), date(2026, 10, 14))
+        XCTAssertEqual(FollowUpPreset.inAMonth.date(from: now, calendar: calendar), date(2026, 10, 30))
+    }
+
+    func testLoggingContactClearsOnlyDueFollowUps() {
+        let now = date(2026, 9, 30)
+        XCTAssertTrue(ClientActivity.shouldClearFollowUp(date(2026, 9, 30), now: now, calendar: calendar))
+        XCTAssertTrue(ClientActivity.shouldClearFollowUp(date(2026, 9, 1), now: now, calendar: calendar))
+        XCTAssertFalse(ClientActivity.shouldClearFollowUp(date(2026, 10, 5), now: now, calendar: calendar))
+        XCTAssertFalse(ClientActivity.shouldClearFollowUp(nil, now: now, calendar: calendar))
+    }
 }
 
 final class FocusHoursTests: XCTestCase {

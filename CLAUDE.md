@@ -70,13 +70,56 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Layout:** `RootView` is a sidebar (`NavigationSplitView`) at regular width (iPad/Mac)
   and tabs on iPhone. `AppRouter` (+ `AppSection`) is the single source of navigation
   truth for the sidebar, Mac menu commands (⌘N, ⇧⌘N, ⌘1–6), and widget URLs.
-- **macOS:** still Mac Catalyst. A true native macOS target means porting UIKit-only
-  code (VisionKit scanner, UIPrintInfo, Contacts/EventKit UI pickers, ActivityKit) —
-  do it deliberately with a compiler on hand, not blind.
+- **macOS:** see "Platforms" below.
 - **DESIGN.md kit:** `Views/Components/DesignKit.swift` (`rowCard`, `StatusTile`,
   `SectionCard`, `StatChip`, `CapsuleBadge`). Restyled: Today, Inbox, Clients, Work,
   Deadlines, Dashboard. Still to restyle: Invoices, Time, Reports, Templates, Recurring,
   project detail, settings.
+
+### Batch 3: follow-ups, leads, recurring, payments, Google, extensions, Mac
+
+- **Follow-ups:** `Client.followUpDate` shows on Today from that day, notifies, and is
+  cleared when a due contact is logged (`ClientActivity.shouldClearFollowUp`). Quiet-client
+  nudges skip clients with a *future* follow-up. Threshold: `SettingsKeys.quietThresholdDays`.
+- **Leads:** `LeadStage` (new → contacted → proposalSent → won/lost) lives on
+  `Client.leadStageRaw`; a plain "Prospect" client reads as `.new`. Won → active client,
+  lost → inactive (never deleted). Pure logic in `LeadPipeline`.
+- **Recurring tasks:** `TaskItem.repeatRuleRaw` (`RepeatRule`). Complete tasks only via
+  `TaskCompletion.complete/undo` — it spawns the next occurrence (never in the past).
+  Typed lines go through `QuickCapture.parse` (repeat phrase, then date).
+- **Payments:** `Payment` rows on `Invoice`; balance/paid/overdue math is `InvoiceMath`
+  (integer cents — never compare money as Doubles). Only *sent* invoices with a balance
+  are overdue and show on Today. QuickBooks paid status is pulled in by
+  `QBOSyncService.refreshPaidStatus` (throttled on foreground).
+- **Google** (`Services/Google/`): PKCE OAuth with the user's own iOS-type client ID (no
+  secret), tokens in Keychain. Gmail (read-only) → Inbox items keyed by `externalID`
+  ("gmail:<id>"); Calendar read → Today "Schedule"; due dates pushed as all-day events
+  with deterministic `cpa…` IDs (idempotent; only our own events are ever edited/deleted).
+  All parsing/diffing is pure (`GoogleParsing.swift`) and tested with canned JSON.
+- **Handoffs from extensions:** the widget, share extension (`CPAShare/`) and Control
+  Center controls can't open the CloudKit store. They write to the App Group
+  (`PendingActions`, `PendingCaptures`) and `RootView.applyHandoffs` applies them when the
+  app launches or foregrounds. Attachments sit in the group's `SharedAttachments/` until
+  filed onto a client/project (`CaptureQueue.fileAttachment`).
+- **Hands-free capture:** `CaptureThoughtIntent` (Siri/Action button) → Inbox. iOS 18
+  controls in `CPAWidgets/QuickCaptureControls.swift` are behind `#if compiler(>=6.0)`.
+
+### Platforms
+
+- **iOS/iPadOS** (`CPAManager` target) and **Mac Catalyst** (same target) as before.
+- **Native macOS** (`CPAManagerMac` target): compiles the same `CPAManager/` sources with
+  the same bundle ID/CloudKit container. The module name is forced to `CPAManager` so
+  tests import it. Mac-only code lives behind `#if os(macOS)` in `Platform/Mac/`
+  (menu bar `QuickCaptureView`, ⌃⌥Space hotkey, floating capture panel).
+- **Platform shims (`Platform/`)** — use these in shared views, never the UIKit-only API:
+  `Color.appGroupedBackground/appCardBackground/appTertiaryBackground/appBackground`,
+  `.inlineNavigationTitle()`, `.noAutocapitalization()`, `.urlKeyboard()`,
+  `.decimalKeyboard()`, `.emailFieldTraits()`, `.phoneFieldTraits()`, `ToolbarItemPlacement.leading`,
+  `Clipboard.string`, `PlatformPDF` (+ `PlatformFont/PlatformColor`). UIKit-only views
+  (scanner, contact picker, QuickLook) are `#if os(iOS)` with Mac fallbacks or hidden.
+- macOS has no `horizontalSizeClass`; `RootView` always uses the sidebar there.
+- `AppGroup.sharedDefaults` is `.standard` on macOS (no extensions there, and an
+  unentitled group container makes macOS prompt the user).
 
 ## Rules that already bit us
 
@@ -85,4 +128,7 @@ CPAManagerTests/  XCTest for the pure logic above.
   More take `embedded: true`.
 - Semantic colors go through `Theme.color(_: SemanticState)`; never inline a color for a
   state at a call site.
+- Don't `guard let (a, b) = …` — tuple destructuring in optional binding doesn't compile;
+  bind, then destructure. Avoid key paths into labeled tuples in new code (use a struct).
+- `UndoToastState.undo` is optional: notices with nothing to undo omit it.
 - Undoable actions get an undo toast (`.undoToast`), not a confirmation dialog.

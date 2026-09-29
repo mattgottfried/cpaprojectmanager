@@ -65,7 +65,7 @@ struct InvoiceBuilderView: View {
                 }
             }
             .navigationTitle("New Invoice")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

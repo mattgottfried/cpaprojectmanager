@@ -111,6 +111,43 @@ enum ClientActivity {
     }
 }
 
+/// Quick choices for "remind me to follow up".
+enum FollowUpPreset: String, CaseIterable, Identifiable {
+    case tomorrow, inAWeek, inTwoWeeks, inAMonth
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .tomorrow:    return "Tomorrow"
+        case .inAWeek:     return "In a week"
+        case .inTwoWeeks:  return "In 2 weeks"
+        case .inAMonth:    return "In a month"
+        }
+    }
+
+    func date(from now: Date = .now, calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        let result: Date?
+        switch self {
+        case .tomorrow:    result = calendar.date(byAdding: .day, value: 1, to: today)
+        case .inAWeek:     result = calendar.date(byAdding: .day, value: 7, to: today)
+        case .inTwoWeeks:  result = calendar.date(byAdding: .day, value: 14, to: today)
+        case .inAMonth:    result = calendar.date(byAdding: .month, value: 1, to: today)
+        }
+        return result ?? today
+    }
+}
+
+extension ClientActivity {
+    /// Logging a contact clears a follow-up that is due (today or earlier); a follow-up
+    /// set for a future day is left alone.
+    static func shouldClearFollowUp(_ followUp: Date?, now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let followUp else { return false }
+        return calendar.startOfDay(for: followUp) <= calendar.startOfDay(for: now)
+    }
+}
+
 /// Weekly-review scheduling and "who have I lost touch with" logic.
 enum WeeklyReviewPlanner {
     struct QuietInput: Equatable {
@@ -119,6 +156,8 @@ enum WeeklyReviewPlanner {
         var createdAt: Date
         var hasOpenWork: Bool
         var isActive: Bool
+        /// A future follow-up already on the calendar means "I've got this" — don't nag.
+        var followUpDate: Date? = nil
     }
 
     static func isDue(lastReview: Date?, now: Date = .now, calendar: Calendar = .current, intervalDays: Int = 7) -> Bool {
@@ -137,7 +176,9 @@ enum WeeklyReviewPlanner {
         thresholdDays: Int = 14
     ) -> [UUID] {
         var quiet: [(id: UUID, days: Int)] = []
+        let today = calendar.startOfDay(for: now)
         for input in inputs where input.isActive && input.hasOpenWork {
+            if let followUp = input.followUpDate, calendar.startOfDay(for: followUp) > today { continue }
             let reference = input.lastContact ?? input.createdAt
             let days = ClientActivity.daysSince(reference, now: now, calendar: calendar) ?? 0
             if days >= thresholdDays { quiet.append((input.id, days)) }

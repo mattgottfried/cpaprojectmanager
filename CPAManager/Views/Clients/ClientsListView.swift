@@ -56,13 +56,13 @@ struct ClientsListView: View {
                             }
                         }
                     }
-                    .background(Color(.systemGroupedBackground))
+                    .background(Color.appGroupedBackground)
                 }
             }
             .navigationTitle("Clients")
             .searchable(text: $search, prompt: "Search name, company, tag")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { filterMenu }
+                ToolbarItem(placement: .leading) { filterMenu }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                         .accessibilityLabel("Add client")
@@ -219,6 +219,9 @@ struct ClientRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
                     EntityBadge(entityType: client.entityType)
+                    if let stage = client.leadStage, stage.isOpen {
+                        CapsuleBadge(text: stage.label, systemImage: stage.systemImage, state: stage.state)
+                    }
                     let open = client.openProjects.count
                     if open > 0 {
                         Text("\(open) open")
@@ -230,6 +233,12 @@ struct ClientRow: View {
                     .font(.caption.weight(isQuiet ? .semibold : .regular))
                     .foregroundStyle(isQuiet ? AnyShapeStyle(Theme.caution) : AnyShapeStyle(HierarchicalShapeStyle.secondary))
                     .lineLimit(1)
+                if let due = client.followUpDate {
+                    Label("Follow up \(Format.relativeDay(due).lowercased())", systemImage: "bell.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 if !client.tags.isEmpty {
                     Text(client.tags.prefix(3).map { "#\($0)" }.joined(separator: "  "))
                         .font(.caption2)
