@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Native SwiftUI + SwiftData practice-management app (CRM + projects + daily task
-capture) for a solo CPA's side business. iOS/iPadOS today, Mac Catalyst now, native
+capture) for a solo CPA's side business. iOS/iPadOS plus native
 macOS later. Syncs through the user's own iCloud (CloudKit); no server.
 
 **Read these first and follow them without being reminded:**
@@ -173,7 +173,7 @@ CPAManagerTests/  XCTest for the pure logic above.
 
 ### Platforms
 
-- **iOS/iPadOS** (`CPAManager` target) and **Mac Catalyst** (same target) as before.
+- **iOS/iPadOS** (`CPAManager` target). Mac Catalyst was dropped: the Mac app is the native `CPAManagerMac` target only (one macOS build per App Store record).
 - **Native macOS** (`CPAManagerMac` target): compiles the same `CPAManager/` sources with
   the same bundle ID/CloudKit container. The module name is forced to `CPAManager` so
   tests import it. Mac-only code lives behind `#if os(macOS)` in `Platform/Mac/`
