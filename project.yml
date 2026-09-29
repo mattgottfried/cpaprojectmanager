@@ -35,10 +35,15 @@ targets:
         # are all keyed to com.gottfriedcpa.ProjectManager; a different bundle ID
         # would mean a completely separate (unsynced) app on Mac.
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
+        # Mac App Store requires the sandbox on Catalyst builds (iOS ignores these).
+        "ENABLE_APP_SANDBOX[sdk=macosx*]": YES
+        "ENABLE_OUTGOING_NETWORK_CONNECTIONS[sdk=macosx*]": YES
+        "ENABLE_USER_SELECTED_FILES[sdk=macosx*]": readwrite
     info:
       path: CPAManager/Info.plist
       properties:
         CFBundleDisplayName: CPA Manager
+        LSApplicationCategoryType: public.app-category.business
         NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false
         NSRemindersFullAccessUsageDescription: "CPA Manager can import your existing Apple Reminders workflow (clients, projects, and recurring work) into the app. Nothing in Reminders is changed or deleted."
