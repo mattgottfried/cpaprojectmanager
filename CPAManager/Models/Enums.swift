@@ -56,6 +56,14 @@ enum ClientStatus: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    var systemImage: String {
+        switch self {
+        case .active:   return "checkmark.circle.fill"
+        case .prospect: return "sparkle.magnifyingglass"
+        case .inactive: return "moon.zzz.fill"
+        }
+    }
+
     var color: Color {
         switch self {
         case .active:   return .green

@@ -70,6 +70,15 @@ struct InboxTriageSheet: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
 
+                    if let client {
+                        Button {
+                            logToClient(client)
+                        } label: {
+                            Label("Log on \(client.displayName)'s activity", systemImage: "clock.arrow.circlepath")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+
                     Button(role: .destructive) {
                         discard()
                     } label: {
@@ -117,6 +126,17 @@ struct InboxTriageSheet: View {
         dismiss()
         onOutcome("Task added: \(label)") {
             context.delete(task)
+            item.reopen()
+            try? context.save()
+        }
+    }
+
+    private func logToClient(_ client: Client) {
+        item.text = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let entry = InboxService.log(item, to: client, context: context)
+        dismiss()
+        onOutcome("Logged on \(client.displayName)") {
+            context.delete(entry)
             item.reopen()
             try? context.save()
         }

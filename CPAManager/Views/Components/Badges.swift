@@ -17,8 +17,9 @@ struct StatusBadge: View {
 struct ClientStatusBadge: View {
     let status: ClientStatus
     var body: some View {
-        Text(status.label)
+        Label(status.label, systemImage: status.systemImage)
             .font(.caption2.weight(.semibold))
+            .labelStyle(.titleAndIcon)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(status.color.opacity(0.15), in: Capsule())

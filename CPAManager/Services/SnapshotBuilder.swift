@@ -52,12 +52,48 @@ enum SnapshotBuilder {
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
             .prefix(5)
 
+        // Today-screen order: overdue, due today, then undated "next up".
+        var plannerItems: [PlannerItem] = []
+        var itemByID: [UUID: DashboardSnapshot.Item] = [:]
+        if let projects = try? context.fetch(FetchDescriptor<Project>()) {
+            for project in projects where !project.status.isComplete {
+                plannerItems.append(PlannerItem(id: project.id, dueDate: project.dueDate, snoozedUntil: nil, isDone: false, isNextAction: false))
+                itemByID[project.id] = .init(
+                    id: project.id, title: project.title, subtitle: project.clientName,
+                    dueDate: project.dueDate,
+                    isOverdue: project.dueDate.map { calendar.startOfDay(for: $0) < today } ?? false,
+                    isTask: false
+                )
+            }
+        }
+        if let tasks = try? context.fetch(FetchDescriptor<TaskItem>()) {
+            for task in tasks where !task.isDone && task.project?.status.isComplete != true {
+                plannerItems.append(PlannerItem(id: task.id, dueDate: task.dueDate, snoozedUntil: task.snoozedUntil, isDone: false, isNextAction: task.isNextAction))
+                itemByID[task.id] = .init(
+                    id: task.id, title: task.title,
+                    subtitle: task.project?.title ?? task.client?.displayName ?? "",
+                    dueDate: task.dueDate,
+                    isOverdue: task.dueDate.map { calendar.startOfDay(for: $0) < today } ?? false,
+                    isTask: true
+                )
+            }
+        }
+        let plan = TodayPlanner.plan(plannerItems)
+        let todayItems: [DashboardSnapshot.Item] = [TodaySection.overdue, .today, .next]
+            .flatMap { plan.ids($0) }
+            .compactMap { itemByID[$0] }
+        let inboxCount = (try? context.fetchCount(
+            FetchDescriptor<InboxItem>(predicate: #Predicate<InboxItem> { $0.isProcessed == false })
+        )) ?? 0
+
         let snapshot = DashboardSnapshot(
             generatedAt: .now,
             dueTodayCount: dueToday,
             overdueCount: overdue,
             openProjectCount: openCount,
-            upcoming: Array(upcoming)
+            upcoming: Array(upcoming),
+            todayItems: Array(todayItems.prefix(12)),
+            inboxCount: inboxCount
         )
         snapshot.save()
 

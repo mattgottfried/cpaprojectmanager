@@ -19,6 +19,11 @@ It includes the Apple-native touches that make an iPhone app feel great:
 |------|--------------|
 | **Today** | One trusted screen: Overdue, Due today, Next up (undated to-dos), Coming up. Type a task with a date in plain words ("call Smith Friday"), swipe to complete or snooze, undo from a toast. |
 | **Inbox** | Everything captured but not yet sorted — from typing, Siri, a note of digested texts, or an email. Swipe to make a task or dismiss; tap to file under a client or project. Re-importing the same note skips what you've already captured. |
+| **Client activity & tags** | Log calls, emails, texts, meetings and notes on each client, see "last contact", tag clients, filter the list, and save filters (synced). |
+| **Weekly review** | A guided once-a-week reset: inbox, overdue, next up, week ahead, and clients you've lost touch with. Today reminds you when it's due. |
+| **Side-business hours** | Settings → Side-Business Hours moves reminders to when your evening window opens and quiets Today outside it. |
+| **Widget** | Home screen (small/medium/large) and lock screen widgets. Tap a circle to check a task off; tap + to jump into quick add. Completions sync into the app the next time it opens. |
+| **iPad & Mac layout** | Sidebar navigation and keyboard shortcuts (⌘N new task, ⇧⌘N capture to inbox, ⌘1–6 jump to a section). |
 | **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |

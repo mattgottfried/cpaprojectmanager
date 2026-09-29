@@ -53,6 +53,9 @@ struct DeadlinesView: View {
                     }
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Deadlines")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingTaxDates) { TaxDatesView() }
@@ -66,19 +69,31 @@ struct DeadlinesView: View {
             Spacer()
             Text("\(count)")
         }
-        .foregroundStyle(title == "Overdue" ? .red : .secondary)
+        .font(.subheadline.weight(.semibold))
+        .textCase(nil)
+        .foregroundStyle(title == "Overdue" ? Theme.bad : Color.secondary)
     }
 
     @ViewBuilder
     private func deadlineRow(_ item: AgendaItem) -> some View {
-        let content = HStack {
+        let bucket = Agenda.bucket(for: item.dueDate)
+        let state: SemanticState = bucket == "Overdue" ? .bad : (bucket == "Today" ? .alert : .neutral)
+        let content = HStack(spacing: 12) {
+            StatusTile(
+                systemImage: item.id == item.project?.id ? "folder.fill" : "checkmark.circle",
+                state: state, size: 40
+            )
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.title).font(.subheadline.weight(.medium)).lineLimit(1)
+                Text(item.title).font(.body.weight(.semibold)).lineLimit(2)
                 Text(item.subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
-            Spacer()
+            Spacer(minLength: 0)
             DueDatePill(date: item.dueDate, isComplete: item.isComplete)
         }
+        .rowCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(item.title)
+        .accessibilityValue("\(bucket), \(Format.relativeDay(item.dueDate)), \(item.subtitle)")
 
         Group {
             if let project = item.project {
@@ -87,6 +102,7 @@ struct DeadlinesView: View {
                 content
             }
         }
+        .cardListRow()
         .contextMenu {
             Button {
                 calendarRequest = CalendarEventRequest(title: item.title, date: item.dueDate, notes: item.subtitle)

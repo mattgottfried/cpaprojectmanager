@@ -17,6 +17,8 @@ enum Persistence {
         Invoice.self,
         InvoiceLine.self,
         InboxItem.self,
+        Interaction.self,
+        SavedClientFilter.self,
     ])
 
     struct Bootstrap {

@@ -10,10 +10,19 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.focusEnabled) private var focusEnabled = false
+    @AppStorage(SettingsKeys.focusStartHour) private var focusStart = 18
+    @AppStorage(SettingsKeys.focusEndHour) private var focusEnd = 22
+    @AppStorage(SettingsKeys.focusWeekends) private var focusWeekends = true
 
     @State private var showingRestoreConfirm = false
     @State private var restoreMessage: String?
     @State private var showingRemindersImport = false
+
+    /// Changes whenever any side-business-hours setting does, so reminders re-time.
+    private var focusSignature: String {
+        "\(focusEnabled)-\(focusStart)-\(focusEnd)-\(focusWeekends)"
+    }
 
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -50,6 +59,23 @@ struct SettingsView: View {
                 Text("Reminders")
             } footer: {
                 Text("Local notifications fire on the morning a project or task is due.")
+            }
+
+            Section {
+                Toggle("Only nudge me during my side-business hours", isOn: $focusEnabled)
+                if focusEnabled {
+                    Picker("Starts", selection: $focusStart) {
+                        ForEach(0..<24, id: \.self) { Text(FocusHours.hourLabel($0)).tag($0) }
+                    }
+                    Picker("Ends", selection: $focusEnd) {
+                        ForEach(0..<24, id: \.self) { Text(FocusHours.hourLabel($0)).tag($0) }
+                    }
+                    Toggle("Weekends all day", isOn: $focusWeekends)
+                }
+            } header: {
+                Text("Side-Business Hours")
+            } footer: {
+                Text("Due-date reminders move to when your window opens on weekdays (and to the reminder time above on weekends, if \"Weekends all day\" is on). Today also tells you when it's off hours.")
             }
 
             Section {
@@ -145,6 +171,9 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: focusSignature) { _, _ in
+            NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
+        }
         .confirmationDialog(
             "Restore the built-in templates?",
             isPresented: $showingRestoreConfirm,

@@ -18,6 +18,8 @@ final class Client {
     var createdAt: Date = Date.now
     /// This client's QuickBooks Online Customer Id, once synced (see Services/QBO).
     var qboCustomerId: String = ""
+    /// Comma-separated, normalized tags (see TagSet).
+    var tagsRaw: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []
@@ -35,6 +37,9 @@ final class Client {
     /// client never silently deletes to-dos.
     @Relationship(deleteRule: .nullify, inverse: \TaskItem.client)
     var looseTasks: [TaskItem]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \Interaction.client)
+    var interactions: [Interaction]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \InboxItem.client)
     var inboxItems: [InboxItem]? = []
@@ -78,6 +83,23 @@ final class Client {
     var invoiceList: [Invoice] { invoices ?? [] }
 
     var recurringEngagementList: [RecurringEngagement] { recurringEngagements ?? [] }
+
+    var interactionList: [Interaction] { interactions ?? [] }
+
+    var tags: [String] {
+        get { TagSet.parse(tagsRaw) }
+        set { tagsRaw = TagSet.encode(newValue) }
+    }
+
+    /// Most recent logged contact, if any.
+    var lastContactedAt: Date? { interactionList.map(\.occurredAt).max() }
+
+    var summary: ClientSummary {
+        ClientSummary(
+            id: id, displayName: displayName, company: company, email: email,
+            status: status, entityType: entityType, tags: tags, openWorkCount: openProjects.count
+        )
+    }
 
     var openProjects: [Project] {
         projectList.filter { !$0.status.isComplete }
