@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What a Today row points at; drives its icon and VoiceOver hint.
 enum TodayRowKind {
-    case task, project, client, invoice
+    case task, project, client, invoice, document
 
     var subtitleIcon: String {
         switch self {
@@ -10,6 +10,7 @@ enum TodayRowKind {
         case .project: return "folder.fill"
         case .client:  return "clock.arrow.circlepath"
         case .invoice: return "person.fill"
+        case .document: return "person.fill"
         }
     }
 
@@ -17,6 +18,7 @@ enum TodayRowKind {
         switch self {
         case .client:  return "person.crop.circle.badge.clock"
         case .invoice: return "doc.text.fill"
+        case .document: return "doc.badge.clock"
         default:       return nil
         }
     }
@@ -27,6 +29,7 @@ enum TodayRowKind {
         case .project: return "Opens the project"
         case .client:  return "Opens the client"
         case .invoice: return "Opens the invoice"
+        case .document: return "Opens the client"
         }
     }
 }

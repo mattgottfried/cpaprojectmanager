@@ -7,6 +7,8 @@ struct WorkListView: View {
     @State private var search = ""
     @State private var filter: WorkFilter = .open
     @State private var showingAdd = false
+    @State private var linkedProject: Project?
+    @Environment(AppRouter.self) private var router
     @State private var showingNewTaxReturn = false
     @AppStorage("workShowsBoard") private var showBoard = false
 
@@ -105,9 +107,19 @@ struct WorkListView: View {
                 }
             }
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
+            .navigationDestination(item: $linkedProject) { ProjectDetailView(project: $0) }
+            .onAppear(perform: consumeLink)
+            .onChange(of: router.pendingLink) { _, _ in consumeLink() }
             .sheet(isPresented: $showingAdd) { ProjectFormView() }
             .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }
         }
+    }
+
+    private func consumeLink() {
+        guard case .project(let id)? = router.pendingLink,
+              let project = projects.first(where: { $0.id == id }) else { return }
+        router.pendingLink = nil
+        linkedProject = project
     }
 
     private func delete(_ offsets: IndexSet) {

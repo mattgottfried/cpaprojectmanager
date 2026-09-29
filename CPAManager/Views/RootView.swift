@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreSpotlight
 
 /// Adaptive shell: a sidebar on iPad and Mac (regular width), tabs on iPhone. Also
 /// bootstraps the app (seed, recurrence, snapshot, notifications).
@@ -36,6 +37,19 @@ struct RootView: View {
         }
         .task { bootstrap() }
         .onOpenURL { router.handle(url: $0) }
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
+               let link = DeepLink(identifier: identifier) {
+                router.open(link)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NotificationActionHandler.openRequested)) { _ in
+            applyHandoffs()
+        }
+        .onChange(of: router.refreshTick) { _, _ in forceSync() }
+        .sheet(isPresented: Binding(get: { router.showingQuickOpen }, set: { router.showingQuickOpen = $0 })) {
+            QuickOpenView()
+        }
         .onReceive(NotificationCenter.default.publisher(for: SettingsSync.didApplyRemote)) { _ in
             // Another device changed a setting (e.g. reminder time) — re-time reminders.
             let hour = UserDefaults.standard.object(forKey: SettingsKeys.reminderHour) as? Int ?? 8
@@ -156,6 +170,9 @@ struct RootView: View {
         case .overview:  DashboardView()
         case .time:      NavigationStack { TimeLogView() }
         case .invoices:  NavigationStack { InvoicesListView() }
+        case .recurringInvoices: NavigationStack { RecurringInvoicesView() }
+        case .expenses:  NavigationStack { ExpensesView() }
+        case .activity:  ActivityFeedView()
         case .reports:   NavigationStack { ReportsView() }
         case .templates: NavigationStack { TemplatesListView() }
         case .recurring: NavigationStack { RecurringListView() }
@@ -165,9 +182,11 @@ struct RootView: View {
 
     private func bootstrap() {
         SettingsSync.shared.start()
+        SpotlightIndexer.reindex(context: context)
         SeedData.seedIfNeeded(context: context)
         applyHandoffs()
         RecurrenceService.run(context: context)
+        RecurringInvoiceService.run(context: context)
         timer.restore(context: context)
         SnapshotBuilder.rebuild(context: context)
         NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
@@ -195,18 +214,32 @@ struct RootView: View {
         CaptureQueue.drain(context: context)
         WidgetActions.applyPending(context: context, reminderHour: reminderHour)
         switch PendingCaptures.consumeOpenRequest() {
-        case "task":  router.go(to: .today, focus: .newTask)
-        case "inbox": router.go(to: .inbox, focus: .inboxCapture)
-        default:      break
+        case "task"?:  router.go(to: .today, focus: .newTask)
+        case "inbox"?: router.go(to: .inbox, focus: .inboxCapture)
+        case let identifier?:
+            if let link = DeepLink(identifier: identifier) { router.open(link) }
+        case nil:      break
+        }
+    }
+
+    /// ⌘R — sync everything now, ignoring the usual throttles.
+    private func forceSync() {
+        Task {
+            await QBOSyncService.refreshOutstanding(auth: qboAuth, context: context, force: true)
+            if GoogleSync.gmailEnabled { await GoogleSync.syncGmail(auth: googleAuth, context: context, force: true) }
+            if GoogleSync.pushEnabled { await GoogleSync.pushDueDates(auth: googleAuth, context: context, force: true) }
+            SpotlightIndexer.reindex(context: context, force: true)
         }
     }
 
     private func refresh() {
+        SpotlightIndexer.reindex(context: context)
         qboAuth.refreshConnectionState()
         googleAuth.refreshConnectionState()
         syncIntegrations()
         applyHandoffs()
         RecurrenceService.run(context: context)
+        RecurringInvoiceService.run(context: context)
         SnapshotBuilder.rebuild(context: context)
     }
 }

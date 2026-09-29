@@ -19,6 +19,9 @@ enum Persistence {
         InboxItem.self,
         Interaction.self,
         Payment.self,
+        DocumentRequest.self,
+        RecurringInvoice.self,
+        Expense.self,
         SavedClientFilter.self,
     ])
 

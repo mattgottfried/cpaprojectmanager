@@ -20,6 +20,8 @@ struct CPAManagerApp: App {
         let boot = Persistence.shared
         container = boot.container
         _syncStatus = State(initialValue: boot.syncStatus)
+        // Must be in place before launch finishes so background notification actions arrive.
+        NotificationActionHandler.shared.install()
         #if os(macOS)
         MacQuickCapture.installHotKey()
         #endif
@@ -58,6 +60,14 @@ struct CPAManagerApp: App {
                     .keyboardShortcut("n", modifiers: .command)
                 Button("Capture to Inbox") { router.go(to: .inbox, focus: .inboxCapture) }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .toolbar) {
+                Button("Sync Now") { router.refreshTick += 1 }
+                    .keyboardShortcut("r", modifiers: .command)
+            }
+            CommandGroup(after: .textEditing) {
+                Button("Search…") { router.showingQuickOpen = true }
+                    .keyboardShortcut("k", modifiers: .command)
             }
             CommandMenu("Go") {
                 Button("Today") { router.go(to: .today) }.keyboardShortcut("1", modifiers: .command)

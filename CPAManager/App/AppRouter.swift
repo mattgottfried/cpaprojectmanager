@@ -5,7 +5,8 @@ import Observation
 /// iPad and Mac they are all rows in the sidebar.
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case today, inbox, clients, leads, work, deadlines, review
-    case time, invoices, reports, templates, recurring, overview
+    case time, invoices, recurringInvoices, expenses, reports, templates, recurring, overview
+    case activity
     case settings
 
     var id: String { rawValue }
@@ -21,6 +22,9 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .review:    return "Weekly Review"
         case .time:      return "Time & Billing"
         case .invoices:  return "Invoices"
+        case .recurringInvoices: return "Recurring Invoices"
+        case .expenses:  return "Expenses"
+        case .activity:  return "Activity"
         case .reports:   return "Reports"
         case .templates: return "Templates"
         case .recurring: return "Recurring Work"
@@ -40,6 +44,9 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .review:    return "checkmark.seal.fill"
         case .time:      return "clock.fill"
         case .invoices:  return "doc.text.image.fill"
+        case .recurringInvoices: return "arrow.triangle.2.circlepath.circle.fill"
+        case .expenses:  return "creditcard.fill"
+        case .activity:  return "clock.arrow.circlepath"
         case .reports:   return "chart.bar.fill"
         case .templates: return "square.stack.3d.up.fill"
         case .recurring: return "arrow.triangle.2.circlepath"
@@ -49,8 +56,8 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     }
 
     /// Sidebar grouping.
-    static let daily: [AppSection] = [.today, .inbox, .clients, .leads, .work, .deadlines, .review]
-    static let practice: [AppSection] = [.time, .invoices, .reports, .templates, .recurring, .overview]
+    static let daily: [AppSection] = [.today, .inbox, .clients, .leads, .work, .deadlines, .review, .activity]
+    static let practice: [AppSection] = [.time, .invoices, .recurringInvoices, .expenses, .reports, .templates, .recurring, .overview]
 }
 
 /// Which text field a keyboard shortcut / widget link wants focused once its screen
@@ -65,10 +72,27 @@ enum CaptureFocus: Equatable {
 final class AppRouter {
     var section: AppSection = .today
     var pendingFocus: CaptureFocus?
+    /// A record to open once its screen is showing (Spotlight, Siri, notifications, search).
+    var pendingLink: DeepLink?
+    var showingQuickOpen = false
+    /// Bumped by ⌘R to ask the shell to sync integrations right now.
+    var refreshTick = 0
 
     func go(to section: AppSection, focus: CaptureFocus? = nil) {
         self.section = section
         pendingFocus = focus
+    }
+
+    /// Jumps to the screen that owns `link` and asks it to push the record.
+    func open(_ link: DeepLink) {
+        switch link {
+        case .client:  section = .clients
+        case .project: section = .work
+        case .task:    section = .today
+        case .invoice: section = .invoices
+        }
+        pendingLink = link
+        pendingFocus = nil
     }
 
     /// Handles `cpamanager://today`, `…://capture`, `…://inbox` (widget links).
@@ -82,6 +106,8 @@ final class AppRouter {
         case "inbox":   go(to: .inbox)
         case "review":  go(to: .review)
         case "leads":   go(to: .leads)
+        case "search":  showingQuickOpen = true
+        case "activity": go(to: .activity)
         default:        return false
         }
         return true

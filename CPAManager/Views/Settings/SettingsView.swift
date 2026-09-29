@@ -100,6 +100,18 @@ struct SettingsView: View {
 
             Section {
                 NavigationLink {
+                    ExportBackupView()
+                } label: {
+                    Label("Export & Backup", systemImage: "square.and.arrow.up.on.square")
+                }
+            } header: {
+                Text("Your Data")
+            } footer: {
+                Text("CSV spreadsheets for your accountant or your own books, and a full backup you control.")
+            }
+
+            Section {
+                NavigationLink {
                     GoogleSettingsView()
                 } label: {
                     Label("Google (Gmail & Calendar)", systemImage: "g.circle.fill")

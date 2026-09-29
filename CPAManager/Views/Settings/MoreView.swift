@@ -17,6 +17,11 @@ struct MoreView: View {
                         Label("Weekly Review", systemImage: "checkmark.seal.fill")
                     }
                     NavigationLink {
+                        ActivityFeedView(embedded: true)
+                    } label: {
+                        Label("Activity", systemImage: "clock.arrow.circlepath")
+                    }
+                    NavigationLink {
                         DeadlinesView(embedded: true)
                     } label: {
                         Label("Deadlines", systemImage: "calendar")
@@ -45,6 +50,16 @@ struct MoreView: View {
                         InvoicesListView()
                     } label: {
                         Label("Invoices", systemImage: "doc.text.image.fill")
+                    }
+                    NavigationLink {
+                        RecurringInvoicesView()
+                    } label: {
+                        Label("Recurring Invoices", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                    }
+                    NavigationLink {
+                        ExpensesView()
+                    } label: {
+                        Label("Expenses", systemImage: "creditcard.fill")
                     }
                     NavigationLink {
                         ReportsView()
