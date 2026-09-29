@@ -8,8 +8,9 @@ final class ShareViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
-        Task { @MainActor in
-            let payload = await ShareExtractor.extract(from: extensionContext)
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let payload = await ShareExtractor.extract(from: self.extensionContext)
 
             let root = ShareView(
                 text: payload.text,
