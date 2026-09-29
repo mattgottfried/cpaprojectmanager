@@ -7,6 +7,16 @@ struct MoreView: View {
             List {
                 Section {
                     NavigationLink {
+                        DeadlinesView(embedded: true)
+                    } label: {
+                        Label("Deadlines", systemImage: "calendar")
+                    }
+                    NavigationLink {
+                        DashboardView(embedded: true)
+                    } label: {
+                        Label("Firm Overview", systemImage: "house.fill")
+                    }
+                    NavigationLink {
                         TemplatesListView()
                     } label: {
                         Label("Templates", systemImage: "square.stack.3d.up.fill")

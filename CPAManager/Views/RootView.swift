@@ -7,20 +7,22 @@ struct RootView: View {
     @Environment(TimerController.self) private var timer
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
     var body: some View {
         TabView {
-            DashboardView()
-                .tabItem { Label("Home", systemImage: "house.fill") }
+            TodayView()
+                .tabItem { Label("Today", systemImage: "sun.max.fill") }
+
+            InboxView()
+                .tabItem { Label("Inbox", systemImage: "tray.fill") }
+                .badge(inbox.count)
 
             ClientsListView()
                 .tabItem { Label("Clients", systemImage: "person.2.fill") }
 
             WorkListView()
                 .tabItem { Label("Work", systemImage: "checklist") }
-
-            DeadlinesView()
-                .tabItem { Label("Deadlines", systemImage: "calendar") }
 
             MoreView()
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }

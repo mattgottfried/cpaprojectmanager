@@ -6,6 +6,9 @@ struct DashboardView: View {
     @Query private var projects: [Project]
     @Query private var tasks: [TaskItem]
     @State private var showingNewTaxReturn = false
+    /// True when pushed from another stack (e.g. More) so it doesn't nest a second
+    /// NavigationStack.
+    var embedded = false
 
     private var agenda: [AgendaItem] { Agenda.items(projects: projects, tasks: tasks) }
 
@@ -24,7 +27,15 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        if embedded {
+            content
+        } else {
+            NavigationStack { content }
+        }
+    }
+
+    private var content: some View {
+        Group {
             ScrollView {
                 VStack(spacing: 16) {
                     if timer.isRunning {

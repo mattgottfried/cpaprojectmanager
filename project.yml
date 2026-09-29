@@ -85,3 +85,15 @@ targets:
         CFBundleDisplayName: CPA Widgets
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+  CPAManagerTests:
+    type: bundle.unit-test
+    supportedDestinations: [iOS, macCatalyst]
+    sources:
+      - path: CPAManagerTests
+    dependencies:
+      - target: CPAManager
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gottfriedcpa.ProjectManager.Tests
+        GENERATE_INFOPLIST_FILE: YES
