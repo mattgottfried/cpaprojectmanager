@@ -5,6 +5,7 @@ struct DeadlinesView: View {
     @Query private var projects: [Project]
     @Query private var tasks: [TaskItem]
     @State private var showingTaxDates = false
+    @State private var showingGenerator = false
     @State private var calendarRequest: CalendarEventRequest?
     /// True when pushed from another stack (e.g. More) so it doesn't nest a second
     /// NavigationStack.
@@ -51,6 +52,11 @@ struct DeadlinesView: View {
                     } label: {
                         Label("Standard tax deadlines", systemImage: "calendar.badge.exclamationmark")
                     }
+                    Button {
+                        showingGenerator = true
+                    } label: {
+                        Label("Add filing deadlines for my clients…", systemImage: "wand.and.stars")
+                    }
                 }
             }
             .listStyle(.plain)
@@ -59,6 +65,7 @@ struct DeadlinesView: View {
             .navigationTitle("Deadlines")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingTaxDates) { TaxDatesView() }
+            .sheet(isPresented: $showingGenerator) { TaxDeadlineGeneratorView() }
             .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
         }
     }

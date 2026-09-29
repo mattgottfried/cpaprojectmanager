@@ -109,6 +109,9 @@ enum NotificationScheduler {
         content.title = title
         content.body = body
         content.sound = .default
+        if let category = NotificationActionParser.category(forRequestID: id) {
+            content.categoryIdentifier = category
+        }
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)

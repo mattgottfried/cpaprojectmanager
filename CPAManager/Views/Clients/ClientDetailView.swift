@@ -53,6 +53,8 @@ struct ClientDetailView: View {
                 leadSection
             }
 
+            TaxDeadlinesSection(client: client)
+
             if !client.tags.isEmpty {
                 Section("Tags") {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -90,6 +92,8 @@ struct ClientDetailView: View {
                     Label("New project", systemImage: "plus")
                 }
             }
+
+            DocumentRequestsSection(client: client)
 
             DocumentsSectionView(client: client)
         }

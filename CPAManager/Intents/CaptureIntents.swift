@@ -141,6 +141,30 @@ struct CPAManagerShortcuts: AppShortcutsProvider {
             systemImageName: "mic.fill"
         )
         AppShortcut(
+            intent: TodaySummaryIntent(),
+            phrases: [
+                "What's on my plate in \(.applicationName)",
+                "What's due today in \(.applicationName)",
+            ],
+            shortTitle: "What's on My Plate",
+            systemImageName: "sun.max.fill"
+        )
+        AppShortcut(
+            intent: ClientStatusIntent(),
+            phrases: [
+                "What's up with \(\.$client) in \(.applicationName)",
+                "Status of \(\.$client) in \(.applicationName)",
+            ],
+            shortTitle: "Client Status",
+            systemImageName: "person.crop.circle.badge.questionmark"
+        )
+        AppShortcut(
+            intent: OpenClientIntent(),
+            phrases: ["Open \(\.$client) in \(.applicationName)"],
+            shortTitle: "Open Client",
+            systemImageName: "person.fill"
+        )
+        AppShortcut(
             intent: AddToInboxIntent(),
             phrases: [
                 "Add to my inbox in \(.applicationName)",

@@ -26,6 +26,8 @@ final class Client {
     var leadStageRaw: String = ""
     /// Estimated annual fees, for the pipeline total.
     var leadValue: Double = 0
+    /// Comma-separated tax years for which an extension has been filed ("2025, 2024").
+    var extensionYearsRaw: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []
@@ -46,6 +48,15 @@ final class Client {
 
     @Relationship(deleteRule: .cascade, inverse: \Interaction.client)
     var interactions: [Interaction]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \DocumentRequest.client)
+    var documentRequests: [DocumentRequest]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \RecurringInvoice.client)
+    var recurringInvoices: [RecurringInvoice]? = []
+
+    @Relationship(deleteRule: .nullify, inverse: \Expense.client)
+    var expenses: [Expense]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \InboxItem.client)
     var inboxItems: [InboxItem]? = []
@@ -91,6 +102,14 @@ final class Client {
     var recurringEngagementList: [RecurringEngagement] { recurringEngagements ?? [] }
 
     var hasFollowUp: Bool { followUpDate != nil }
+
+    var documentRequestList: [DocumentRequest] { documentRequests ?? [] }
+
+    /// Tax years with an extension filed.
+    var extensionYears: Set<Int> {
+        get { Set(extensionYearsRaw.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }) }
+        set { extensionYearsRaw = newValue.sorted().map(String.init).joined(separator: ", ") }
+    }
 
     /// Pipeline stage. Existing "Prospect" clients read as `.new` leads.
     var leadStage: LeadStage? {

@@ -8,6 +8,8 @@ struct TodayView: View {
     @Query private var projects: [Project]
     @Query private var clients: [Client]
     @Query private var invoices: [Invoice]
+    @Query private var docRequests: [DocumentRequest]
+    @Query(filter: #Predicate<Invoice> { $0.statusRaw == "draft" }) private var draftInvoices: [Invoice]
     @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
     @Environment(AppRouter.self) private var router
@@ -43,9 +45,11 @@ struct TodayView: View {
         let project: Project?
         var client: Client? = nil
         var invoice: Invoice? = nil
+        var request: DocumentRequest? = nil
         var isRepeating = false
 
         var kind: TodayRowKind {
+            if request != nil { return .document }
             if client != nil { return .client }
             if invoice != nil { return .invoice }
             return task != nil ? .task : .project
@@ -97,6 +101,18 @@ struct TodayView: View {
                 invoice: invoice
             )
         }
+        for request in docRequests where !request.isReceived && request.dueDate != nil {
+            result[request.id] = Entry(
+                id: request.id,
+                title: "Need: \(request.title)",
+                subtitle: request.client?.displayName ?? "",
+                dueDate: request.dueDate,
+                task: nil,
+                project: nil,
+                client: request.client,
+                request: request
+            )
+        }
         return result
     }
 
@@ -123,6 +139,12 @@ struct TodayView: View {
         for invoice in invoices where invoice.status == .sent && invoice.balance > 0 {
             items.append(PlannerItem(
                 id: invoice.id, dueDate: invoice.dueDate, snoozedUntil: nil,
+                isDone: false, isNextAction: false
+            ))
+        }
+        for request in docRequests where !request.isReceived && request.dueDate != nil {
+            items.append(PlannerItem(
+                id: request.id, dueDate: request.dueDate, snoozedUntil: nil,
                 isDone: false, isNextAction: false
             ))
         }
@@ -166,6 +188,28 @@ struct TodayView: View {
                                 .foregroundStyle(Theme.color(.info))
                                 .textCase(nil)
                         }
+                    }
+
+                    if !draftInvoices.isEmpty {
+                        NavigationLink {
+                            InvoicesListView()
+                        } label: {
+                            HStack(spacing: 12) {
+                                StatusTile(systemImage: "doc.badge.plus", state: .info)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(draftInvoices.count) draft invoice\(draftInvoices.count == 1 ? "" : "s") to review")
+                                        .font(.body.weight(.semibold))
+                                    Text("Review and send when you're ready").font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .rowCard()
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(draftInvoices.count) draft invoices to review")
+                            .accessibilityHint("Opens invoices")
+                        }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                     }
 
                     if reviewDue {
@@ -241,6 +285,10 @@ struct TodayView: View {
             .navigationDestination(for: Invoice.self) { InvoiceDetailView(invoice: $0) }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
+                    Button { router.showingQuickOpen = true } label: { Image(systemName: "magnifyingglass") }
+                        .accessibilityLabel("Search")
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { showingPaste = true } label: {
                             Label("Paste from a note or email…", systemImage: "doc.on.clipboard")
@@ -271,6 +319,7 @@ struct TodayView: View {
             .undoToast($toast)
             .sensoryFeedback(.success, trigger: addedCount)
             .onAppear(perform: consumeFocusRequest)
+            .onAppear { if case .task(_)? = router.pendingLink { router.pendingLink = nil } }
             .onChange(of: router.pendingFocus) { _, _ in consumeFocusRequest() }
             .task(id: "\(showSchedule)-\(google.isConnected)") { await loadSchedule() }
         }
@@ -471,6 +520,20 @@ struct TodayView: View {
                         .tint(Theme.info)
                 }
                 .contextMenu { taskMenu(task) }
+        } else if let request = entry.request {
+            Group {
+                if let client = request.client {
+                    NavigationLink(value: client) { card }.buttonStyle(.plain)
+                } else {
+                    card
+                }
+            }
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                Button { receive(request) } label: { Label("Received", systemImage: "checkmark") }
+                    .tint(Theme.good)
+            }
         } else if let client = entry.client {
             NavigationLink(value: client) { card }
                 .buttonStyle(.plain)
@@ -635,6 +698,15 @@ struct TodayView: View {
         persist()
         toast = UndoToastState(message: "Moved to \(option.label.lowercased())", systemImage: "calendar") {
             task.dueDate = previous
+            persist()
+        }
+    }
+
+    private func receive(_ request: DocumentRequest) {
+        request.markReceived()
+        persist()
+        toast = UndoToastState(message: "Received: \(request.title)", systemImage: "doc.badge.checkmark") {
+            request.markOutstanding()
             persist()
         }
     }

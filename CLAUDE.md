@@ -104,6 +104,30 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Hands-free capture:** `CaptureThoughtIntent` (Siri/Action button) → Inbox. iOS 18
   controls in `CPAWidgets/QuickCaptureControls.swift` are behind `#if compiler(>=6.0)`.
 
+### Batch 4: practice tools, data safety, search, platform polish
+
+- **Document requests** (`DocumentRequest`, on client): checklist of what a client owes;
+  requests with a due date show on Today; `DocumentChecklist` has per-entity suggestions and
+  the chase-email body. **Recurring invoices** (`RecurringInvoice`, lines stored as JSON
+  `linesData`): `RecurringInvoiceService.run` drafts invoices (never sends) and is idempotent
+  across devices via a marker in `notes`. **Expenses** (`Expense`, receipt in external
+  storage). **Tax deadlines**: `TaxCalendar` (pure; calendar-year federal dates, weekend +
+  MLK/Emancipation-Day shifts) → `TaxDeadlineService.createTasks` (dedupes by client+title+day).
+- **Backup/restore** (`BackupService`): one JSON file of every model; restore is a *merge*
+  by UUID (never overwrites/deletes). **Adding a model or stored property means updating
+  `BackupFile` records, `export`, and `restore`** — `BackupRoundTripTests` will catch a miss.
+- **CSV** (`ExportService` + `CSVWriter`): every cell goes through `CSVWriter.sanitize`
+  (formula-injection guard). **Search**: `GlobalSearch` (pure ranking) over `SearchDoc`s built
+  by `SearchIndexBuilder` — shared by the ⌘K `QuickOpenView` and `SpotlightIndexer`.
+  **Deep links**: `DeepLink` ("client:<uuid>"…) → `AppRouter.open` → each list consumes
+  `router.pendingLink` via `navigationDestination(item:)`. **Activity feed** is derived from
+  existing timestamps (no separate change log).
+- **Notification actions**: `NotificationActionParser` (pure) + `NotificationActionHandler`
+  (delegate installed in `App.init`); request IDs are `task-/followup-/invoice-/project-<uuid>`.
+  **Siri**: `ClientEntity` + `ClientStatusIntent`/`OpenClientIntent`/`TodaySummaryIntent`;
+  summaries come from pure `Briefing`.
+- **Mac icons**: `AppIcon.appiconset` has the ten `mac_*` sizes generated from the 1024 master.
+
 ### What syncs (and what deliberately doesn't)
 
 - Data: SwiftData/CloudKit. Settings: `SettingsSync` mirrors `SettingsKeys.synced` between

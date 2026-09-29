@@ -10,6 +10,8 @@ struct ClientsListView: View {
     @State private var filter = ClientFilter()
     @State private var showingAdd = false
     @State private var showingSave = false
+    @State private var linkedClient: Client?
+    @Environment(AppRouter.self) private var router
     @State private var newFilterName = ""
 
     private var effectiveFilter: ClientFilter {
@@ -69,6 +71,9 @@ struct ClientsListView: View {
                 }
             }
             .navigationDestination(for: Client.self) { ClientDetailView(client: $0) }
+            .navigationDestination(item: $linkedClient) { ClientDetailView(client: $0) }
+            .onAppear(perform: consumeLink)
+            .onChange(of: router.pendingLink) { _, _ in consumeLink() }
             .sheet(isPresented: $showingAdd) { ClientFormView() }
             .alert("Save filter", isPresented: $showingSave) {
                 TextField("Name", text: $newFilterName)
@@ -154,6 +159,13 @@ struct ClientsListView: View {
     }
 
     // MARK: Actions
+
+    private func consumeLink() {
+        guard case .client(let id)? = router.pendingLink,
+              let client = clients.first(where: { $0.id == id }) else { return }
+        router.pendingLink = nil
+        linkedClient = client
+    }
 
     private func saveCurrentFilter() {
         let name = newFilterName.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -31,6 +31,13 @@ It includes the Apple-native touches that make an iPhone app feel great:
 | **Google Workspace** | Starred Gmail → Inbox, today's calendar events on Today, and your due dates on a Google calendar. |
 | **Share sheet & controls** | "Add to CPA Inbox" share extension (emails, PDFs, photos, links), a Siri / Action button "Capture a Thought", and Control Center controls (iOS 18). |
 | **Native Mac app** | A real macOS app with a sidebar, menu bar quick capture, and a global ⌃⌥Space hotkey. |
+| **Document requests** | Track what each client owes you (with suggested checklists per entity type), tick items off as they arrive, and email them a list of what's missing. Requests with a due date show on Today. |
+| **Recurring invoices** | Set up a retainer once; a draft invoice appears each period for you to review and send. Nothing is sent automatically. |
+| **Expenses** | Log business expenses with receipt photos/PDFs, categories, and deductible %, with yearly totals and a chart. |
+| **Tax deadlines** | Filing and estimated-payment dates by entity type and extension status, added to your tasks per client or for everyone at once. |
+| **Search (⌘K)** | One box to jump to any client, project, task or invoice, or run a command. Also in Spotlight. |
+| **Activity** | A timeline of what you did — tasks finished, payments, emails, new clients. |
+| **Export & backup** | CSV exports for spreadsheets and a full JSON backup/restore, independent of iCloud. |
 | **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
@@ -183,6 +190,28 @@ is actually "Active" or stuck on "Local Only" (and why), so you don't have to gu
 > a second device before the first device's data has finished syncing down, both may
 > seed the default templates and you'll see duplicates. Just delete the extras (or
 > use *Settings → Restore default templates* as needed).
+
+### Tax deadline dates
+
+`TaxCalendar` covers **calendar-year federal** filing dates: Form 1040 & 1120 — April 15
+(extended October 15); 1065 & 1120-S — March 15 (extended September 15); 1041 — April 15
+(extended September 30); 990 — May 15 (extended November 15); individual estimated payments —
+April 15, June 15, September 15, January 15. A date on a weekend or legal holiday moves to the
+next business day; only the holidays that can hit these dates are modelled (Martin Luther King
+Jr. Day and D.C. Emancipation Day). Fiscal-year entities, disaster-relief postponements and
+state deadlines are **not** covered — always confirm against the IRS calendar. Sources:
+[IRS due dates summary (AICPA chart)](https://www.hcvt.com/media/resource/40_AICPA_due-dates-summary-chart.pdf),
+[TaxAct e-file due dates](https://support.taxact.com/support/380/e-filing-return-due-dates-and-deadlines),
+[estimated payment dates](https://www.mjcpa.com/estimated-tax-payments-who-owes-them-and-when-is-the-next-one-due/).
+
+### Siri, Spotlight, notification buttons
+
+- **Spotlight:** clients, work, open tasks and invoices are searchable from the home screen /
+  ⌘Space (on-device index, refreshed when the app opens).
+- **Siri / Shortcuts:** "What's on my plate in CPA Manager", "What's up with Dana Lee in CPA
+  Manager", "Open Dana Lee in CPA Manager".
+- **Notification buttons:** task reminders have **Done / Tomorrow**, follow-ups **Contacted /
+  Next week**, invoice reminders **Mark paid** — no need to open the app.
 
 ### What syncs across iPhone, iPad and Mac
 
@@ -480,10 +509,10 @@ repeat step 6. Internal testers on the same group auto-see new builds.
 
 ## Notes & next steps
 
-- **New models this round** (redeploy the CloudKit schema before TestFlight): `Interaction`,
-  `SavedClientFilter`, `Payment`, plus new fields on `Client` (tags, follow-up, lead
-  stage/value), `TaskItem` (repeat rule, next action, snooze, client), and `InboxItem`
-  (external ID, link, attachment).
+- **New models to deploy to CloudKit Production before TestFlight:** `Interaction`,
+  `SavedClientFilter`, `Payment`, `DocumentRequest`, `RecurringInvoice`, `Expense`, plus new
+  fields on `Client` (tags, follow-up, lead stage/value, extension years), `TaskItem` (repeat
+  rule, next action, snooze, client), and `InboxItem` (external ID, link, attachment).
 - **Notifications** are local only (no push server needed). iOS caps pending local
   notifications at 64; the scheduler keeps to the soonest ~60.
 - **Document scanning** requires a real device — VisionKit's document camera isn't

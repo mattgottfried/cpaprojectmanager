@@ -7,6 +7,8 @@ struct InvoicesListView: View {
     @Query(sort: \Invoice.number, order: .reverse) private var invoices: [Invoice]
     @State private var showingBuilder = false
     @State private var refreshing = false
+    @State private var linkedInvoice: Invoice?
+    @Environment(AppRouter.self) private var router
 
     private var sent: [Invoice] { invoices.filter { $0.status == .sent } }
     private var outstandingTotal: Double { sent.reduce(0) { $0 + $1.balance } }
@@ -86,6 +88,16 @@ struct InvoicesListView: View {
             }
         }
         .sheet(isPresented: $showingBuilder) { InvoiceBuilderView() }
+        .navigationDestination(item: $linkedInvoice) { InvoiceDetailView(invoice: $0) }
+        .onAppear(perform: consumeLink)
+        .onChange(of: router.pendingLink) { _, _ in consumeLink() }
+    }
+
+    private func consumeLink() {
+        guard case .invoice(let id)? = router.pendingLink,
+              let invoice = invoices.first(where: { $0.id == id }) else { return }
+        router.pendingLink = nil
+        linkedInvoice = invoice
     }
 
     private var summaryCard: some View {
