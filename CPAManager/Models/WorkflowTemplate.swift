@@ -11,6 +11,10 @@ final class WorkflowTemplate {
     var serviceTypeRaw: String = ServiceType.taxReturn.rawValue
     /// Default number of days from start to the project due date.
     var defaultDurationDays: Int = 30
+    /// Jobs made from this template start in this pipeline (nil = the built-in one)...
+    var pipelineID: UUID? = nil
+    /// ...at this stage (empty = the pipeline's first stage).
+    var startStageKey: String = ""
     var createdAt: Date = Date.now
 
     @Relationship(deleteRule: .cascade, inverse: \TemplateTask.template)

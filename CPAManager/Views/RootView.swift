@@ -15,6 +15,10 @@ struct RootView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.hasOnboarded) private var hasOnboarded = false
+    @AppStorage(SettingsKeys.firmName) private var firmName = ""
+    @AppStorage(SettingsKeys.lastWeeklyReview) private var lastReviewTime: Double = 0
+    @State private var showingOnboarding = false
     @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
     /// Sidebar on iPad and Mac, tabs on iPhone. macOS has no size classes, so it's
@@ -36,6 +40,8 @@ struct RootView: View {
             }
         }
         .task { bootstrap() }
+        .task { decideOnboarding() }
+        .sheet(isPresented: $showingOnboarding) { OnboardingView() }
         .onOpenURL { router.handle(url: $0) }
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
             if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
@@ -177,6 +183,21 @@ struct RootView: View {
         case .templates: NavigationStack { TemplatesListView() }
         case .recurring: NavigationStack { RecurringListView() }
         case .settings:  NavigationStack { SettingsView() }
+        }
+    }
+
+    /// Only brand-new installs see the walkthrough; existing users are marked as done.
+    private func decideOnboarding() {
+        let invoices = (try? context.fetchCount(FetchDescriptor<Invoice>())) ?? 0
+        let entries = (try? context.fetchCount(FetchDescriptor<TimeEntry>())) ?? 0
+        let show = OnboardingPolicy.shouldShow(
+            hasOnboarded: hasOnboarded, firmName: firmName,
+            invoiceCount: invoices, timeEntryCount: entries, lastReviewTime: lastReviewTime
+        )
+        if show {
+            showingOnboarding = true
+        } else if !hasOnboarded {
+            hasOnboarded = true
         }
     }
 

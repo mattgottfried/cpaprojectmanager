@@ -28,6 +28,11 @@ final class Project {
     var holdDetail: String = ""
     var holdResumeStatusRaw: String = ""
 
+    /// nil = the built-in tax-return pipeline (the stage is `statusRaw`); otherwise the
+    /// `Pipeline` this job lives in, with the current stage in `stageKey`.
+    var pipelineID: UUID? = nil
+    var stageKey: String = ""
+
     var client: Client? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \TaskItem.project)

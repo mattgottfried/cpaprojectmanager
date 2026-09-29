@@ -4,6 +4,8 @@ import SwiftData
 struct WorkListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Project.createdAt, order: .reverse) private var projects: [Project]
+    @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
+    @AppStorage("workPipelineFilter") private var pipelineFilter = ""   // "" = all, "builtin", or a pipeline UUID
     @State private var search = ""
     @State private var filter: WorkFilter = .open
     @State private var showingAdd = false
@@ -26,6 +28,13 @@ struct WorkListView: View {
                 case .open:     return !project.status.isComplete
                 case .all:      return true
                 case .complete: return project.status.isComplete
+                }
+            }
+            .filter { project in
+                switch pipelineFilter {
+                case "":        return true
+                case "builtin": return project.pipelineID == nil
+                default:        return project.pipelineID?.uuidString == pipelineFilter
                 }
             }
             .filter { project in
@@ -58,12 +67,12 @@ struct WorkListView: View {
                             }
                             .cardListRow()
                             .swipeActions(edge: .leading) {
-                                if let next = project.nextStatusPreview {
+                                if let next = PipelineEngine.nextStageName(for: project, in: pipelines) {
                                     Button {
-                                        project.advance()
+                                        PipelineEngine.advanceAny(project, pipelines: pipelines, context: context)
                                         persistChange()
                                     } label: {
-                                        Label("Advance to \(next.label)", systemImage: "arrow.right.circle.fill")
+                                        Label("Advance to \(next)", systemImage: "arrow.right.circle.fill")
                                     }
                                     .tint(Theme.brand)
                                 }
@@ -85,6 +94,16 @@ struct WorkListView: View {
                     }
                     .pickerStyle(.menu)
                     .disabled(showBoard)
+                }
+                if !pipelines.isEmpty && !showBoard {
+                    ToolbarItem(placement: .primaryAction) {
+                        Picker("Pipeline", selection: $pipelineFilter) {
+                            Text("All pipelines").tag("")
+                            Text(PipelineDefinition.standardName).tag("builtin")
+                            ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
+                        }
+                        .pickerStyle(.menu)
+                    }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
@@ -136,6 +155,7 @@ struct WorkListView: View {
 }
 
 struct ProjectRow: View {
+    @Query private var pipelines: [Pipeline]
     let project: Project
     var showClient: Bool = true
     /// Render as a free-standing card (Work list). Off inside grouped forms/lists.
@@ -155,7 +175,7 @@ struct ProjectRow: View {
     }
 
     private var accessibilityValue: String {
-        var parts = [project.status.label]
+        var parts = [PipelineEngine.info(for: project, in: pipelines).name]
         if showClient { parts.append(project.clientName) }
         if let due = project.dueDate { parts.append("due \(Format.relativeDay(due))") }
         if project.totalTaskCount > 0 { parts.append("\(project.completedTaskCount) of \(project.totalTaskCount) tasks done") }
@@ -201,7 +221,7 @@ struct ProjectRow: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
-                StatusBadge(status: project.status)
+                StageBadge(info: PipelineEngine.info(for: project, in: pipelines))
                 PriorityBadge(priority: project.priority)
             }
         }

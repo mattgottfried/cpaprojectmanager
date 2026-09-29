@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Observation
+import UserNotifications
 #if canImport(ActivityKit) && os(iOS) && !targetEnvironment(macCatalyst)
 import ActivityKit
 #endif
@@ -41,6 +42,7 @@ final class TimerController {
         clientName = project?.client?.displayName ?? ""
 
         startLiveActivity(startedAt: entry.startedAt, isBillable: isBillable)
+        scheduleStillRunningReminder(startedAt: entry.startedAt)
         SnapshotBuilder.rebuild(context: context)
     }
 
@@ -53,6 +55,8 @@ final class TimerController {
         }
         clearRunningState()
         endLiveActivity()
+        cancelStillRunningReminder()
+        SnapshotBuilder.rebuild(context: context)
     }
 
     /// Re-attach to a still-running entry after a relaunch (e.g. timer left running).
@@ -73,6 +77,25 @@ final class TimerController {
         startedAt = nil
         label = ""
         clientName = ""
+    }
+
+    // MARK: "Still running?" reminder
+
+    private static let reminderID = "timer-running"
+
+    private func scheduleStillRunningReminder(startedAt: Date) {
+        let hours = UserDefaults.standard.integer(forKey: SettingsKeys.timerReminderHours)
+        guard let fire = TimerReminderPlan.fireDate(startedAt: startedAt, afterHours: hours), fire > .now else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Timer still running"
+        content.body = "\(label) has been running \(Format.hoursMinutes(fire.timeIntervalSince(startedAt))). Stop it if you're done."
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, fire.timeIntervalSinceNow), repeats: false)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: Self.reminderID, content: content, trigger: trigger))
+    }
+
+    private func cancelStillRunningReminder() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [Self.reminderID])
     }
 
     // MARK: Live Activity

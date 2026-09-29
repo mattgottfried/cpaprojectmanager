@@ -27,6 +27,10 @@ struct BackupFile: Codable {
     var documentRequests: [DocumentRequestRecord] = []
     var recurringInvoices: [RecurringInvoiceRecord] = []
     var expenses: [ExpenseRecord] = []
+    // Added in batch 5. Optional so backups made by earlier builds still decode.
+    var pipelines: [PipelineRecord]? = nil
+    var letterTemplates: [LetterTemplateRecord]? = nil
+    var emailTemplates: [EmailTemplateRecord]? = nil
 
     // MARK: Records (one per model; relationships are stored as IDs)
 
@@ -35,12 +39,16 @@ struct BackupFile: Codable {
         var email: String; var phone: String; var notes: String; var createdAt: Date; var qboCustomerId: String
         var tagsRaw: String; var followUpDate: Date?; var leadStageRaw: String; var leadValue: Double
         var extensionYearsRaw: String
+        // Batch 5 (optional for older backups).
+        var birthday: Date? = nil; var anniversary: Date? = nil
+        var birthdayAckYear: Int? = nil; var anniversaryAckYear: Int? = nil
     }
     struct ProjectRecord: Codable {
         var id: UUID; var title: String; var detail: String; var statusRaw: String; var serviceTypeRaw: String
         var priorityRaw: String; var startDate: Date?; var dueDate: Date?; var completedAt: Date?; var taxYear: Int
         var templateName: String?; var createdAt: Date; var receivedDate: Date?; var nextAction: String
         var holdReasonRaw: String; var holdDetail: String; var holdResumeStatusRaw: String; var clientID: UUID?
+        var pipelineID: UUID? = nil; var stageKey: String? = nil
     }
     struct TaskRecord: Codable {
         var id: UUID; var title: String; var notes: String; var isDone: Bool; var dueDate: Date?; var sortIndex: Int
@@ -59,6 +67,7 @@ struct BackupFile: Codable {
     struct TemplateRecord: Codable {
         var id: UUID; var name: String; var detail: String; var serviceTypeRaw: String
         var defaultDurationDays: Int; var createdAt: Date
+        var pipelineID: UUID? = nil; var startStageKey: String? = nil
     }
     struct TemplateTaskRecord: Codable {
         var id: UUID; var title: String; var sortIndex: Int; var dayOffset: Int; var templateID: UUID?
@@ -67,6 +76,7 @@ struct BackupFile: Codable {
         var id: UUID; var name: String; var frequencyRaw: String; var serviceTypeRaw: String; var isActive: Bool
         var nextDueDate: Date; var leadTimeDays: Int; var lastGeneratedDueDate: Date?; var adjustForWeekends: Bool
         var createdAt: Date; var clientID: UUID?; var templateID: UUID?
+        var endDate: Date? = nil; var namingPattern: String? = nil
     }
     struct InvoiceRecord: Codable {
         var id: UUID; var number: Int; var issueDate: Date; var dueDate: Date; var statusRaw: String; var notes: String
@@ -106,6 +116,17 @@ struct BackupFile: Codable {
         var clientID: UUID?
     }
 
+    struct PipelineRecord: Codable {
+        var id: UUID; var name: String; var systemImage: String; var sortIndex: Int
+        var stagesData: Data; var createdAt: Date
+    }
+    struct LetterTemplateRecord: Codable {
+        var id: UUID; var name: String; var kindRaw: String; var body: String; var createdAt: Date
+    }
+    struct EmailTemplateRecord: Codable {
+        var id: UUID; var name: String; var subject: String; var body: String; var createdAt: Date
+    }
+
     /// One line per record type, for the restore preview.
     var summary: [(label: String, count: Int)] {
         [
@@ -114,7 +135,8 @@ struct BackupFile: Codable {
             ("Recurring work", engagements.count), ("Invoices", invoices.count), ("Payments", payments.count),
             ("Inbox items", inbox.count), ("Activity entries", interactions.count), ("Saved filters", savedFilters.count),
             ("Document requests", documentRequests.count), ("Recurring invoices", recurringInvoices.count),
-            ("Expenses", expenses.count),
+            ("Expenses", expenses.count), ("Pipelines", pipelines?.count ?? 0),
+            ("Letter templates", letterTemplates?.count ?? 0), ("Email templates", emailTemplates?.count ?? 0),
         ].filter { $0.1 > 0 }
     }
 
@@ -123,6 +145,7 @@ struct BackupFile: Codable {
             + templateTasks.count + engagements.count + invoices.count + invoiceLines.count + payments.count
             + inbox.count + interactions.count + savedFilters.count + documentRequests.count
             + recurringInvoices.count + expenses.count
+            + (pipelines?.count ?? 0) + (letterTemplates?.count ?? 0) + (emailTemplates?.count ?? 0)
     }
 }
 
@@ -171,14 +194,17 @@ enum BackupService {
             BackupFile.ClientRecord(id: c.id, name: c.name, company: c.company, entityTypeRaw: c.entityTypeRaw, statusRaw: c.statusRaw,
                   email: c.email, phone: c.phone, notes: c.notes, createdAt: c.createdAt, qboCustomerId: c.qboCustomerId,
                   tagsRaw: c.tagsRaw, followUpDate: c.followUpDate, leadStageRaw: c.leadStageRaw, leadValue: c.leadValue,
-                  extensionYearsRaw: c.extensionYearsRaw)
+                  extensionYearsRaw: c.extensionYearsRaw,
+                  birthday: c.birthday, anniversary: c.anniversary,
+                  birthdayAckYear: c.birthdayAckYear, anniversaryAckYear: c.anniversaryAckYear)
         }
         file.projects = all(Project.self).map { p in
             BackupFile.ProjectRecord(id: p.id, title: p.title, detail: p.detail, statusRaw: p.statusRaw, serviceTypeRaw: p.serviceTypeRaw,
                   priorityRaw: p.priorityRaw, startDate: p.startDate, dueDate: p.dueDate, completedAt: p.completedAt,
                   taxYear: p.taxYear, templateName: p.templateName, createdAt: p.createdAt, receivedDate: p.receivedDate,
                   nextAction: p.nextAction, holdReasonRaw: p.holdReasonRaw, holdDetail: p.holdDetail,
-                  holdResumeStatusRaw: p.holdResumeStatusRaw, clientID: p.client?.id)
+                  holdResumeStatusRaw: p.holdResumeStatusRaw, clientID: p.client?.id,
+                  pipelineID: p.pipelineID, stageKey: p.stageKey)
         }
         file.tasks = all(TaskItem.self).map { t in
             BackupFile.TaskRecord(id: t.id, title: t.title, notes: t.notes, isDone: t.isDone, dueDate: t.dueDate, sortIndex: t.sortIndex,
@@ -196,7 +222,8 @@ enum BackupService {
         }
         file.templates = all(WorkflowTemplate.self).map { t in
             BackupFile.TemplateRecord(id: t.id, name: t.name, detail: t.detail, serviceTypeRaw: t.serviceTypeRaw,
-                  defaultDurationDays: t.defaultDurationDays, createdAt: t.createdAt)
+                  defaultDurationDays: t.defaultDurationDays, createdAt: t.createdAt,
+                  pipelineID: t.pipelineID, startStageKey: t.startStageKey)
         }
         file.templateTasks = all(TemplateTask.self).map { t in
             BackupFile.TemplateTaskRecord(id: t.id, title: t.title, sortIndex: t.sortIndex, dayOffset: t.dayOffset, templateID: t.template?.id)
@@ -205,7 +232,8 @@ enum BackupService {
             BackupFile.EngagementRecord(id: e.id, name: e.name, frequencyRaw: e.frequencyRaw, serviceTypeRaw: e.serviceTypeRaw,
                   isActive: e.isActive, nextDueDate: e.nextDueDate, leadTimeDays: e.leadTimeDays,
                   lastGeneratedDueDate: e.lastGeneratedDueDate, adjustForWeekends: e.adjustForWeekends,
-                  createdAt: e.createdAt, clientID: e.client?.id, templateID: e.template?.id)
+                  createdAt: e.createdAt, clientID: e.client?.id, templateID: e.template?.id,
+                  endDate: e.endDate, namingPattern: e.namingPattern)
         }
         file.invoices = all(Invoice.self).map { i in
             BackupFile.InvoiceRecord(id: i.id, number: i.number, issueDate: i.issueDate, dueDate: i.dueDate, statusRaw: i.statusRaw,
@@ -246,6 +274,16 @@ enum BackupService {
             BackupFile.ExpenseRecord(id: e.id, amount: e.amount, date: e.date, categoryRaw: e.categoryRaw, vendor: e.vendor, note: e.note,
                   deductiblePercent: e.deductiblePercent, receiptData: includeFiles ? e.receiptData : nil,
                   receiptExtension: e.receiptExtension, createdAt: e.createdAt, clientID: e.client?.id)
+        }
+        file.pipelines = all(Pipeline.self).map { p in
+            BackupFile.PipelineRecord(id: p.id, name: p.name, systemImage: p.systemImage, sortIndex: p.sortIndex,
+                  stagesData: p.stagesData, createdAt: p.createdAt)
+        }
+        file.letterTemplates = all(LetterTemplate.self).map { l in
+            BackupFile.LetterTemplateRecord(id: l.id, name: l.name, kindRaw: l.kindRaw, body: l.body, createdAt: l.createdAt)
+        }
+        file.emailTemplates = all(EmailTemplate.self).map { e in
+            BackupFile.EmailTemplateRecord(id: e.id, name: e.name, subject: e.subject, body: e.body, createdAt: e.createdAt)
         }
         return file
     }
@@ -312,6 +350,8 @@ enum BackupService {
             c.createdAt = r.createdAt; c.qboCustomerId = r.qboCustomerId; c.tagsRaw = r.tagsRaw
             c.followUpDate = r.followUpDate; c.leadStageRaw = r.leadStageRaw; c.leadValue = r.leadValue
             c.extensionYearsRaw = r.extensionYearsRaw
+            c.birthday = r.birthday; c.anniversary = r.anniversary
+            c.birthdayAckYear = r.birthdayAckYear ?? 0; c.anniversaryAckYear = r.anniversaryAckYear ?? 0
             return c
         }, link: { _, _ in })
 
@@ -322,6 +362,7 @@ enum BackupService {
             p.templateName = r.templateName; p.createdAt = r.createdAt; p.receivedDate = r.receivedDate
             p.nextAction = r.nextAction; p.holdReasonRaw = r.holdReasonRaw; p.holdDetail = r.holdDetail
             p.holdResumeStatusRaw = r.holdResumeStatusRaw
+            p.pipelineID = r.pipelineID; p.stageKey = r.stageKey ?? ""
             return p
         }, link: { r, p in p.client = r.clientID.flatMap { clients[$0] } })
 
@@ -357,6 +398,7 @@ enum BackupService {
             let t = WorkflowTemplate(name: r.name, detail: r.detail)
             t.id = r.id; t.serviceTypeRaw = r.serviceTypeRaw; t.defaultDurationDays = r.defaultDurationDays
             t.createdAt = r.createdAt
+            t.pipelineID = r.pipelineID; t.startStageKey = r.startStageKey ?? ""
             return t
         }, link: { _, _ in })
 
@@ -370,6 +412,7 @@ enum BackupService {
             let e = RecurringEngagement(name: r.name, isActive: r.isActive, nextDueDate: r.nextDueDate, leadTimeDays: r.leadTimeDays, adjustForWeekends: r.adjustForWeekends)
             e.id = r.id; e.frequencyRaw = r.frequencyRaw; e.serviceTypeRaw = r.serviceTypeRaw
             e.lastGeneratedDueDate = r.lastGeneratedDueDate; e.createdAt = r.createdAt
+            e.endDate = r.endDate; e.namingPattern = r.namingPattern ?? ""
             return e
         }, link: { r, e in
             e.client = r.clientID.flatMap { clients[$0] }
@@ -437,6 +480,24 @@ enum BackupService {
             e.receiptData = r.receiptData ?? Data(); e.receiptExtension = r.receiptExtension; e.createdAt = r.createdAt
             return e
         }, link: { r, e in e.client = r.clientID.flatMap { clients[$0] } })
+
+        _ = merge(Pipeline.self, id: \.id, records: file.pipelines ?? [], recordID: { $0.id }, make: { r in
+            let p = Pipeline(name: r.name, systemImage: r.systemImage, sortIndex: r.sortIndex)
+            p.id = r.id; p.stagesData = r.stagesData; p.createdAt = r.createdAt
+            return p
+        }, link: { _, _ in })
+
+        _ = merge(LetterTemplate.self, id: \.id, records: file.letterTemplates ?? [], recordID: { $0.id }, make: { r in
+            let l = LetterTemplate(name: r.name, body: r.body)
+            l.id = r.id; l.kindRaw = r.kindRaw; l.createdAt = r.createdAt
+            return l
+        }, link: { _, _ in })
+
+        _ = merge(EmailTemplate.self, id: \.id, records: file.emailTemplates ?? [], recordID: { $0.id }, make: { r in
+            let e = EmailTemplate(name: r.name, subject: r.subject, body: r.body)
+            e.id = r.id; e.createdAt = r.createdAt
+            return e
+        }, link: { _, _ in })
 
         try? context.save()
         return result

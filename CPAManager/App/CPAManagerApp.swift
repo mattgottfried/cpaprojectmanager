@@ -9,7 +9,7 @@ import AppKit
 @main
 struct CPAManagerApp: App {
     let container: ModelContainer
-    @State private var timer = TimerController()
+    @State private var timer: TimerController
     @State private var qboAuth = QBOAuthService()
     @State private var googleAuth = GoogleAuthService()
     @State private var syncStatus: SyncStatus
@@ -20,8 +20,13 @@ struct CPAManagerApp: App {
         let boot = Persistence.shared
         container = boot.container
         _syncStatus = State(initialValue: boot.syncStatus)
+        let timerController = TimerController()
+        _timer = State(initialValue: timerController)
         // Must be in place before launch finishes so background notification actions arrive.
         NotificationActionHandler.shared.install()
+        #if os(iOS) && !targetEnvironment(macCatalyst)
+        WatchBridge.shared.start(timer: timerController)
+        #endif
         #if os(macOS)
         MacQuickCapture.installHotKey()
         #endif

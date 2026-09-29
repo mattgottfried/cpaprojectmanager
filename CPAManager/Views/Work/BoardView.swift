@@ -1,42 +1,70 @@
 import SwiftUI
 import SwiftData
 
-/// Kanban-style board of all open work, grouped by pipeline stage. Cards can be
-/// dragged between columns to change a project's status directly (unlike the
-/// one-tap "Advance" action, dragging does not also push the due date out).
+/// Kanban-style board of open work for one pipeline (the built-in tax-return pipeline or
+/// a custom one). Cards can be dragged between columns to change a project's stage. On
+/// the built-in pipeline dragging only sets the status (unlike the one-tap "Advance"
+/// action, it does not also push the due date out); custom stages run their own entry
+/// automation (tasks, due date) as configured.
 struct BoardView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Project.createdAt, order: .reverse) private var projects: [Project]
+    @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
+    @AppStorage("boardPipelineID") private var selectedPipeline = ""   // "" = built-in
 
-    private var columns: [ProjectStatus] {
-        ProjectStatus.allCases.filter { $0 != .complete }
+    private var pipeline: Pipeline? {
+        pipelines.first { $0.id.uuidString == selectedPipeline }
     }
 
-    private func projects(for status: ProjectStatus) -> [Project] {
-        projects
-            .filter { $0.status == status }
+    private var definition: PipelineDefinition {
+        pipeline?.definition ?? PipelineDefinition.standard
+    }
+
+    private var columns: [PipelineStage] { definition.boardStages }
+
+    /// Jobs on this board. A job whose stage was deleted lands in the first column.
+    private func projects(for stage: PipelineStage) -> [Project] {
+        let pipelineID = pipeline?.id
+        let firstKey = columns.first?.id
+        return projects
+            .filter { $0.pipelineID == pipelineID && !$0.status.isComplete }
+            .filter { project in
+                let key = pipelineID == nil ? project.status.rawValue : project.stageKey
+                if definition.stage(withKey: key) != nil { return key == stage.id }
+                return stage.id == firstKey
+            }
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(columns) { status in
-                    columnView(status)
+        VStack(spacing: 0) {
+            if !pipelines.isEmpty {
+                Picker("Pipeline", selection: $selectedPipeline) {
+                    Text(PipelineDefinition.standardName).tag("")
+                    ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
                 }
+                .pickerStyle(.segmented)
+                .padding([.horizontal, .top])
             }
-            .padding()
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(columns) { stage in
+                        columnView(stage)
+                    }
+                }
+                .padding()
+            }
         }
         .background(Color.appGroupedBackground)
     }
 
-    private func columnView(_ status: ProjectStatus) -> some View {
-        let items = projects(for: status)
+    private func columnView(_ stage: PipelineStage) -> some View {
+        let items = projects(for: stage)
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Label(status.label, systemImage: status.systemImage)
+                Label(stage.name, systemImage: stage.kind.systemImage)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(status.color)
+                    .foregroundStyle(stage.color.color)
                     .lineLimit(1)
                 Spacer()
                 Text("\(items.count)")
@@ -69,8 +97,13 @@ struct BoardView: View {
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first,
                   let id = UUID(uuidString: idString),
-                  let project = projects.first(where: { $0.id == id }) else { return false }
-            project.status = status
+                  let project = projects.first(where: { $0.id == id }),
+                  project.pipelineID == pipeline?.id else { return false }
+            if pipeline == nil {
+                if let status = ProjectStatus(rawValue: stage.id) { project.status = status }
+            } else if project.stageKey != stage.id {
+                PipelineEngine.enter(project, stage: stage, context: context)
+            }
             persist()
             return true
         }

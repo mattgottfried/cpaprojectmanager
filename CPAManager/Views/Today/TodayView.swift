@@ -13,6 +13,8 @@ struct TodayView: View {
     @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
     @Environment(AppRouter.self) private var router
+    @Environment(TimerController.self) private var timer
+    @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @Environment(GoogleAuthService.self) private var google
     @AppStorage(SettingsKeys.googleScheduleEnabled) private var showSchedule = false
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
@@ -231,6 +233,12 @@ struct TodayView: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
                     }
+
+                    TipCard()
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+
+                    TodayOccasionsSection(clients: clients)
 
                     ForEach(TodaySection.allCases) { section in
                         let ids = currentPlan.ids(section)
@@ -627,6 +635,10 @@ struct TodayView: View {
     @ViewBuilder
     private func taskMenu(_ task: TaskItem) -> some View {
         Button { complete(task) } label: { Label("Mark done", systemImage: "checkmark.circle") }
+        Button {
+            timer.start(project: task.project, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+            toast = UndoToastState(message: "Timer started", systemImage: "timer")
+        } label: { Label("Start timer", systemImage: "timer") }
         Menu {
             ForEach(SnoozeOption.allCases) { option in
                 Button { snooze(task, option) } label: { Label(option.label, systemImage: option.systemImage) }

@@ -73,6 +73,27 @@ enum NotificationScheduler {
             }
         }
 
+        // Birthdays and client anniversaries: one reminder for each one's next occurrence.
+        let allClients = (try? context.fetch(FetchDescriptor<Client>())) ?? []
+        for client in allClients where client.status != .inactive {
+            for (kind, date) in [(OccasionKind.birthday, client.birthday), (OccasionKind.anniversary, client.anniversary)] {
+                guard let date else { continue }
+                let next = Occasions.nextOccurrence(of: date, from: .now)
+                let occasion = Occasion(
+                    clientID: client.id, clientName: client.displayName, kind: kind,
+                    date: next, daysAway: 0,
+                    years: kind == .anniversary ? Calendar.current.component(.year, from: next) - Calendar.current.component(.year, from: date) : nil,
+                    acknowledged: false
+                )
+                candidates.append((
+                    id: "\(kind.rawValue)-\(client.id.uuidString)",
+                    title: Occasions.title(for: occasion),
+                    body: "Send a note?",
+                    due: next
+                ))
+            }
+        }
+
         if let invoices = try? context.fetch(FetchDescriptor<Invoice>()) {
             for invoice in invoices where invoice.status == .sent && invoice.balance > 0 {
                 guard invoice.dueDate >= today else { continue }

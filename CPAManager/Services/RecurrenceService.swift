@@ -22,6 +22,12 @@ enum RecurrenceService {
             while engagement.isActive, engagement.generationDate <= now, iterations < 24 {
                 iterations += 1
 
+                // Past its end date: stop for good (the row stays for history).
+                if RecurrencePreview.hasEnded(nextDue: engagement.nextDueDate, endDate: engagement.endDate, calendar: calendar) {
+                    engagement.isActive = false
+                    break
+                }
+
                 let alreadyDone = engagement.lastGeneratedDueDate.map {
                     calendar.isDate($0, inSameDayAs: engagement.nextDueDate)
                 } ?? false
@@ -72,18 +78,14 @@ enum RecurrenceService {
 
     /// Titles the generated project by the period it covers, not its due date —
     /// e.g. a bookkeeping close due 6/27 is titled "05/2026" (matches the firm's
-    /// `Client - MM/YYYY` naming convention).
+    /// `Client - MM/YYYY` naming convention) unless the engagement has its own pattern.
     private static func title(for engagement: RecurringEngagement) -> String {
-        let period = engagement.frequency.previousDate(before: engagement.nextDueDate)
-        let formatter = DateFormatter()
-        switch engagement.frequency {
-        case .monthly, .quarterly:
-            formatter.dateFormat = "MM/yyyy"
-        case .weekly, .biweekly:
-            formatter.dateFormat = "MMM d"
-        case .annually:
-            formatter.dateFormat = "yyyy"
-        }
-        return "\(engagement.name) - \(formatter.string(from: period))"
+        RecurringNaming.title(
+            pattern: engagement.namingPattern,
+            name: engagement.name,
+            clientName: engagement.client?.displayName ?? "",
+            frequency: engagement.frequency,
+            due: engagement.nextDueDate
+        )
     }
 }

@@ -40,6 +40,25 @@ final class BackupRoundTripTests: XCTestCase {
         context.insert(RecurringInvoice(name: "Retainer", lines: [RecurringInvoiceLine(detail: "Monthly fee", quantity: 1, rate: 500)], client: client))
         context.insert(InboxItem(text: "Call the county about the notice"))
         context.insert(Document(filename: "Statement", fileExtension: "pdf", data: Data([9, 9, 9]), client: client))
+
+        // Batch 5
+        client.birthday = Date(timeIntervalSince1970: 500_000_000)
+        client.anniversary = Date(timeIntervalSince1970: 1_500_000_000)
+        client.birthdayAckYear = 2026
+        let pipeline = Pipeline(definition: PipelineStarters.bookkeeping)
+        context.insert(pipeline)
+        project.pipelineID = pipeline.id
+        project.stageKey = pipeline.stages[1].id
+        let template = WorkflowTemplate(name: "Monthly close", detail: "")
+        template.pipelineID = pipeline.id
+        template.startStageKey = pipeline.stages[0].id
+        context.insert(template)
+        let engagement = RecurringEngagement(name: "Books", client: client, template: template)
+        engagement.endDate = Date(timeIntervalSince1970: 1_800_000_000)
+        engagement.namingPattern = "{client} {month}"
+        context.insert(engagement)
+        context.insert(LetterTemplate(name: "Engagement", kind: .engagement, body: "Dear {firstname}"))
+        context.insert(EmailTemplate(name: "Follow-up", subject: "Hi", body: "Checking in"))
         try? context.save()
     }
 
@@ -50,6 +69,8 @@ final class BackupRoundTripTests: XCTestCase {
             "invoices": n(Invoice.self), "lines": n(InvoiceLine.self), "payments": n(Payment.self),
             "interactions": n(Interaction.self), "requests": n(DocumentRequest.self), "expenses": n(Expense.self),
             "recurring": n(RecurringInvoice.self), "inbox": n(InboxItem.self), "documents": n(Document.self),
+            "pipelines": n(Pipeline.self), "letters": n(LetterTemplate.self), "emails": n(EmailTemplate.self),
+            "engagements": n(RecurringEngagement.self), "templates": n(WorkflowTemplate.self),
         ]
     }
 
@@ -78,6 +99,18 @@ final class BackupRoundTripTests: XCTestCase {
         XCTAssertEqual(client.invoiceList.first?.balance, 200)
         XCTAssertEqual(client.interactionList.count, 1)
         XCTAssertEqual(client.documentRequestList.count, 1)
+        XCTAssertEqual(client.birthdayAckYear, 2026)
+        XCTAssertEqual(client.birthday, Date(timeIntervalSince1970: 500_000_000))
+        let restoredPipeline = try XCTUnwrap(try target.fetch(FetchDescriptor<Pipeline>()).first)
+        XCTAssertEqual(restoredPipeline.stages, PipelineStarters.bookkeeping.stages)
+        let restoredProject = try XCTUnwrap(try target.fetch(FetchDescriptor<Project>()).first)
+        XCTAssertEqual(restoredProject.pipelineID, restoredPipeline.id)
+        XCTAssertEqual(restoredProject.stageKey, restoredPipeline.stages[1].id)
+        let restoredTemplate = try XCTUnwrap(try target.fetch(FetchDescriptor<WorkflowTemplate>()).first)
+        XCTAssertEqual(restoredTemplate.startStageKey, restoredPipeline.stages[0].id)
+        let restoredEngagement = try XCTUnwrap(try target.fetch(FetchDescriptor<RecurringEngagement>()).first)
+        XCTAssertEqual(restoredEngagement.namingPattern, "{client} {month}")
+        XCTAssertNotNil(restoredEngagement.endDate)
         let expense = try XCTUnwrap(try target.fetch(FetchDescriptor<Expense>()).first)
         XCTAssertEqual(expense.receiptData, Data([1, 2, 3, 4]))
         let recurring = try XCTUnwrap(try target.fetch(FetchDescriptor<RecurringInvoice>()).first)
@@ -99,6 +132,25 @@ final class BackupRoundTripTests: XCTestCase {
         let target = try makeContainer().mainContext
         BackupService.restore(file, into: target)
         XCTAssertEqual(BackupService.restore(file, into: target).inserted, 0)
+    }
+
+    func testBackupFromBeforeBatch5StillDecodes() throws {
+        // A minimal older backup: no new collections, no new fields on existing records.
+        let json = """
+        {"version":1,"createdAt":"2026-01-01T00:00:00Z",
+         "clients":[{"id":"11111111-1111-1111-1111-111111111111","name":"Old Client","company":"","entityTypeRaw":"individual1040",
+           "statusRaw":"active","email":"","phone":"","notes":"","createdAt":"2025-01-01T00:00:00Z","qboCustomerId":"",
+           "tagsRaw":"","leadStageRaw":"","leadValue":0,"extensionYearsRaw":""}],
+         "projects":[],"tasks":[],"timeEntries":[],"documents":[],"templates":[],"templateTasks":[],"engagements":[],
+         "invoices":[],"invoiceLines":[],"payments":[],"inbox":[],"interactions":[],"savedFilters":[],
+         "documentRequests":[],"recurringInvoices":[],"expenses":[]}
+        """
+        let file = try BackupService.decode(Data(json.utf8))
+        XCTAssertEqual(file.clients.count, 1)
+        XCTAssertNil(file.pipelines)
+        let context = try makeContainer().mainContext
+        XCTAssertEqual(BackupService.restore(file, into: context).inserted, 1)
+        XCTAssertEqual(try context.fetch(FetchDescriptor<Client>()).first?.birthdayAckYear, 0)
     }
 
     func testBackupWithoutFilesOmitsBinaryPayloads() throws {

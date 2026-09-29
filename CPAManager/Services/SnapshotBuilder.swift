@@ -109,6 +109,10 @@ enum SnapshotBuilder {
         )
         snapshot.save()
 
+        #if os(iOS) && !targetEnvironment(macCatalyst)
+        WatchBridge.shared.push(snapshot: snapshot)
+        #endif
+
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
         #endif
