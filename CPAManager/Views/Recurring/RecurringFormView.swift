@@ -19,6 +19,9 @@ struct RecurringFormView: View {
     @State private var leadTimeDays = 14
     @State private var adjustForWeekends = true
     @State private var isActive = true
+    @State private var hasEndDate = false
+    @State private var endDate = Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now
+    @State private var namingPattern = ""
     @State private var loaded = false
 
     private var isEditing: Bool { engagement != nil }
@@ -53,8 +56,36 @@ struct RecurringFormView: View {
                     Stepper("Start \(leadTimeDays) days before", value: $leadTimeDays, in: 0...90)
                     Toggle("Adjust for weekends", isOn: $adjustForWeekends)
                     Toggle("Active", isOn: $isActive)
+                    Toggle("Ends", isOn: $hasEndDate.animation())
+                    if hasEndDate {
+                        DatePicker("Last due date", selection: $endDate, displayedComponents: .date)
+                    }
                 } footer: {
                     Text("A project is created automatically \(leadTimeDays) days before each due date, then the schedule advances.")
+                }
+
+                Section {
+                    TextField(RecurringNaming.defaultPattern, text: $namingPattern)
+                        .noAutocapitalization()
+                } header: {
+                    Text("Naming")
+                } footer: {
+                    Text("Tokens: {name} {client} {period} {month} {monthnum} {year} {quarter} {due} {frequency}. Leave blank for \"\(RecurringNaming.defaultPattern)\".")
+                }
+
+                Section("Upcoming") {
+                    ForEach(previewDates, id: \.self) { due in
+                        HStack {
+                            Text(previewTitle(due))
+                                .lineLimit(1)
+                            Spacer()
+                            Text(Format.shortDate.string(from: due))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if previewDates.isEmpty {
+                        Text("Nothing scheduled — check the end date.").font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
             }
             .navigationTitle(isEditing ? "Edit Recurring" : "New Recurring")
@@ -65,6 +96,21 @@ struct RecurringFormView: View {
             }
             .onAppear(perform: loadOnce)
         }
+    }
+
+    private var previewDates: [Date] {
+        RecurrencePreview.dates(
+            startingAt: nextDueDate,
+            frequency: frequency,
+            count: 6,
+            adjustForWeekends: adjustForWeekends,
+            endDate: hasEndDate ? endDate : nil
+        )
+    }
+
+    private func previewTitle(_ due: Date) -> String {
+        let clientName = selectedClientID.flatMap { id in clients.first { $0.id == id } }?.displayName ?? ""
+        return RecurringNaming.title(pattern: namingPattern, name: name.isEmpty ? "Work" : name, clientName: clientName, frequency: frequency, due: due)
     }
 
     private func loadOnce() {
@@ -80,6 +126,9 @@ struct RecurringFormView: View {
         leadTimeDays = engagement.leadTimeDays
         adjustForWeekends = engagement.adjustForWeekends
         isActive = engagement.isActive
+        hasEndDate = engagement.endDate != nil
+        endDate = engagement.endDate ?? endDate
+        namingPattern = engagement.namingPattern
     }
 
     private func save() {
@@ -103,6 +152,8 @@ struct RecurringFormView: View {
         target.leadTimeDays = leadTimeDays
         target.adjustForWeekends = adjustForWeekends
         target.isActive = isActive
+        target.endDate = hasEndDate ? endDate : nil
+        target.namingPattern = namingPattern.trimmingCharacters(in: .whitespaces)
 
         try? context.save()
         // Generate immediately if the lead-time window is already open.

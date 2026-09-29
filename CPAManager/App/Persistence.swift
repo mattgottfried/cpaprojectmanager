@@ -22,6 +22,7 @@ enum Persistence {
         DocumentRequest.self,
         RecurringInvoice.self,
         Expense.self,
+        Pipeline.self,
         SavedClientFilter.self,
     ])
 

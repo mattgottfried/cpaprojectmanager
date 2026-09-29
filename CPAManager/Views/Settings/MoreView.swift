@@ -37,6 +37,11 @@ struct MoreView: View {
                         Label("Templates", systemImage: "square.stack.3d.up.fill")
                     }
                     NavigationLink {
+                        PipelinesListView(embedded: true)
+                    } label: {
+                        Label("Pipelines", systemImage: "rectangle.split.3x1.fill")
+                    }
+                    NavigationLink {
                         RecurringListView()
                     } label: {
                         Label("Recurring Work", systemImage: "arrow.triangle.2.circlepath")

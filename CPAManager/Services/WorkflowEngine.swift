@@ -29,6 +29,15 @@ enum WorkflowEngine {
         context.insert(project)
 
         addTasks(from: template, to: project, baseDate: startDate, startIndex: 0, into: context)
+
+        // Jobs from a pipeline-linked template start in that pipeline's chosen stage,
+        // which also runs the stage's entry automation.
+        if let pipelineID = template.pipelineID {
+            let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
+            if let pipeline = pipelines.first(where: { $0.id == pipelineID }) {
+                PipelineEngine.assign(project, to: pipeline, startStageKey: template.startStageKey, context: context)
+            }
+        }
         return project
     }
 

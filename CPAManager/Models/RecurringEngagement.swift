@@ -20,6 +20,11 @@ final class RecurringEngagement {
     /// If the computed next due date lands on a weekend, push it to the following
     /// business day (see `DateMath.skippingWeekend`).
     var adjustForWeekends: Bool = true
+    /// Stop generating work after this date (nil = keep going).
+    var endDate: Date? = nil
+    /// Title pattern for generated work, e.g. "{client} {month} {year} close". Empty
+    /// uses "{name} - {period}". See `RecurringNaming` for the tokens.
+    var namingPattern: String = ""
     var createdAt: Date = Date.now
 
     var client: Client? = nil

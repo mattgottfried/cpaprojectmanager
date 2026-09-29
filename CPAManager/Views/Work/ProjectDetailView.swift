@@ -5,6 +5,7 @@ struct ProjectDetailView: View {
     @Bindable var project: Project
     @Environment(\.modelContext) private var context
     @Environment(TimerController.self) private var timer
+    @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
@@ -110,12 +111,12 @@ struct ProjectDetailView: View {
                         .font(.subheadline)
                         .foregroundStyle(Theme.alert)
                 }
-                if let next = project.nextStatusPreview {
+                if let next = PipelineEngine.nextStageName(for: project, in: pipelines) {
                     Button {
-                        project.advance()
+                        PipelineEngine.advanceAny(project, pipelines: pipelines, context: context)
                         persist()
                     } label: {
-                        Label("Advance to \(next.label)", systemImage: "arrow.right.circle.fill")
+                        Label("Advance to \(next)", systemImage: "arrow.right.circle.fill")
                     }
                 }
                 if !project.status.isComplete {
@@ -131,8 +132,20 @@ struct ProjectDetailView: View {
 
     private var statusSection: some View {
         Section {
-            Picker("Status", selection: statusBinding) {
-                ForEach(ProjectStatus.allCases) { Label($0.label, systemImage: $0.systemImage).tag($0) }
+            if !pipelines.isEmpty {
+                Picker("Pipeline", selection: pipelineBinding) {
+                    Text(PipelineDefinition.standardName).tag(UUID?.none)
+                    ForEach(pipelines) { Text($0.name).tag(Optional($0.id)) }
+                }
+            }
+            if let custom = PipelineEngine.pipeline(for: project, in: pipelines) {
+                Picker("Stage", selection: stageBinding(custom)) {
+                    ForEach(custom.stages) { Label($0.name, systemImage: $0.kind.systemImage).tag($0.id) }
+                }
+            } else {
+                Picker("Status", selection: statusBinding) {
+                    ForEach(ProjectStatus.allCases) { Label($0.label, systemImage: $0.systemImage).tag($0) }
+                }
             }
             Picker("Priority", selection: priorityBinding) {
                 ForEach(Priority.allCases) { Text($0.label).tag($0) }
@@ -219,6 +232,25 @@ struct ProjectDetailView: View {
 
     private var statusBinding: Binding<ProjectStatus> {
         Binding(get: { project.status }, set: { project.status = $0; persist() })
+    }
+    private var pipelineBinding: Binding<UUID?> {
+        Binding(
+            get: { project.pipelineID },
+            set: { id in
+                PipelineEngine.assign(project, to: pipelines.first { $0.id == id }, context: context)
+                persist()
+            }
+        )
+    }
+    private func stageBinding(_ pipeline: Pipeline) -> Binding<String> {
+        Binding(
+            get: { project.stageKey },
+            set: { key in
+                guard let stage = pipeline.definition.stage(withKey: key) else { return }
+                PipelineEngine.enter(project, stage: stage, context: context)
+                persist()
+            }
+        )
     }
     private var priorityBinding: Binding<Priority> {
         Binding(get: { project.priority }, set: { project.priority = $0; persist() })
