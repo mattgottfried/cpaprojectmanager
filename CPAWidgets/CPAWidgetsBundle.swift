@@ -6,5 +6,11 @@ struct CPAWidgetsBundle: WidgetBundle {
     var body: some Widget {
         DueTodayWidget()
         TimerLiveActivity()
+        #if compiler(>=6.0)
+        if #available(iOS 18.0, *) {
+            QuickTaskControl()
+            InboxCaptureControl()
+        }
+        #endif
     }
 }

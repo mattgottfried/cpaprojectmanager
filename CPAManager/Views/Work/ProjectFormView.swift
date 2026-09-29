@@ -85,7 +85,7 @@ struct ProjectFormView: View {
                 }
             }
             .navigationTitle(isEditing ? "Edit Project" : "New Project")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!canSave) }

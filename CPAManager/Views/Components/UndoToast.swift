@@ -6,7 +6,8 @@ struct UndoToastState: Identifiable, Equatable {
     let id = UUID()
     var message: String
     var systemImage: String = "checkmark.circle.fill"
-    var undo: () -> Void
+    /// Nil for a plain notice with nothing to undo.
+    var undo: (() -> Void)? = nil
 
     static func == (lhs: UndoToastState, rhs: UndoToastState) -> Bool { lhs.id == rhs.id }
 }
@@ -20,11 +21,13 @@ private struct UndoToastView: View {
             Image(systemName: toast.systemImage).foregroundStyle(.secondary)
             Text(toast.message).font(.subheadline).lineLimit(1)
             Spacer(minLength: 8)
-            Button("Undo") {
-                toast.undo()
-                dismiss()
+            if let undo = toast.undo {
+                Button("Undo") {
+                    undo()
+                    dismiss()
+                }
+                .font(.subheadline.weight(.semibold))
             }
-            .font(.subheadline.weight(.semibold))
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .background(.regularMaterial, in: Capsule())

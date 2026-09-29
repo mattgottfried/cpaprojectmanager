@@ -35,7 +35,7 @@ struct ProjectDetailView: View {
             DocumentsSectionView(project: project)
         }
         .navigationTitle("Project")
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationTitle()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { showingEdit = true }
@@ -108,7 +108,7 @@ struct ProjectDetailView: View {
                 if !project.nextAction.isEmpty {
                     Label(project.nextAction, systemImage: "bolt.fill")
                         .font(.subheadline)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.alert)
                 }
                 if let next = project.nextStatusPreview {
                     Button {

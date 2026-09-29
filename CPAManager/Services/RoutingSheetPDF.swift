@@ -1,5 +1,5 @@
 import Foundation
-import UIKit
+import CoreGraphics
 
 /// Renders a printable routing sheet PDF (US Letter), matching the firm's actual
 /// paper routing sheet layout: a letterhead-style header, a bordered client-info
@@ -16,10 +16,9 @@ enum RoutingSheetPDF {
     private static var rightEdge: CGFloat { pageWidth - margin }
 
     static func generate(project: Project, firmName: String, firmTagline: String, firmContact: String) -> URL? {
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight))
         let isIRSNotice = project.serviceType == .irsNotice
 
-        let data = renderer.pdfData { rendererContext in
+        let data = PlatformPDF.data(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)) { rendererContext in
             rendererContext.beginPage()
             var y = drawHeader(project: project, firmName: firmName, firmTagline: firmTagline, firmContact: firmContact)
 
@@ -73,8 +72,8 @@ enum RoutingSheetPDF {
     }
 
     private static func drawPair(
-        left: String, leftFont: UIFont, leftColor: UIColor = .black,
-        right: String, rightFont: UIFont, rightColor: UIColor = .black,
+        left: String, leftFont: PlatformFont, leftColor: PlatformColor = .black,
+        right: String, rightFont: PlatformFont, rightColor: PlatformColor = .black,
         y: CGFloat
     ) {
         (left as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: leftFont, .foregroundColor: leftColor])
@@ -157,8 +156,8 @@ enum RoutingSheetPDF {
     }
 
     private static let rowHeight: CGFloat = 30
-    private static let fieldLabelFont = UIFont.boldSystemFont(ofSize: 8)
-    private static let fieldValueFont = UIFont.systemFont(ofSize: 10.5)
+    private static let fieldLabelFont = PlatformFont.boldSystemFont(ofSize: 8)
+    private static let fieldValueFont = PlatformFont.systemFont(ofSize: 10.5)
 
     /// A single full-width bordered cell: label on top, value below.
     private static func drawFullField(label: String, value: String, y: CGFloat) -> CGFloat {
@@ -182,11 +181,11 @@ enum RoutingSheetPDF {
         let inset = rect.insetBy(dx: 6, dy: 4)
         (label.uppercased() as NSString).draw(
             at: CGPoint(x: inset.minX, y: inset.minY),
-            withAttributes: [.font: fieldLabelFont, .foregroundColor: UIColor.darkGray]
+            withAttributes: [.font: fieldLabelFont, .foregroundColor: PlatformColor.darkGray]
         )
         (value as NSString).draw(
             at: CGPoint(x: inset.minX, y: inset.minY + 12),
-            withAttributes: [.font: fieldValueFont, .foregroundColor: UIColor.black]
+            withAttributes: [.font: fieldValueFont, .foregroundColor: PlatformColor.black]
         )
     }
 
@@ -200,18 +199,18 @@ enum RoutingSheetPDF {
     private static var stageWidth: CGFloat { doneX - stageX - 6 }
     private static var noteWidth: CGFloat { rightEdge - noteX }
 
-    private static func drawChecklist(project: Project, y startY: CGFloat, context: UIGraphicsPDFRendererContext) -> CGFloat {
+    private static func drawChecklist(project: Project, y startY: CGFloat, context: PDFRenderContext) -> CGFloat {
         var y = startY
         y = drawChecklistHeader(y: y)
 
-        let rowAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 9.5)]
+        let rowAttrs: [NSAttributedString.Key: Any] = [.font: PlatformFont.systemFont(ofSize: 9.5)]
 
         if project.taskList.isEmpty {
             let rect = CGRect(x: margin, y: y, width: contentWidth, height: 20)
             strokeRect(rect)
             ("No checklist items on this project." as NSString).draw(
                 at: CGPoint(x: margin + 6, y: y + 5),
-                withAttributes: [.font: UIFont.italicSystemFont(ofSize: 9.5), .foregroundColor: UIColor.darkGray]
+                withAttributes: [.font: PlatformFont.italicSystem(ofSize: 9.5), .foregroundColor: PlatformColor.darkGray]
             )
             return y + 20
         }
@@ -257,7 +256,7 @@ enum RoutingSheetPDF {
 
     private static func drawChecklistHeader(y: CGFloat) -> CGFloat {
         let headerHeight: CGFloat = 18
-        let headerAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 9)]
+        let headerAttrs: [NSAttributedString.Key: Any] = [.font: PlatformFont.boldSystemFont(ofSize: 9)]
         strokeRect(CGRect(x: numX, y: y, width: stageX - numX, height: headerHeight))
         strokeRect(CGRect(x: stageX, y: y, width: stageWidth, height: headerHeight))
         strokeRect(CGRect(x: doneX, y: y, width: initialsX - doneX, height: headerHeight))
@@ -280,12 +279,12 @@ enum RoutingSheetPDF {
         strokeRect(rect)
         ("SPECIAL INSTRUCTIONS / NOTES" as NSString).draw(
             at: CGPoint(x: rect.minX + 6, y: rect.minY + 4),
-            withAttributes: [.font: UIFont.boldSystemFont(ofSize: 8), .foregroundColor: UIColor.darkGray]
+            withAttributes: [.font: PlatformFont.boldSystemFont(ofSize: 8), .foregroundColor: PlatformColor.darkGray]
         )
         if !project.detail.isEmpty {
             (project.detail as NSString).draw(
                 in: CGRect(x: rect.minX + 6, y: rect.minY + 16, width: rect.width - 12, height: rect.height - 20),
-                withAttributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: UIColor.black]
+                withAttributes: [.font: PlatformFont.systemFont(ofSize: 10), .foregroundColor: PlatformColor.black]
             )
         }
     }
@@ -293,18 +292,10 @@ enum RoutingSheetPDF {
     // MARK: Drawing primitives
 
     private static func strokeRect(_ rect: CGRect, lineWidth: CGFloat = 0.75) {
-        let path = UIBezierPath(rect: rect)
-        path.lineWidth = lineWidth
-        UIColor.black.setStroke()
-        path.stroke()
+        PlatformPDF.strokeRect(rect, lineWidth: lineWidth, color: .black)
     }
 
     private static func strokeLine(from: CGPoint, to: CGPoint, lineWidth: CGFloat = 1) {
-        let path = UIBezierPath()
-        path.move(to: from)
-        path.addLine(to: to)
-        path.lineWidth = lineWidth
-        UIColor.black.setStroke()
-        path.stroke()
+        PlatformPDF.strokeLine(from: from, to: to, lineWidth: lineWidth, color: .black)
     }
 }

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UIKit
 
 /// Paste a block of text (your Siri-digested texts note, an email body) and pick out
 /// what's new. Uses the same parser and dedupe as the Shortcuts action.
@@ -41,7 +40,7 @@ struct PasteCaptureSheet: View {
                         .frame(minHeight: 200)
                         .accessibilityLabel("Text to capture")
                     Button {
-                        if let pasted = UIPasteboard.general.string { text = pasted }
+                        if let pasted = Clipboard.string { text = pasted }
                     } label: {
                         Label("Paste from clipboard", systemImage: "doc.on.clipboard")
                     }

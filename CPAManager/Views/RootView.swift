@@ -7,14 +7,28 @@ struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(TimerController.self) private var timer
     @Environment(AppRouter.self) private var router
+    @Environment(QBOAuthService.self) private var qboAuth
+    @Environment(GoogleAuthService.self) private var googleAuth
     @Environment(\.scenePhase) private var scenePhase
+    #if !os(macOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
+    #endif
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @Query(filter: #Predicate<InboxItem> { $0.isProcessed == false }) private var inbox: [InboxItem]
 
+    /// Sidebar on iPad and Mac, tabs on iPhone. macOS has no size classes, so it's
+    /// always the sidebar there.
+    private var usesSidebar: Bool {
+        #if os(macOS)
+        true
+        #else
+        sizeClass == .regular
+        #endif
+    }
+
     var body: some View {
         Group {
-            if sizeClass == .regular {
+            if usesSidebar {
                 sidebarLayout
             } else {
                 tabLayout
@@ -130,6 +144,7 @@ struct RootView: View {
         case .today:     TodayView()
         case .inbox:     InboxView()
         case .clients:   ClientsListView()
+        case .leads:     LeadsView()
         case .work:      WorkListView()
         case .deadlines: DeadlinesView()
         case .review:    WeeklyReviewView()
@@ -145,16 +160,44 @@ struct RootView: View {
 
     private func bootstrap() {
         SeedData.seedIfNeeded(context: context)
-        WidgetActions.applyPending(context: context, reminderHour: reminderHour)
+        applyHandoffs()
         RecurrenceService.run(context: context)
         timer.restore(context: context)
         SnapshotBuilder.rebuild(context: context)
         NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
         Task { _ = await NotificationScheduler.requestAuthorization() }
+        syncIntegrations()
+    }
+
+    /// Network syncs that run whenever the app comes to the foreground. Each is
+    /// throttled internally, silent on failure, and does nothing unless connected.
+    private func syncIntegrations() {
+        Task {
+            await QBOSyncService.refreshOutstanding(auth: qboAuth, context: context)
+            if GoogleSync.gmailEnabled {
+                await GoogleSync.syncGmail(auth: googleAuth, context: context)
+            }
+            if GoogleSync.pushEnabled {
+                await GoogleSync.pushDueDates(auth: googleAuth, context: context)
+            }
+        }
+    }
+
+    /// Work handed over while the app was closed: share-sheet captures, widget taps,
+    /// and "open to capture" requests from Control Center.
+    private func applyHandoffs() {
+        CaptureQueue.drain(context: context)
+        WidgetActions.applyPending(context: context, reminderHour: reminderHour)
+        switch PendingCaptures.consumeOpenRequest() {
+        case "task":  router.go(to: .today, focus: .newTask)
+        case "inbox": router.go(to: .inbox, focus: .inboxCapture)
+        default:      break
+        }
     }
 
     private func refresh() {
-        WidgetActions.applyPending(context: context, reminderHour: reminderHour)
+        syncIntegrations()
+        applyHandoffs()
         RecurrenceService.run(context: context)
         SnapshotBuilder.rebuild(context: context)
     }

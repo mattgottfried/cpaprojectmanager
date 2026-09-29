@@ -27,7 +27,7 @@ struct BoardView: View {
             }
             .padding()
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appGroupedBackground)
     }
 
     private func columnView(_ status: ProjectStatus) -> some View {
@@ -65,7 +65,7 @@ struct BoardView: View {
         }
         .frame(width: 260)
         .padding(8)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .dropDestination(for: String.self) { items, _ in
             guard let idString = items.first,
                   let id = UUID(uuidString: idString),
@@ -106,6 +106,6 @@ struct BoardCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

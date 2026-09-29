@@ -17,6 +17,7 @@ struct WeeklyReviewView: View {
 
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @AppStorage(SettingsKeys.lastWeeklyReview) private var lastReviewTime: Double = 0
+    @AppStorage(SettingsKeys.quietThresholdDays) private var quietDays = 14
     @State private var toast: UndoToastState?
     @State private var finished = false
 
@@ -63,14 +64,24 @@ struct WeeklyReviewView: View {
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
+    /// Follow-ups that are due now or within the next week, soonest first.
+    private var upcomingFollowUps: [Client] {
+        let cal = Calendar.current
+        guard let horizon = cal.date(byAdding: .day, value: 8, to: cal.startOfDay(for: .now)) else { return [] }
+        return clients
+            .filter { $0.status != .inactive && ($0.followUpDate.map { $0 < horizon } ?? false) }
+            .sorted { ($0.followUpDate ?? .distantFuture) < ($1.followUpDate ?? .distantFuture) }
+    }
+
     private var quietClients: [Client] {
         let inputs = clients.map { c in
             WeeklyReviewPlanner.QuietInput(
                 id: c.id, lastContact: c.lastContactedAt, createdAt: c.createdAt,
-                hasOpenWork: !c.openProjects.isEmpty, isActive: c.status == .active
+                hasOpenWork: !c.openProjects.isEmpty, isActive: c.status == .active,
+                followUpDate: c.followUpDate
             )
         }
-        let ids = WeeklyReviewPlanner.quietClients(inputs)
+        let ids = WeeklyReviewPlanner.quietClients(inputs, thresholdDays: max(1, quietDays))
         let byID = Dictionary(uniqueKeysWithValues: clients.map { ($0.id, $0) })
         return ids.compactMap { byID[$0] }
     }
@@ -140,9 +151,22 @@ struct WeeklyReviewView: View {
                 }
             }
 
-            step("5. Check in with clients", "exclamationmark.bubble.fill", .caution, done: quietClients.isEmpty) {
-                if quietClients.isEmpty {
+            step("5. Check in with clients", "exclamationmark.bubble.fill", .caution, done: quietClients.isEmpty && upcomingFollowUps.isEmpty) {
+                if quietClients.isEmpty && upcomingFollowUps.isEmpty {
                     doneRow("You're in touch with everyone who has open work")
+                }
+                ForEach(upcomingFollowUps) { client in
+                    NavigationLink {
+                        ClientDetailView(client: client)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Avatar(initials: client.initials, size: 36)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Follow up with \(client.displayName)").font(.subheadline.weight(.semibold))
+                                if let due = client.followUpDate { DueDatePill(date: due) }
+                            }
+                        }
+                    }
                 }
                 ForEach(quietClients) { client in
                     NavigationLink {
@@ -232,10 +256,10 @@ struct WeeklyReviewView: View {
     // MARK: Actions
 
     private func complete(_ task: TaskItem) {
-        task.toggle()
+        let spawned = TaskCompletion.complete(task, context: context)
         persist()
         toast = UndoToastState(message: "Done: \(task.title)") {
-            task.toggle()
+            TaskCompletion.undo(task, spawned: spawned, context: context)
             persist()
         }
     }

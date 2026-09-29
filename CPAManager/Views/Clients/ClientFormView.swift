@@ -29,11 +29,13 @@ struct ClientFormView: View {
                 Section {
                     TextField("Name", text: $name)
                     TextField("Company (optional)", text: $company)
+                    #if os(iOS)
                     Button {
                         showingContactPicker = true
                     } label: {
                         Label("Import from Contacts", systemImage: "person.crop.circle.badge.plus")
                     }
+                    #endif
                 }
                 Section {
                     Picker("Entity type", selection: $entityType) {
@@ -45,15 +47,13 @@ struct ClientFormView: View {
                 }
                 Section("Contact") {
                     TextField("Email", text: $email)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                        .emailFieldTraits()
                     TextField("Phone", text: $phone)
-                        .keyboardType(.phonePad)
+                        .phoneFieldTraits()
                 }
                 Section {
                     TextField("Tags, separated by commas", text: $tagsText)
-                        .textInputAutocapitalization(.never)
+                        .noAutocapitalization()
                         .autocorrectionDisabled()
                     if !suggestedTags.isEmpty {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -78,7 +78,7 @@ struct ClientFormView: View {
                 }
             }
             .navigationTitle(isEditing ? "Edit Client" : "New Client")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -88,6 +88,7 @@ struct ClientFormView: View {
                 }
             }
             .onAppear(perform: loadIfEditing)
+            #if os(iOS)
             .sheet(isPresented: $showingContactPicker) {
                 ContactPickerView { contact in
                     if let contact { fill(from: contact) }
@@ -95,9 +96,11 @@ struct ClientFormView: View {
                 }
                 .ignoresSafeArea()
             }
+            #endif
         }
     }
 
+    #if os(iOS)
     private func fill(from contact: CNContact) {
         let fullName = [contact.givenName, contact.familyName].filter { !$0.isEmpty }.joined(separator: " ")
         if !fullName.isEmpty { name = fullName }
@@ -105,6 +108,7 @@ struct ClientFormView: View {
         if let firstEmail = contact.emailAddresses.first { email = firstEmail.value as String }
         if let firstPhone = contact.phoneNumbers.first { phone = firstPhone.value.stringValue }
     }
+    #endif
 
     /// Existing tags in use that this client doesn't have yet.
     private var suggestedTags: [String] {

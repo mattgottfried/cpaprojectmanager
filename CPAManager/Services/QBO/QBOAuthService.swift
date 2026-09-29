@@ -1,7 +1,11 @@
 import Foundation
 import AuthenticationServices
-import UIKit
 import Observation
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 /// Manages the QuickBooks Online OAuth 2.0 connection: authorization, token
 /// exchange, refresh, and Keychain-backed persistence. Client ID/Secret and
@@ -185,9 +189,13 @@ final class QBOAuthService: NSObject {
 
 extension QBOAuthService: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
+        #if canImport(UIKit)
+        return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        #else
+        return NSApplication.shared.keyWindow ?? ASPresentationAnchor()
+        #endif
     }
 }

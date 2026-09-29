@@ -24,6 +24,13 @@ It includes the Apple-native touches that make an iPhone app feel great:
 | **Side-business hours** | Settings → Side-Business Hours moves reminders to when your evening window opens and quiets Today outside it. |
 | **Widget** | Home screen (small/medium/large) and lock screen widgets. Tap a circle to check a task off; tap + to jump into quick add. Completions sync into the app the next time it opens. |
 | **iPad & Mac layout** | Sidebar navigation and keyboard shortcuts (⌘N new task, ⇧⌘N capture to inbox, ⌘1–6 jump to a section). |
+| **Follow-ups & quiet clients** | Set a follow-up date per client (shows on Today, notifies, clears when you log contact). Active clients with open work that have gone quiet surface under "Gone quiet" — unless a follow-up is already scheduled. |
+| **Leads** | A pipeline (New → Contacted → Proposal sent → Won/Lost) with estimated value, win rate, stale-lead alerts and one-swipe advance. Winning a lead makes them an active client. |
+| **Recurring tasks** | Type "send invoices every Friday" or "water plants daily"; completing a repeating task schedules the next one. |
+| **Payments** | Record full or partial payments, see aging (1–30 / 31–60 / 61–90 / 90+), overdue invoices on Today, one-tap "email a reminder", and pull paid status back from QuickBooks. |
+| **Google Workspace** | Starred Gmail → Inbox, today's calendar events on Today, and your due dates on a Google calendar. |
+| **Share sheet & controls** | "Add to CPA Inbox" share extension (emails, PDFs, photos, links), a Siri / Action button "Capture a Thought", and Control Center controls (iOS 18). |
+| **Native Mac app** | A real macOS app with a sidebar, menu bar quick capture, and a global ⌃⌥Space hotkey. |
 | **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
@@ -47,6 +54,48 @@ skips duplicates) and **Add Task** (Siri: "Add a task in CPA Manager"). In-app,
 **Inbox → ⋯ → Set up text & email capture** walks through it: a scheduled Shortcut
 that reads the note your Siri-digested texts land in, and a share-sheet Shortcut for
 email. Run the unit tests (`CPAManagerTests`) with ⌘U.
+
+### Google Workspace (Gmail, Calendar)
+
+Everything talks directly to Google with **your own** OAuth client — no middleman server.
+
+1. In [Google Cloud Console](https://console.cloud.google.com) create (or pick) a project.
+2. **APIs & Services → Library:** enable the **Gmail API** and the **Google Calendar API**.
+3. **OAuth consent screen:** choose **Internal** (available on Google Workspace — no
+   Google review needed). Add the scopes `gmail.readonly`, `calendar.readonly`, `calendar.events`.
+4. **Credentials → Create credentials → OAuth client ID → iOS.** Set the **Bundle ID** to
+   `com.gottfriedcpa.ProjectManager` (the same one works for the Mac app).
+5. Copy the client ID (`…apps.googleusercontent.com`), then in the app:
+   **Settings → Integrations → Google → OAuth client ID**, and tap **Connect to Google**.
+6. Turn on what you want:
+   - **Send emails to my Inbox** — star an email in Gmail and it appears in the Inbox
+     (change the Gmail search to e.g. `label:cpa-todo`). The app only *reads* mail.
+   - **Show today's events on Today** — read-only view of your primary calendar.
+   - **Put due dates on my calendar** — open tasks, project deadlines, unpaid invoices
+     and follow-ups from the next 90 days become all-day, non-blocking events. The app
+     only ever edits or deletes events it created itself.
+
+Pull down on Today to sync immediately.
+
+### Share sheet, Siri, Action button, Control Center
+
+- **Share sheet:** in Mail, Gmail, Files, Photos or Safari tap Share → **Add to CPA
+  Inbox**. Text and links become an inbox item; PDFs and images ride along as
+  attachments you file onto a client or project from the Inbox.
+- **Siri / Action button:** "Hey Siri, capture a thought in CPA Manager". To use the
+  Action button: Settings → Action Button → Shortcut → **Capture a Thought**.
+- **Control Center / lock screen (iOS 18, Xcode 16+):** add the **Add Task** or
+  **Capture to Inbox** controls. On older Xcode versions these compile out.
+
+### Native Mac app
+
+`xcodegen generate`, then choose the **CPAManagerMac** scheme → **My Mac**. It shares
+its bundle ID and iCloud container with the iPhone app, so data syncs. Extras: menu bar
+quick capture, a global **⌃⌥Space** hotkey, ⌘, for Settings, and the same ⌘1–7 shortcuts.
+Differences from iOS: no document scanner or Contacts import (choose files/photos
+instead), PDFs open in Preview / the print panel, and there's no widget or Live Activity.
+You'll need to pick your Team under Signing for the `CPAManagerMac` target. A Mac app
+icon set (ICNS sizes) isn't included yet.
 
 ### Migrating from Apple Reminders
 
@@ -418,6 +467,10 @@ repeat step 6. Internal testers on the same group auto-see new builds.
 
 ## Notes & next steps
 
+- **New models this round** (redeploy the CloudKit schema before TestFlight): `Interaction`,
+  `SavedClientFilter`, `Payment`, plus new fields on `Client` (tags, follow-up, lead
+  stage/value), `TaskItem` (repeat rule, next action, snooze, client), and `InboxItem`
+  (external ID, link, attachment).
 - **Notifications** are local only (no push server needed). iOS caps pending local
   notifications at 64; the scheduler keeps to the soonest ~60.
 - **Document scanning** requires a real device — VisionKit's document camera isn't

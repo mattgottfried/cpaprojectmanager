@@ -61,6 +61,30 @@ enum NotificationScheduler {
             }
         }
 
+        if let clients = try? context.fetch(FetchDescriptor<Client>()) {
+            for client in clients where client.status != .inactive {
+                guard let due = client.followUpDate, due >= today else { continue }
+                candidates.append((
+                    id: "followup-\(client.id.uuidString)",
+                    title: "Follow up: \(client.displayName)",
+                    body: "Last contact: \(ClientActivity.lastContactLabel(client.lastContactedAt))",
+                    due: due
+                ))
+            }
+        }
+
+        if let invoices = try? context.fetch(FetchDescriptor<Invoice>()) {
+            for invoice in invoices where invoice.status == .sent && invoice.balance > 0 {
+                guard invoice.dueDate >= today else { continue }
+                candidates.append((
+                    id: "invoice-\(invoice.id.uuidString)",
+                    title: "Invoice due: \(invoice.displayNumber) (\(Format.currency(invoice.balance)))",
+                    body: invoice.client?.displayName ?? "",
+                    due: invoice.dueDate
+                ))
+            }
+        }
+
         let soonest = candidates.sorted { $0.due < $1.due }.prefix(maxScheduled)
         for item in soonest {
             schedule(

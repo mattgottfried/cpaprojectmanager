@@ -132,6 +132,15 @@ struct CPAManagerShortcuts: AppShortcutsProvider {
             systemImageName: "checkmark.circle"
         )
         AppShortcut(
+            intent: CaptureThoughtIntent(),
+            phrases: [
+                "Capture a thought in \(.applicationName)",
+                "Remember something in \(.applicationName)",
+            ],
+            shortTitle: "Capture a Thought",
+            systemImageName: "mic.fill"
+        )
+        AppShortcut(
             intent: AddToInboxIntent(),
             phrases: [
                 "Add to my inbox in \(.applicationName)",
@@ -140,5 +149,33 @@ struct CPAManagerShortcuts: AppShortcutsProvider {
             shortTitle: "Add to Inbox",
             systemImageName: "tray.and.arrow.down"
         )
+    }
+}
+
+/// Hands-free capture: "Hey Siri, capture a thought in CPA Manager", or bind it to
+/// the Action button (Settings → Action Button → Shortcut). It asks "What's on your
+/// mind?", then drops the answer in the Inbox to sort later — no unlocking, no app.
+struct CaptureThoughtIntent: AppIntent {
+    static var title: LocalizedStringResource = "Capture a Thought"
+    static var description = IntentDescription(
+        "Say or type something and it goes straight to your CPA Manager inbox to sort out later.",
+        categoryName: "Capture"
+    )
+    static var openAppWhenRun = false
+
+    @Parameter(title: "Thought", requestValueDialog: IntentDialog("What's on your mind?"))
+    var thought: String
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Capture \(\.$thought)")
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let context = Persistence.shared.container.mainContext
+        let result = InboxService.capture(text: thought, source: .siri, context: context, splitLines: false)
+        SnapshotBuilder.rebuild(context: context)
+        let dialog = result.added > 0 ? "Captured." : "Already in your inbox."
+        return .result(dialog: IntentDialog(stringLiteral: dialog))
     }
 }

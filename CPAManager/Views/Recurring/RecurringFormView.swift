@@ -58,7 +58,7 @@ struct RecurringFormView: View {
                 }
             }
             .navigationTitle(isEditing ? "Edit Recurring" : "New Recurring")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!canSave) }

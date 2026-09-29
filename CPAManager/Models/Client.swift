@@ -20,6 +20,12 @@ final class Client {
     var qboCustomerId: String = ""
     /// Comma-separated, normalized tags (see TagSet).
     var tagsRaw: String = ""
+    /// When to reach out next. Shows on Today from that day; cleared when contact is logged.
+    var followUpDate: Date? = nil
+    /// Raw `LeadStage`; empty means "not tracked as a lead" (see `leadStage`).
+    var leadStageRaw: String = ""
+    /// Estimated annual fees, for the pipeline total.
+    var leadValue: Double = 0
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []
@@ -83,6 +89,22 @@ final class Client {
     var invoiceList: [Invoice] { invoices ?? [] }
 
     var recurringEngagementList: [RecurringEngagement] { recurringEngagements ?? [] }
+
+    var hasFollowUp: Bool { followUpDate != nil }
+
+    /// Pipeline stage. Existing "Prospect" clients read as `.new` leads.
+    var leadStage: LeadStage? {
+        get { LeadPipeline.effectiveStage(raw: leadStageRaw, status: status) }
+        set {
+            leadStageRaw = newValue?.rawValue ?? ""
+            if let newValue { status = LeadPipeline.status(for: newValue) }
+        }
+    }
+
+    var leadSummary: LeadSummary? {
+        guard let stage = leadStage else { return nil }
+        return LeadSummary(id: id, stage: stage, value: leadValue, lastContact: lastContactedAt, createdAt: createdAt)
+    }
 
     var interactionList: [Interaction] { interactions ?? [] }
 

@@ -14,6 +14,7 @@ struct InboxView: View {
     private var items: [InboxItem]
 
     @Environment(AppRouter.self) private var router
+    @Environment(\.openURL) private var openURL
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @FocusState private var captureFocused: Bool
     @State private var quickText = ""
@@ -49,6 +50,13 @@ struct InboxView: View {
                             Button { dismiss(item) } label: { Label("Dismiss", systemImage: "xmark") }
                                 .tint(Theme.neutral)
                         }
+                        .contextMenu {
+                            if let url = URL(string: item.link), !item.link.isEmpty {
+                                Button { openURL(url) } label: { Label("Open original", systemImage: "arrow.up.right.square") }
+                            }
+                            Button { makeTask(item) } label: { Label("Make task", systemImage: "checkmark.circle") }
+                            Button { dismiss(item) } label: { Label("Dismiss", systemImage: "xmark") }
+                        }
                         .accessibilityAddTraits(.isButton)
                 }
             }
@@ -58,7 +66,7 @@ struct InboxView: View {
                 if items.isEmpty { emptyState }
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appGroupedBackground)
         .navigationTitle("Inbox")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -111,7 +119,7 @@ struct InboxView: View {
                 .accessibilityLabel("Capture to inbox")
         }
         .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Color.appCardBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .padding(.horizontal).padding(.vertical, 8)
     }
 
@@ -186,6 +194,9 @@ struct InboxRowCard: View {
                         Text("•")
                         Text(client.displayName).lineLimit(1)
                     }
+                    if !item.attachmentName.isEmpty {
+                        Image(systemName: "paperclip").accessibilityLabel("Has attachment")
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -193,7 +204,7 @@ struct InboxRowCard: View {
             if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color.appCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(item.text)

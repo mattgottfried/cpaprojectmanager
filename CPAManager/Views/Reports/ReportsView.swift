@@ -8,6 +8,7 @@ import Charts
 struct ReportsView: View {
     @Query private var timeEntries: [TimeEntry]
     @Query private var projects: [Project]
+    @Query private var invoices: [Invoice]
 
     @State private var period: Period = .month
 
@@ -79,86 +80,103 @@ struct ReportsView: View {
         projects.filter(\.isOverdue).sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
+    private var sentInvoices: [Invoice] { invoices.filter { $0.status == .sent } }
+    private var outstanding: Double { sentInvoices.reduce(0) { $0 + $1.balance } }
+    private var overdueAmount: Double { sentInvoices.filter(\.isOverdue).reduce(0) { $0 + $1.balance } }
+
     var body: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(spacing: 16) {
                 Picker("Period", selection: $period) {
                     ForEach(Period.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
-            }
 
-            Section("Billable Hours by Client") {
-                LabeledContent("Total", value: "\(Format.hoursMinutes(totalHoursSeconds)) · \(Format.currency(totalBillable))")
-                if byClient.isEmpty {
-                    Text("No time logged this period.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Chart(byClient) { item in
-                        BarMark(x: .value("Hours", item.hours), y: .value("Client", item.name))
-                            .foregroundStyle(Theme.brand)
-                    }
-                    .frame(height: CGFloat(byClient.count) * 28 + 20)
-
-                    ForEach(byClient) { item in
-                        HStack {
-                            Text(item.name).lineLimit(1)
-                            Spacer()
-                            Text(String(format: "%.1fh", item.hours))
-                                .foregroundStyle(.secondary)
-                            Text(Format.currency(item.amount))
-                                .foregroundStyle(.secondary)
-                        }
-                        .font(.subheadline)
-                    }
+                HStack(spacing: 10) {
+                    StatChip(value: Format.hoursMinutes(totalHoursSeconds), label: "Hours", state: .info)
+                    StatChip(value: Format.currency(totalBillable), label: "Billable", state: .good)
+                    StatChip(value: Format.currency(outstanding), label: "Outstanding", state: outstanding > 0 ? .caution : .neutral)
+                    StatChip(value: Format.currency(overdueAmount), label: "Overdue", state: overdueAmount > 0 ? .bad : .neutral)
                 }
-            }
 
-            if !unbilledByClient.isEmpty {
-                Section("Unbilled Work in Progress") {
-                    ForEach(unbilledByClient) { item in
-                        HStack {
-                            Text(item.name)
-                            Spacer()
-                            Text(Format.currency(item.amount)).foregroundStyle(.secondary)
+                SectionCard(title: "Billable Hours by Client", systemImage: "clock.fill", state: .info) {
+                    if byClient.isEmpty {
+                        Text("No time logged this period.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Chart(byClient) { item in
+                            BarMark(x: .value("Hours", item.hours), y: .value("Client", item.name))
+                                .foregroundStyle(Theme.brand)
                         }
-                    }
-                }
-            }
+                        .frame(height: CGFloat(byClient.count) * 28 + 20)
+                        .accessibilityLabel("Bar chart of billable hours by client")
 
-            if !statusCounts.isEmpty {
-                Section("Open Work by Stage") {
-                    ForEach(statusCounts, id: \.status) { entry in
-                        HStack {
-                            StatusBadge(status: entry.status)
-                            Spacer()
-                            Text("\(entry.count)")
-                        }
-                    }
-                }
-            }
-
-            if !overdueProjects.isEmpty {
-                Section("Overdue") {
-                    ForEach(overdueProjects) { project in
-                        NavigationLink {
-                            ProjectDetailView(project: project)
-                        } label: {
+                        ForEach(byClient) { item in
                             HStack {
-                                Text(project.title).lineLimit(1)
+                                Text(item.name).lineLimit(1)
                                 Spacer()
-                                if let due = project.dueDate {
-                                    Text(Format.relativeDay(due))
-                                        .font(.caption)
-                                        .foregroundStyle(.red)
-                                }
+                                Text(String(format: "%.1fh", item.hours))
+                                    .foregroundStyle(.secondary)
+                                Text(Format.currency(item.amount))
+                                    .foregroundStyle(.secondary)
                             }
+                            .font(.subheadline)
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
+
+                if !unbilledByClient.isEmpty {
+                    SectionCard(title: "Unbilled Work in Progress", systemImage: "hourglass", state: .caution) {
+                        ForEach(unbilledByClient) { item in
+                            HStack {
+                                Text(item.name)
+                                Spacer()
+                                Text(Format.currency(item.amount)).foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline)
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
+
+                if !statusCounts.isEmpty {
+                    SectionCard(title: "Open Work by Stage", systemImage: "checklist", state: .info) {
+                        ForEach(statusCounts, id: \.status) { entry in
+                            HStack {
+                                StatusBadge(status: entry.status)
+                                Spacer()
+                                Text("\(entry.count)").font(.subheadline.monospacedDigit())
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
+
+                if !overdueProjects.isEmpty {
+                    SectionCard(title: "Overdue", systemImage: "exclamationmark.triangle.fill", state: .bad) {
+                        ForEach(overdueProjects) { project in
+                            NavigationLink {
+                                ProjectDetailView(project: project)
+                            } label: {
+                                HStack {
+                                    Text(project.title).lineLimit(1)
+                                    Spacer()
+                                    if let due = project.dueDate {
+                                        DueDatePill(date: due)
+                                    }
+                                }
+                                .font(.subheadline)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
             }
+            .padding()
         }
+        .background(Color.appGroupedBackground)
         .navigationTitle("Reports")
     }
 }

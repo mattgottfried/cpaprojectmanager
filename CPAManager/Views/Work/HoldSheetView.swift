@@ -21,7 +21,7 @@ struct HoldSheetView: View {
                     .lineLimit(2...5)
             }
             .navigationTitle("Put on Hold")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

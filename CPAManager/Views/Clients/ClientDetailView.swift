@@ -7,6 +7,8 @@ struct ClientDetailView: View {
     @State private var showingEdit = false
     @State private var showingAddProject = false
     @State private var logKind: InteractionKind?
+    @State private var showingFollowUpPicker = false
+    @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @State private var toast: UndoToastState?
 
     private var sortedProjects: [Project] {
@@ -43,6 +45,12 @@ struct ClientDetailView: View {
                         LabeledContent("Phone", value: client.phone)
                     }
                 }
+            }
+
+            followUpSection
+
+            if client.leadStage != nil {
+                leadSection
             }
 
             if !client.tags.isEmpty {
@@ -86,13 +94,16 @@ struct ClientDetailView: View {
             DocumentsSectionView(client: client)
         }
         .navigationTitle(client.displayName)
-        .navigationBarTitleDisplayMode(.inline)
+        .inlineNavigationTitle()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { showingEdit = true }
             }
         }
         .undoToast($toast)
+        .sheet(isPresented: $showingFollowUpPicker) {
+            FollowUpDateSheet(initial: client.followUpDate) { date in setFollowUp(date) }
+        }
         .sheet(item: $logKind) { kind in InteractionFormView(client: client, initialKind: kind) }
         .sheet(isPresented: $showingEdit) { ClientFormView(client: client) }
         .sheet(isPresented: $showingAddProject) { ProjectFormView(defaultClient: client) }
@@ -100,6 +111,78 @@ struct ClientDetailView: View {
 }
 
 extension ClientDetailView {
+    @ViewBuilder
+    var followUpSection: some View {
+        Section {
+            HStack {
+                Label(
+                    client.followUpDate.map { "Follow up \(Format.relativeDay($0).lowercased())" } ?? "No follow-up set",
+                    systemImage: client.followUpDate == nil ? "bell.slash" : "bell.fill"
+                )
+                .foregroundStyle(client.followUpDate == nil ? AnyShapeStyle(HierarchicalShapeStyle.secondary) : AnyShapeStyle(Theme.brand))
+                Spacer()
+                Menu {
+                    ForEach(FollowUpPreset.allCases) { preset in
+                        Button { setFollowUp(preset.date()) } label: { Label(preset.label, systemImage: "calendar") }
+                    }
+                    Button { showingFollowUpPicker = true } label: { Label("Choose a date…", systemImage: "calendar.badge.plus") }
+                    if client.followUpDate != nil {
+                        Button(role: .destructive) { setFollowUp(nil) } label: { Label("Clear", systemImage: "xmark") }
+                    }
+                } label: {
+                    Text(client.followUpDate == nil ? "Set" : "Change")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        } header: {
+            Text("Follow-up")
+        } footer: {
+            Text("Shows on Today from that day. Logging a call, email, text or meeting clears it.")
+        }
+    }
+
+    @ViewBuilder
+    var leadSection: some View {
+        Section("Lead") {
+            Picker("Stage", selection: leadStageBinding) {
+                ForEach(LeadStage.allCases) { stage in
+                    Label(stage.label, systemImage: stage.systemImage).tag(stage)
+                }
+            }
+            LabeledContent("Est. annual fees") {
+                TextField("Amount", value: leadValueBinding, format: .currency(code: "USD"))
+                    .multilineTextAlignment(.trailing)
+                    .decimalKeyboard()
+            }
+            if client.leadStage?.isOpen == true {
+                Button {
+                    client.leadStage = .won
+                    try? context.save()
+                } label: {
+                    Label("Won — make an active client", systemImage: "checkmark.seal.fill")
+                }
+            }
+        }
+    }
+
+    private var leadStageBinding: Binding<LeadStage> {
+        Binding(
+            get: { client.leadStage ?? .new },
+            set: { client.leadStage = $0; try? context.save() }
+        )
+    }
+
+    private var leadValueBinding: Binding<Double> {
+        Binding(get: { client.leadValue }, set: { client.leadValue = $0; try? context.save() })
+    }
+
+    func setFollowUp(_ date: Date?) {
+        client.followUpDate = date.map { Calendar.current.startOfDay(for: $0) }
+        try? context.save()
+        NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
+        SnapshotBuilder.rebuild(context: context)
+    }
+
     private var recentActivity: [Interaction] {
         Array(client.interactionList.sorted { $0.occurredAt > $1.occurredAt }.prefix(5))
     }
@@ -190,5 +273,31 @@ struct ContactButtons: View {
 
     private func digits(_ phone: String) -> String {
         phone.filter { $0.isNumber || $0 == "+" }
+    }
+}
+
+/// Pick an exact follow-up date.
+struct FollowUpDateSheet: View {
+    var initial: Date?
+    var onPick: (Date) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var date = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker("Follow up on", selection: $date, in: Date.now..., displayedComponents: .date)
+                    .datePickerStyle(.graphical)
+            }
+            .navigationTitle("Follow-up date")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Set") { onPick(date); dismiss() }
+                }
+            }
+            .onAppear { if let initial, initial > .now { date = initial } }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

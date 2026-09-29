@@ -7,6 +7,11 @@ struct MoreView: View {
             List {
                 Section {
                     NavigationLink {
+                        LeadsView(embedded: true)
+                    } label: {
+                        Label("Leads", systemImage: "funnel.fill")
+                    }
+                    NavigationLink {
                         WeeklyReviewView(embedded: true)
                     } label: {
                         Label("Weekly Review", systemImage: "checkmark.seal.fill")

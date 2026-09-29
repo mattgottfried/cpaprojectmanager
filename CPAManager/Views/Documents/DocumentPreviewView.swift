@@ -1,5 +1,9 @@
 import SwiftUI
+#if os(iOS)
 import QuickLook
+#else
+import AppKit
+#endif
 
 /// Previews a `Document` using QuickLook. Document bytes live in SwiftData
 /// external storage, but QuickLook needs a real file URL, so this writes a
@@ -11,6 +15,7 @@ struct DocumentPreviewView: View {
 
     var body: some View {
         Group {
+            #if os(iOS)
             if let fileURL {
                 QuickLookPreview(url: fileURL)
                     .ignoresSafeArea()
@@ -18,8 +23,19 @@ struct DocumentPreviewView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            #else
+            // Mac: hand the file to Preview / the default app instead of embedding QuickLook.
+            ProgressView("Opening \(document.displayName)…")
+                .padding(30)
+            #endif
         }
-        .task { writeTempFile() }
+        .task {
+            writeTempFile()
+            #if os(macOS)
+            if let fileURL { NSWorkspace.shared.open(fileURL) }
+            dismiss()
+            #endif
+        }
         .overlay(alignment: .topTrailing) {
             Button {
                 dismiss()
@@ -46,6 +62,7 @@ struct DocumentPreviewView: View {
     }
 }
 
+#if os(iOS)
 /// UIKit QuickLook bridge.
 private struct QuickLookPreview: UIViewControllerRepresentable {
     let url: URL
@@ -71,3 +88,4 @@ private struct QuickLookPreview: UIViewControllerRepresentable {
         }
     }
 }
+#endif

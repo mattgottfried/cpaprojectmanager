@@ -78,6 +78,18 @@ enum SnapshotBuilder {
                 )
             }
         }
+        if let clients = try? context.fetch(FetchDescriptor<Client>()) {
+            for client in clients where client.status != .inactive {
+                guard let due = client.followUpDate else { continue }
+                plannerItems.append(PlannerItem(id: client.id, dueDate: due, snoozedUntil: nil, isDone: false, isNextAction: false))
+                itemByID[client.id] = .init(
+                    id: client.id, title: "Follow up: \(client.displayName)", subtitle: "",
+                    dueDate: due,
+                    isOverdue: calendar.startOfDay(for: due) < today,
+                    isTask: false
+                )
+            }
+        }
         let plan = TodayPlanner.plan(plannerItems)
         let todayItems: [DashboardSnapshot.Item] = [TodaySection.overdue, .today, .next]
             .flatMap { plan.ids($0) }

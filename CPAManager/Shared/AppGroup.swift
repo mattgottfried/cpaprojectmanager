@@ -10,6 +10,12 @@ enum AppGroup {
     static let snapshotKey = "dashboardSnapshot"
 
     static var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: identifier)
+        #if os(macOS)
+        // No widget or share extension on the Mac app, so there's nothing to share with —
+        // and touching a group container without the entitlement makes macOS prompt.
+        return UserDefaults.standard
+        #else
+        return UserDefaults(suiteName: identifier)
+        #endif
     }
 }

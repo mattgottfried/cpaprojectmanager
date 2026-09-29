@@ -24,7 +24,7 @@ struct RemindersImportView: View {
         NavigationStack {
             content
                 .navigationTitle("Import from Reminders")
-                .navigationBarTitleDisplayMode(.inline)
+                .inlineNavigationTitle()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 }

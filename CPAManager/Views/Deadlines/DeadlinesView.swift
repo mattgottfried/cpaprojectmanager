@@ -55,7 +55,7 @@ struct DeadlinesView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Color(.systemGroupedBackground))
+            .background(Color.appGroupedBackground)
             .navigationTitle("Deadlines")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingTaxDates) { TaxDatesView() }
@@ -154,7 +154,7 @@ struct TaxDatesView: View {
                 }
             }
             .navigationTitle("Tax Deadlines")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }

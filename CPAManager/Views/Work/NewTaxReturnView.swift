@@ -55,7 +55,7 @@ struct NewTaxReturnView: View {
                 }
             }
             .navigationTitle("New Tax Return")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Create", action: save).disabled(!canSave) }

@@ -1,5 +1,5 @@
 import Foundation
-import UIKit
+import CoreGraphics
 
 /// Renders a simple, one-page invoice PDF (US Letter) to a temporary file.
 enum InvoicePDF {
@@ -9,13 +9,11 @@ enum InvoicePDF {
         let margin: CGFloat = 48
         let contentWidth = pageWidth - margin * 2
 
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight))
-
-        let data = renderer.pdfData { context in
+        let data = PlatformPDF.data(bounds: CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)) { context in
             context.beginPage()
             var y: CGFloat = margin
 
-            func draw(_ text: String, font: UIFont, color: UIColor = .black, width: CGFloat? = nil) {
+            func draw(_ text: String, font: PlatformFont, color: PlatformColor = .black, width: CGFloat? = nil) {
                 let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color]
                 let boxWidth = width ?? contentWidth
                 let bounding = (text as NSString).boundingRect(
@@ -50,7 +48,7 @@ enum InvoicePDF {
             let col4X = pageWidth - margin - 70
             let descWidth = col2X - margin - 8
 
-            let headerFont = UIFont.boldSystemFont(ofSize: 11)
+            let headerFont = PlatformFont.boldSystemFont(ofSize: 11)
             let headerAttrs: [NSAttributedString.Key: Any] = [.font: headerFont]
             ("Description" as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: headerAttrs)
             ("Qty" as NSString).draw(at: CGPoint(x: col2X, y: y), withAttributes: headerAttrs)
@@ -58,11 +56,10 @@ enum InvoicePDF {
             ("Amount" as NSString).draw(at: CGPoint(x: col4X, y: y), withAttributes: headerAttrs)
             y += 16
 
-            UIColor.lightGray.setFill()
-            UIRectFill(CGRect(x: margin, y: y, width: contentWidth, height: 0.75))
+            PlatformPDF.fill(CGRect(x: margin, y: y, width: contentWidth, height: 0.75), color: .lightGray)
             y += 8
 
-            let rowFont = UIFont.systemFont(ofSize: 11)
+            let rowFont = PlatformFont.systemFont(ofSize: 11)
             let rowAttrs: [NSAttributedString.Key: Any] = [.font: rowFont]
             for line in invoice.lineList {
                 let bounding = (line.detail as NSString).boundingRect(
@@ -82,11 +79,10 @@ enum InvoicePDF {
             }
 
             y += 8
-            UIColor.lightGray.setFill()
-            UIRectFill(CGRect(x: margin, y: y, width: contentWidth, height: 0.75))
+            PlatformPDF.fill(CGRect(x: margin, y: y, width: contentWidth, height: 0.75), color: .lightGray)
             y += 12
 
-            let totalFont = UIFont.boldSystemFont(ofSize: 14)
+            let totalFont = PlatformFont.boldSystemFont(ofSize: 14)
             let totalAttrs: [NSAttributedString.Key: Any] = [.font: totalFont]
             ("Total" as NSString).draw(at: CGPoint(x: col3X, y: y), withAttributes: totalAttrs)
             (Format.currency(invoice.total) as NSString).draw(at: CGPoint(x: col4X, y: y), withAttributes: totalAttrs)

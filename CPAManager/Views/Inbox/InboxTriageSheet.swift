@@ -6,7 +6,7 @@ import SwiftData
 struct InboxTriageSheet: View {
     let item: InboxItem
     /// Reports an undoable outcome up to the presenter's toast.
-    let onOutcome: (_ message: String, _ undo: @escaping () -> Void) -> Void
+    let onOutcome: (_ message: String, _ undo: (() -> Void)?) -> Void
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -20,6 +20,7 @@ struct InboxTriageSheet: View {
     @State private var due = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
     @State private var client: Client?
     @State private var project: Project?
+    @State private var repeatRule: RepeatRule = .none
 
     private var openProjects: [Project] { projects.filter { !$0.status.isComplete } }
 
@@ -32,11 +33,22 @@ struct InboxTriageSheet: View {
                     Label(item.source.label, systemImage: item.source.systemImage)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let url = URL(string: item.link), !item.link.isEmpty {
+                        Link(destination: url) {
+                            Label("Open original", systemImage: "arrow.up.right.square")
+                                .font(.caption)
+                        }
+                    }
                 }
 
                 Section("When") {
                     Toggle("Due date", isOn: $hasDue.animation())
-                    if hasDue {
+                    Picker("Repeat", selection: $repeatRule) {
+                        ForEach(RepeatRule.allCases) { rule in
+                            Label(rule.label, systemImage: rule.systemImage).tag(rule)
+                        }
+                    }
+                    if hasDue || repeatRule != .none {
                         DatePicker("Due", selection: $due, displayedComponents: .date)
                     } else {
                         Text("No date — it goes in Next up.")
@@ -70,6 +82,19 @@ struct InboxTriageSheet: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
 
+                    if !item.attachmentName.isEmpty {
+                        Button {
+                            fileAttachment()
+                        } label: {
+                            Label(
+                                (client != nil || project != nil) ? "File attachment on \(project?.title ?? client?.displayName ?? "")" : "Pick a client or project to file the attachment",
+                                systemImage: "paperclip"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .disabled(client == nil && project == nil)
+                    }
+
                     if let client {
                         Button {
                             logToClient(client)
@@ -88,7 +113,7 @@ struct InboxTriageSheet: View {
                 }
             }
             .navigationTitle("Sort item")
-            .navigationBarTitleDisplayModeInline()
+            .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
@@ -97,8 +122,9 @@ struct InboxTriageSheet: View {
     }
 
     private func prefill() {
-        let parsed = QuickAddParser.parse(item.text)
+        let parsed = QuickCapture.parse(item.text)
         title = parsed.title.isEmpty ? item.text : parsed.title
+        repeatRule = parsed.rule
         if let date = parsed.dueDate {
             hasDue = true
             due = date
@@ -109,7 +135,7 @@ struct InboxTriageSheet: View {
     private func save() {
         let text = title.trimmingCharacters(in: .whitespacesAndNewlines)
         item.text = text
-        let dueDate = hasDue ? Calendar.current.startOfDay(for: due) : nil
+        let dueDate = (hasDue || repeatRule != .none) ? Calendar.current.startOfDay(for: due) : nil
         let task: TaskItem
         if let project {
             task = InboxService.attach(item, to: project, dueDate: dueDate, context: context)
@@ -119,6 +145,7 @@ struct InboxTriageSheet: View {
         // `makeTask`/`attach` re-parse the text; make sure the edited title wins.
         task.title = text
         task.dueDate = dueDate
+        task.repeatRule = repeatRule
         if project == nil { task.isNextAction = dueDate == nil }
         try? context.save()
         NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
@@ -129,6 +156,12 @@ struct InboxTriageSheet: View {
             item.reopen()
             try? context.save()
         }
+    }
+
+    private func fileAttachment() {
+        guard let document = CaptureQueue.fileAttachment(of: item, client: client, project: project, context: context) else { return }
+        dismiss()
+        onOutcome("Filed \(document.displayName)", nil)
     }
 
     private func logToClient(_ client: Client) {
@@ -150,18 +183,5 @@ struct InboxTriageSheet: View {
             item.reopen()
             try? context.save()
         }
-    }
-}
-
-private extension View {
-    /// `.navigationBarTitleDisplayMode` is unavailable on macOS; Mac Catalyst has it,
-    /// but a native macOS target will not — keep the platform check in one place.
-    @ViewBuilder
-    func navigationBarTitleDisplayModeInline() -> some View {
-        #if os(iOS)
-        self.navigationBarTitleDisplayMode(.inline)
-        #else
-        self
-        #endif
     }
 }
