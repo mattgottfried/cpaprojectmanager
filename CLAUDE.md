@@ -2,7 +2,7 @@
 
 Native SwiftUI + SwiftData practice-management app (CRM + projects + daily task
 capture) for a solo CPA's side business. iOS/iPadOS plus native
-macOS later. Syncs through the user's own iCloud (CloudKit); no server.
+macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
 
 **Read these first and follow them without being reminded:**
 - `docs/PREFERENCES.md` — how to work with the owner (batching, questions, git, comms).
