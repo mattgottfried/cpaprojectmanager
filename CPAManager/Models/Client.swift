@@ -31,6 +31,14 @@ final class Client {
     @Relationship(deleteRule: .cascade, inverse: \RecurringEngagement.client)
     var recurringEngagements: [RecurringEngagement]? = []
 
+    /// Standalone tasks (no project) linked to this client. Nullify, so deleting a
+    /// client never silently deletes to-dos.
+    @Relationship(deleteRule: .nullify, inverse: \TaskItem.client)
+    var looseTasks: [TaskItem]? = []
+
+    @Relationship(deleteRule: .nullify, inverse: \InboxItem.client)
+    var inboxItems: [InboxItem]? = []
+
     init(
         name: String = "",
         company: String = "",

@@ -10,4 +10,12 @@ enum Theme {
     static func brand(for scheme: ColorScheme) -> Color {
         scheme == .dark ? brandDark : brand
     }
+
+    // MARK: Semantic state colors (see CLAUDE.md → Design). One meaning per color.
+    static let good = Color.green
+    static let caution = Color(red: 1, green: 0.75, blue: 0)
+    static let bad = Color.red
+    static let alert = Color(red: 1, green: 0.55, blue: 0)
+    static let info = Color.blue
+    static let neutral = Color.gray
 }

@@ -6,6 +6,9 @@ struct DeadlinesView: View {
     @Query private var tasks: [TaskItem]
     @State private var showingTaxDates = false
     @State private var calendarRequest: CalendarEventRequest?
+    /// True when pushed from another stack (e.g. More) so it doesn't nest a second
+    /// NavigationStack.
+    var embedded = false
 
     private var grouped: [(bucket: String, items: [AgendaItem])] {
         let items = Agenda.items(projects: projects, tasks: tasks)
@@ -17,7 +20,15 @@ struct DeadlinesView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        if embedded {
+            content
+        } else {
+            NavigationStack { content }
+        }
+    }
+
+    private var content: some View {
+        Group {
             List {
                 if grouped.isEmpty {
                     Section {

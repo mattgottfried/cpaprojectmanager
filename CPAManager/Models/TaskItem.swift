@@ -12,8 +12,15 @@ final class TaskItem {
     var sortIndex: Int = 0
     var completedAt: Date? = nil
     var createdAt: Date = Date.now
+    /// A standalone "do this next" item with no due date. Shown on Today so
+    /// undated work doesn't disappear.
+    var isNextAction: Bool = false
+    /// Hidden from Today until this day (start-of-day comparison).
+    var snoozedUntil: Date? = nil
 
     var project: Project? = nil
+    /// Optional client link for tasks that don't belong to a project.
+    var client: Client? = nil
 
     init(
         title: String = "",
@@ -21,6 +28,7 @@ final class TaskItem {
         isDone: Bool = false,
         dueDate: Date? = nil,
         sortIndex: Int = 0,
+        isNextAction: Bool = false,
         project: Project? = nil
     ) {
         self.id = UUID()
@@ -29,6 +37,7 @@ final class TaskItem {
         self.isDone = isDone
         self.dueDate = dueDate
         self.sortIndex = sortIndex
+        self.isNextAction = isNextAction
         self.project = project
         self.createdAt = .now
     }

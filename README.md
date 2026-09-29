@@ -17,7 +17,9 @@ It includes the Apple-native touches that make an iPhone app feel great:
 
 | Area | What it does |
 |------|--------------|
-| **Dashboard** | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
+| **Today** | One trusted screen: Overdue, Due today, Next up (undated to-dos), Coming up. Type a task with a date in plain words ("call Smith Friday"), swipe to complete or snooze, undo from a toast. |
+| **Inbox** | Everything captured but not yet sorted — from typing, Siri, a note of digested texts, or an email. Swipe to make a task or dismiss; tap to file under a client or project. Re-importing the same note skips what you've already captured. |
+| **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
 | **Deadlines** | Everything due, grouped **Overdue / Today / This Week / Later**, a reference list of standard US filing dates, and **Add to Calendar** on any item. |
@@ -31,6 +33,15 @@ It includes the Apple-native touches that make an iPhone app feel great:
 The app **seeds itself on first launch** with a few sample clients and five default
 templates (1040, 1120-S, Monthly Bookkeeping, Quarterly Estimates, Payroll Run) so
 it isn't empty. You can edit or delete anything.
+
+### Capturing texts and email
+
+iOS/macOS don't let apps read Messages, Notes, or Mail. CPA Manager exposes **App
+Intents** instead, so Shortcuts can hand it text: **Add to Inbox** (splits lines,
+skips duplicates) and **Add Task** (Siri: "Add a task in CPA Manager"). In-app,
+**Inbox → ⋯ → Set up text & email capture** walks through it: a scheduled Shortcut
+that reads the note your Siri-digested texts land in, and a share-sheet Shortcut for
+email. Run the unit tests (`CPAManagerTests`) with ⌘U.
 
 ### Migrating from Apple Reminders
 
