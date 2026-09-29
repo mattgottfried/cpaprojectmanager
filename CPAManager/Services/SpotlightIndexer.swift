@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-import CoreSpotlight
+@preconcurrency import CoreSpotlight
 import UniformTypeIdentifiers
 
 /// Puts clients, work, open tasks, and invoices into system Spotlight so you can find

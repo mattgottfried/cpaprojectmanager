@@ -129,15 +129,27 @@ struct BackupFile: Codable {
 
     /// One line per record type, for the restore preview.
     var summary: [(label: String, count: Int)] {
-        [
-            ("Clients", clients.count), ("Projects", projects.count), ("Tasks", tasks.count),
-            ("Time entries", timeEntries.count), ("Documents", documents.count), ("Templates", templates.count),
-            ("Recurring work", engagements.count), ("Invoices", invoices.count), ("Payments", payments.count),
-            ("Inbox items", inbox.count), ("Activity entries", interactions.count), ("Saved filters", savedFilters.count),
-            ("Document requests", documentRequests.count), ("Recurring invoices", recurringInvoices.count),
-            ("Expenses", expenses.count), ("Pipelines", pipelines?.count ?? 0),
-            ("Letter templates", letterTemplates?.count ?? 0), ("Email templates", emailTemplates?.count ?? 0),
-        ].filter { $0.1 > 0 }
+        var rows: [(label: String, count: Int)] = []
+        func add(_ label: String, _ count: Int) { if count > 0 { rows.append((label: label, count: count)) } }
+        add("Clients", clients.count)
+        add("Projects", projects.count)
+        add("Tasks", tasks.count)
+        add("Time entries", timeEntries.count)
+        add("Documents", documents.count)
+        add("Templates", templates.count)
+        add("Recurring work", engagements.count)
+        add("Invoices", invoices.count)
+        add("Payments", payments.count)
+        add("Inbox items", inbox.count)
+        add("Activity entries", interactions.count)
+        add("Saved filters", savedFilters.count)
+        add("Document requests", documentRequests.count)
+        add("Recurring invoices", recurringInvoices.count)
+        add("Expenses", expenses.count)
+        add("Pipelines", pipelines?.count ?? 0)
+        add("Letter templates", letterTemplates?.count ?? 0)
+        add("Email templates", emailTemplates?.count ?? 0)
+        return rows
     }
 
     var totalRecords: Int {
