@@ -56,6 +56,7 @@ final class TimerController {
         clearRunningState()
         endLiveActivity()
         cancelStillRunningReminder()
+        SnapshotBuilder.rebuild(context: context)
     }
 
     /// Re-attach to a still-running entry after a relaunch (e.g. timer left running).

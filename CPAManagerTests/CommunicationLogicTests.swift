@@ -204,3 +204,49 @@ final class TimeAndHelpLogicTests: XCTestCase {
         XCTAssertFalse(SeedData.isSample(email: ""))
     }
 }
+
+final class WatchPayloadTests: XCTestCase {
+    func testCommandRoundTrip() {
+        let id = UUID()
+        for command in [WatchCommand.complete(id), .startTimer, .stopTimer] {
+            XCTAssertEqual(WatchCommand(message: command.message), command)
+        }
+        XCTAssertNil(WatchCommand(message: [:]))
+        XCTAssertNil(WatchCommand(message: ["cmd": "complete"]), "complete needs an id")
+        XCTAssertNil(WatchCommand(message: ["cmd": "complete", "id": "not-a-uuid"]))
+        XCTAssertNil(WatchCommand(message: ["cmd": "selfDestruct"]))
+    }
+
+    func testPayloadEncodeDecodeAndBuilder() {
+        let taskID = UUID(), projectID = UUID()
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = DashboardSnapshot(
+            generatedAt: now, dueTodayCount: 2, overdueCount: 1, openProjectCount: 4,
+            upcoming: [],
+            todayItems: [
+                .init(id: taskID, title: "Call Dana", subtitle: "Acme", dueDate: now, isOverdue: true, isTask: true),
+                .init(id: projectID, title: "1040 - Smith", subtitle: "Smith", dueDate: nil, isOverdue: false, isTask: nil),
+            ]
+        )
+        let payload = WatchPayloadBuilder.make(snapshot: snapshot, timerStartedAt: now, timerLabel: "General time")
+        XCTAssertEqual(payload.tasks.count, 2)
+        XCTAssertTrue(payload.tasks[0].isTask)
+        XCTAssertFalse(payload.tasks[1].isTask, "projects can't be completed from the Watch")
+        XCTAssertEqual(payload.overdueCount, 1)
+        XCTAssertEqual(payload.timerLabel, "General time")
+
+        let decoded = WatchPayload.decode(payload.encoded()!)
+        XCTAssertEqual(decoded, payload)
+        XCTAssertNil(WatchPayload.decode(Data("nope".utf8)))
+    }
+
+    func testBuilderRespectsLimitAndFallsBackToUpcoming() {
+        let items = (0..<15).map { i in
+            DashboardSnapshot.Item(id: UUID(), title: "T\(i)", subtitle: "", dueDate: nil, isOverdue: false)
+        }
+        let snapshot = DashboardSnapshot(generatedAt: .now, dueTodayCount: 0, overdueCount: 0, openProjectCount: 0, upcoming: items)
+        let payload = WatchPayloadBuilder.make(snapshot: snapshot, timerStartedAt: nil, timerLabel: "", limit: 10)
+        XCTAssertEqual(payload.tasks.count, 10, "todayItems is nil, so upcoming is used")
+        XCTAssertNil(payload.timerStartedAt)
+    }
+}
