@@ -62,14 +62,16 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
     dependencies:
+      # XcodeGen only accepts `all`, `iOS`, or `macOS` here (case-sensitive) — a
+      # lowercase `ios` is silently ignored and the .appex gets embedded on Catalyst too.
       - target: CPAShare
-        platformFilter: ios
+        platformFilter: iOS
       - target: CPAWidgets
         # CPAWidgets is iOS-only (Live Activities/widgets have no Mac Catalyst
         # equivalent) — without this filter, Xcode refuses to embed an iOS-only
         # .appex in a Mac Catalyst host at all ("built for macOS but contains
         # embedded content built for iOS").
-        platformFilter: ios
+        platformFilter: iOS
 
   CPAWidgets:
     type: app-extension
