@@ -22,6 +22,7 @@ enum MergeFields {
         Token(token: "taxyear", label: "Tax year (prior year)"),
         Token(token: "fee", label: "Fee"),
         Token(token: "service", label: "Service"),
+        Token(token: "uploadlink", label: "Your secure upload link"),
     ]
 
     /// Replaces `{token}` (case-insensitive) with values. Unknown tokens are left as
@@ -69,6 +70,7 @@ enum MergeFields {
         now: Date = .now,
         fee: String = "",
         service: String = "",
+        uploadLink: String = "",
         calendar: Calendar = .current
     ) -> [String: String] {
         let year = calendar.component(.year, from: now)
@@ -89,6 +91,8 @@ enum MergeFields {
             "taxyear": String(year - 1),
             "fee": fee,
             "service": service,
+            // A visible placeholder beats a silently blank line in the preview.
+            "uploadlink": uploadLink.isEmpty ? "[add your upload link in Settings]" : uploadLink,
         ]
     }
 }
@@ -391,7 +395,7 @@ enum TemplateStarters {
         Email(name: "Document request", subject: "Documents needed for your {taxyear} return", body: """
         Hi {firstname},
 
-        To get your {taxyear} return started I need a few things from you. Reply to this email with the documents attached, or upload them when convenient.
+        To get your {taxyear} return started I need a few things from you. You can upload them securely here: {uploadlink}
 
         Thank you,
         {firm}

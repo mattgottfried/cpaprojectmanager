@@ -21,6 +21,9 @@ macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
   redeploy to Production before the next TestFlight build (see README).
 - **Merging PRs:** always include `[ci skip]` in the merge commit title (Xcode Cloud then
   doesn't build the merge) unless the owner says otherwise for that merge.
+- **TestFlight notes:** every build's "What to test" comes from `TestFlight/WhatToTest.en-US.txt`
+  (Xcode Cloud reads it; keep it under ~1 KB, plain text). Rewrite it in every PR that will
+  be built, describing what's new in that build, and bump `CURRENT_PROJECT_VERSION`.
 - **Testing on device:** keep a running "what to test" list in the PR/summary.
 
 ## Architecture
@@ -163,6 +166,27 @@ CPAManagerTests/  XCTest for the pure logic above.
   `SnapshotBuilder.rebuild` runs, and applies `WatchCommand`s (complete task, start/stop timer).
 - **Backup**: new collections/fields are *optional* in `BackupFile` so older backups decode
   (`testBackupFromBeforeBatch5StillDecodes`).
+
+### Batch 6: quotes, subtasks, signatures, import, tax season, windows, health
+
+- **Quotes/fees** (`BillingLogic.swift` pure, `Quote`/`FeeItem` in `Models/Billing.swift`,
+  `QuoteService`): lines are JSON (`Quote.linesData`), money math in integer cents
+  (`QuoteMath`). `QuoteService.convertToInvoice` is once-only (`invoiceID`). Client
+  `hourlyRateOverride`/`isFlatFee` feed `RateResolver` where timers start.
+- **Tasks**: `TaskItem.checklist` is Markdown checkbox lines (reuses `MarkdownBlocks`);
+  `blockedByID` hides a task from Today (`PlannerItem.isBlocked`) until the blocker is done —
+  never store a "blocked" flag, it's derived. `TaskDependencies.wouldCreateCycle` guards the picker.
+- **Uploads/signatures**: `SettingsKeys.uploadPageURL` (synced; never hardcode a firm's URL —
+  the repo is public) feeds `{uploadlink}` and the chase email. `Document.signatureStatusRaw`
+  ("", sent, signed) is tracked by hand (no e-sign API); `TodaySignaturesSection` nudges.
+- **Import** (`ImportLogic.swift` pure, `ImportService`, `ImportView`): CSV parser + header
+  aliases for clients (QuickBooks-style) and time. Always preview before writing.
+- **Tax season** (`TaxSeasonLogic.swift`): pure window/deadline/summary; `TaxSeasonCard` on Today.
+- **Windows**: each window has its own `AppRouter` (`WindowRoot`); `AppCommands` acts on the
+  focused window via `FocusedValues.appRouter`. `UIApplicationSupportsMultipleScenes` is on.
+- **Data health** (`DataHealthLogic` pure, `DataHealthService`): duplicate invoice numbers,
+  duplicate seeded templates, shared client emails, forgotten timers. `docs/TESTING.md` is the
+  manual device checklist.
 
 ### What syncs (and what deliberately doesn't)
 

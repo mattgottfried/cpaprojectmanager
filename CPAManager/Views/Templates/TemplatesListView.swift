@@ -54,7 +54,7 @@ struct TemplatesListView: View {
         .navigationTitle("Templates")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { showingNew = true } label: { Image(systemName: "plus") }
+                Button { showingNew = true } label: { Image(systemName: "plus").accessibilityLabel("New template") }
             }
         }
         .sheet(isPresented: $showingNew) { TemplateFormView() }

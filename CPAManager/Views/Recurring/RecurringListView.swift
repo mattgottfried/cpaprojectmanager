@@ -48,7 +48,7 @@ struct RecurringListView: View {
                 Menu {
                     Button { showingNew = true } label: { Label("New Recurring Work", systemImage: "plus") }
                     Button { showingBulk = true } label: { Label("Set Up for Several Clients", systemImage: "person.3.fill") }
-                } label: { Image(systemName: "plus") }
+                } label: { Image(systemName: "plus").accessibilityLabel("Add recurring work") }
             }
         }
         .sheet(isPresented: $showingNew) { RecurringFormView() }

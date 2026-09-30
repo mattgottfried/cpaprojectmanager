@@ -43,13 +43,17 @@ enum DocumentChecklist {
     }
 
     /// The email that chases whatever is still missing.
-    static func requestEmailBody(clientName: String, items: [String], dueDate: Date?, firm: String) -> String {
+    static func requestEmailBody(clientName: String, items: [String], dueDate: Date?, firm: String, uploadLink: String = "") -> String {
         let list = items.map { "  • \($0)" }.joined(separator: "\n")
         var body = "Hi \(clientName),\n\nTo keep your work moving, I still need the following:\n\n\(list)\n"
         if let dueDate {
             body += "\nCould you send these by \(dueDate.formatted(date: .long, time: .omitted))?\n"
         }
-        body += "\nYou can reply to this email with photos or PDFs attached. Thank you!\n\n\(firm)"
+        if uploadLink.isEmpty {
+            body += "\nYou can reply to this email with photos or PDFs attached. Thank you!\n\n\(firm)"
+        } else {
+            body += "\nPlease upload them securely here: \(uploadLink)\nThank you!\n\n\(firm)"
+        }
         return body
     }
 }

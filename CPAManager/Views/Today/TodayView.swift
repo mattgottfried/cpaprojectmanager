@@ -34,6 +34,7 @@ struct TodayView: View {
     @State private var showingSetup = false
     @State private var schedule: [CalendarEvent] = []
     @State private var logClient: Client?
+    @State private var detailTask: TaskItem?
     @State private var paymentInvoice: Invoice?
     @FocusState private var quickFocused: Bool
 
@@ -120,10 +121,12 @@ struct TodayView: View {
 
     private var plan: TodayPlan {
         var items: [PlannerItem] = []
+        let openTaskIDs = Set(tasks.filter { !$0.isDone }.map(\.id))
         for task in tasks where task.project?.status.isComplete != true {
             items.append(PlannerItem(
                 id: task.id, dueDate: task.dueDate, snoozedUntil: task.snoozedUntil,
-                isDone: task.isDone, isNextAction: task.isNextAction
+                isDone: task.isDone, isNextAction: task.isNextAction,
+                isBlocked: TaskDependencies.isBlocked(blockedByID: task.blockedByID, openTaskIDs: openTaskIDs)
             ))
         }
         for project in projects where !project.status.isComplete {
@@ -234,11 +237,17 @@ struct TodayView: View {
                         .listRowBackground(Color.clear)
                     }
 
+                    TaxSeasonCard(projects: projects, clients: clients, docRequests: docRequests)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+
                     TipCard()
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)
 
                     TodayOccasionsSection(clients: clients)
+
+                    TodaySignaturesSection()
 
                     ForEach(TodaySection.allCases) { section in
                         let ids = currentPlan.ids(section)
@@ -269,6 +278,14 @@ struct TodayView: View {
                             }
                             .textCase(nil)
                         }
+                    }
+
+                    if currentPlan.blockedCount > 0 {
+                        Text("\(currentPlan.blockedCount) waiting on another task — they'll appear when it's done.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
 
                     if currentPlan.snoozedCount > 0 {
@@ -313,6 +330,7 @@ struct TodayView: View {
             .sheet(isPresented: $showingPaste) { PasteCaptureSheet() }
             .sheet(isPresented: $showingSetup) { CaptureSetupView() }
             .sheet(item: $logClient) { client in InteractionFormView(client: client, initialKind: .call) }
+            .sheet(item: $detailTask) { TaskDetailSheet(task: $0) }
             .sheet(item: $paymentInvoice) { invoice in
                 RecordPaymentSheet(invoice: invoice) { payment in
                     persist()
@@ -635,8 +653,14 @@ struct TodayView: View {
     @ViewBuilder
     private func taskMenu(_ task: TaskItem) -> some View {
         Button { complete(task) } label: { Label("Mark done", systemImage: "checkmark.circle") }
+        Button { detailTask = task } label: { Label("Details…", systemImage: "list.bullet.rectangle") }
         Button {
-            timer.start(project: task.project, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+            timer.start(
+                project: task.project,
+                hourlyRate: RateResolver.rate(clientOverride: task.project?.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+                isBillable: !(task.project?.client?.isFlatFee ?? false),
+                context: context
+            )
             toast = UndoToastState(message: "Timer started", systemImage: "timer")
         } label: { Label("Start timer", systemImage: "timer") }
         Menu {

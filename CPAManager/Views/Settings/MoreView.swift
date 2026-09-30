@@ -37,6 +37,26 @@ struct MoreView: View {
                         Label("Templates", systemImage: "square.stack.3d.up.fill")
                     }
                     NavigationLink {
+                        QuotesListView()
+                    } label: {
+                        Label("Quotes", systemImage: "doc.plaintext")
+                    }
+                    NavigationLink {
+                        FeeScheduleView()
+                    } label: {
+                        Label("Fee Schedule", systemImage: "tag")
+                    }
+                    NavigationLink {
+                        ImportView()
+                    } label: {
+                        Label("Import from CSV", systemImage: "square.and.arrow.down")
+                    }
+                    NavigationLink {
+                        DataHealthView()
+                    } label: {
+                        Label("Data Health", systemImage: "stethoscope")
+                    }
+                    NavigationLink {
                         HelpView()
                     } label: {
                         Label("Help & Tips", systemImage: "questionmark.circle.fill")

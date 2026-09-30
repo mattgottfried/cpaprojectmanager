@@ -1,0 +1,13 @@
+Build 4 - what's new (please test):
+
+- Quotes & Fee Schedule (More): make a quote, export the PDF, turn it into a draft invoice.
+- Client billing: hourly rate + flat-fee flag on a client; start a timer and check the rate.
+- Tasks: tap (i) on a task for subtasks, "waiting on", "can't start until". Blocked tasks stay off Today.
+- Settings: paste your upload page link; save a letter as PDF and check it tracks "awaiting signature".
+- More > Import from CSV (clients, time). More > Data Health.
+- Tax-season card on Today (Settings to turn off).
+- Mac/iPad: extra windows.
+
+From last build, still worth a look: Pipelines, Recurring for several clients, Letters & Emails, Watch app.
+
+Please report crashes on launch or after updating.

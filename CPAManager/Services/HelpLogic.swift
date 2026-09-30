@@ -114,6 +114,53 @@ enum HelpCatalog {
             keywords: "payment overdue quickbooks recurring invoice"
         ),
         HelpTopic(
+            id: "quotes", title: "Quotes and fee schedule", systemImage: "doc.plaintext",
+            summary: "Price a job before you start and turn it into an invoice.",
+            body: """
+            More ▸ Fee Schedule holds your standard prices. More ▸ Quotes lets you pick a client, add lines (or pick from the fee schedule), set a valid-until date and export a PDF with a signature block.
+
+            • "Create draft invoice" on a quote makes an invoice with the same lines and marks the quote accepted. It only works once per quote.
+            • A client can have their own hourly rate, and can be marked flat-fee (their timers start as non-billable). Set both when editing the client.
+            """,
+            keywords: "estimate proposal price rate flat fee hourly"
+        ),
+        HelpTopic(
+            id: "uploads", title: "Client uploads and signatures", systemImage: "signature",
+            summary: "Use your secure upload page and track letters sent for signature.",
+            body: """
+            Paste your secure upload page (for example an Encyro page) in Settings ▸ Client uploads & signatures. It's added to document-request emails and available as the {uploadlink} field in letter and email templates.
+
+            When you save a letter or proposal as a PDF, "Track it as sent for signature" marks it as awaiting signature. Send it through your signing tool, then long-press the document on the client and choose "Mark signed" when it comes back. Unsigned letters show on Today after the number of days you set.
+            """,
+            keywords: "encyro esign e-signature portal upload link secure"
+        ),
+        HelpTopic(
+            id: "subtasks", title: "Subtasks and waiting", systemImage: "checklist",
+            summary: "Break a task down and hold it until something else is done.",
+            body: """
+            Tap the (i) on a task (or "Details…" in its long-press menu on Today) to add subtasks, note what you're waiting on, and choose another task it can't start until. A blocked task stays off Today and comes back automatically when the other task is finished.
+            """,
+            keywords: "checklist dependency blocked waiting on client"
+        ),
+        HelpTopic(
+            id: "import", title: "Importing from a spreadsheet or QuickBooks", systemImage: "square.and.arrow.down",
+            summary: "Bring in clients or time entries from a CSV file.",
+            body: """
+            More ▸ Import from CSV reads a spreadsheet saved as CSV. Columns are matched by name (Name or Customer, Company, Email, Phone, Entity type, Tags, Notes; or Date, Hours, Client, Project, Rate). A QuickBooks customer list exported to CSV works. You see a preview and the reasons any rows would be skipped before anything is imported. Clients whose email or name already exist are skipped.
+            """,
+            keywords: "csv excel spreadsheet quickbooks customers bulk time"
+        ),
+        HelpTopic(
+            id: "health", title: "Data health and tax season", systemImage: "stethoscope",
+            summary: "Fix sync leftovers and see your season at a glance.",
+            body: """
+            More ▸ Data Health looks for invoice numbers used twice (two devices creating invoices before syncing), duplicate default templates, clients sharing an email, and timers left running for a very long time, and fixes the safe ones.
+
+            During tax season (January to April 20 and October 1–20 by default) Today shows a card with days to the deadline, open returns by stage, clients with no return started, extensions and documents still owed. Change or turn it off in Settings.
+            """,
+            keywords: "duplicate invoice number sync repair tax season extensions deadline"
+        ),
+        HelpTopic(
             id: "deadlines", title: "Tax deadlines and document requests", systemImage: "calendar",
             summary: "Create the year's tax dates and chase what clients owe you.",
             body: """
@@ -177,6 +224,9 @@ enum Tips {
         "Weekly Review shows which clients have gone quiet.",
         "Round billed time up to 15 minutes in Settings ▸ Billing.",
         "Add birthdays to a client so Today reminds you to send a note.",
+        "Turn an accepted quote into a draft invoice with one tap.",
+        "Paste your secure upload link in Settings and it goes into every document-request email.",
+        "Long-press a letter in a client's documents to mark it signed.",
     ]
 
     /// One tip per calendar day, rotating through the list.

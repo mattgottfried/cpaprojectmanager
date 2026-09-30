@@ -12,6 +12,11 @@ final class Document {
     @Attribute(.externalStorage) var data: Data = Data()
     var createdAt: Date = Date.now
 
+    /// Raw `SignatureStatus`: empty = not tracked, "sent" = out for signature, "signed".
+    var signatureStatusRaw: String = ""
+    var signatureSentAt: Date? = nil
+    var signedAt: Date? = nil
+
     var client: Client? = nil
     var project: Project? = nil
 
@@ -29,6 +34,11 @@ final class Document {
         self.client = client
         self.project = project
         self.createdAt = .now
+    }
+
+    var signatureStatus: SignatureStatus {
+        get { SignatureStatus(rawValue: signatureStatusRaw) ?? .none }
+        set { signatureStatusRaw = newValue.rawValue }
     }
 
     var displayName: String {

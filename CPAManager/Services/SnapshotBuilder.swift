@@ -67,8 +67,13 @@ enum SnapshotBuilder {
             }
         }
         if let tasks = try? context.fetch(FetchDescriptor<TaskItem>()) {
+            let openTaskIDs = Set(tasks.filter { !$0.isDone }.map(\.id))
             for task in tasks where !task.isDone && task.project?.status.isComplete != true {
-                plannerItems.append(PlannerItem(id: task.id, dueDate: task.dueDate, snoozedUntil: task.snoozedUntil, isDone: false, isNextAction: task.isNextAction))
+                plannerItems.append(PlannerItem(
+                    id: task.id, dueDate: task.dueDate, snoozedUntil: task.snoozedUntil, isDone: false,
+                    isNextAction: task.isNextAction,
+                    isBlocked: TaskDependencies.isBlocked(blockedByID: task.blockedByID, openTaskIDs: openTaskIDs)
+                ))
                 itemByID[task.id] = .init(
                     id: task.id, title: task.title,
                     subtitle: task.project?.title ?? task.client?.displayName ?? "",

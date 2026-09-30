@@ -15,6 +15,7 @@ struct ProjectDetailView: View {
     @State private var showingEdit = false
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
+    @State private var detailTask: TaskItem?
     @State private var calendarRequest: CalendarEventRequest?
     @State private var routingSheetURL: URL?
     @State private var showingRoutingSheetShare = false
@@ -50,6 +51,7 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
+        .sheet(item: $detailTask) { TaskDetailSheet(task: $0) }
         .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
         .sheet(isPresented: $showingRoutingSheetShare) {
             if let routingSheetURL {
@@ -170,7 +172,7 @@ struct ProjectDetailView: View {
                     .font(.subheadline)
             }
             ForEach(project.taskList) { task in
-                TaskRowView(task: task) { toggle(task) }
+                TaskRowView(task: task, onToggle: { toggle(task) }, onOpen: { detailTask = task })
             }
             .onDelete(perform: deleteTasks)
 
@@ -179,6 +181,7 @@ struct ProjectDetailView: View {
                     .onSubmit(addTask)
                 Button(action: addTask) {
                     Image(systemName: "plus.circle.fill")
+                        .accessibilityLabel("Add task")
                 }
                 .disabled(newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -219,7 +222,12 @@ struct ProjectDetailView: View {
                 }
             } else {
                 Button {
-                    timer.start(project: project, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+                    timer.start(
+                        project: project,
+                        hourlyRate: RateResolver.rate(clientOverride: project.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+                        isBillable: !(project.client?.isFlatFee ?? false),
+                        context: context
+                    )
                 } label: {
                     Label("Start timer", systemImage: "play.circle.fill")
                 }
@@ -321,6 +329,12 @@ struct ProjectDetailView: View {
 struct TaskRowView: View {
     let task: TaskItem
     var onToggle: () -> Void
+    var onOpen: (() -> Void)? = nil
+    @Query private var openTasks: [TaskItem]
+
+    private var isBlocked: Bool {
+        TaskDependencies.isBlocked(blockedByID: task.blockedByID, openTaskIDs: Set(openTasks.filter { !$0.isDone }.map(\.id)))
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -328,6 +342,7 @@ struct TaskRowView: View {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(task.isDone ? .green : .secondary)
+                    .accessibilityLabel(task.isDone ? "Mark not done" : "Mark done")
             }
             .buttonStyle(.plain)
 
@@ -338,8 +353,24 @@ struct TaskRowView: View {
                 if let due = task.dueDate, !task.isDone {
                     DueDatePill(date: due)
                 }
+                HStack(spacing: 8) {
+                    if let summary = TaskChecklist.summary(task.checklist) {
+                        Label(summary, systemImage: "checklist").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    if isBlocked && !task.isDone {
+                        Label("Blocked", systemImage: "lock.fill").font(.caption2).foregroundStyle(Theme.color(.caution))
+                    }
+                    if !task.waitingOn.isEmpty && !task.isDone {
+                        Label("Waiting: \(task.waitingOn)", systemImage: "hourglass").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
             }
             Spacer()
+            if let onOpen {
+                Button(action: onOpen) { Image(systemName: "info.circle") }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("Task details")
+            }
         }
         .padding(.vertical, 2)
     }

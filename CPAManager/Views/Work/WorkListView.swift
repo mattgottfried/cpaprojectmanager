@@ -110,6 +110,7 @@ struct WorkListView: View {
                         showBoard.toggle()
                     } label: {
                         Image(systemName: showBoard ? "list.bullet" : "rectangle.split.3x1")
+                            .accessibilityLabel(showBoard ? "Show list" : "Show board")
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
