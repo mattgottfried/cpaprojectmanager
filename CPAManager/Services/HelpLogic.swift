@@ -203,6 +203,26 @@ enum HelpCatalog {
             keywords: "lock screen complication watch control center"
         ),
         HelpTopic(
+            id: "taskspage", title: "Tasks page and Insights", systemImage: "tablecells",
+            summary: "Every task in one table, and a dashboard for the practice.",
+            body: """
+            Today has a switcher at the top: Focus (your daily plan), Tasks and Insights.
+
+            Tasks lists every task with its job, client, status, due date and priority. Use the Pending / Completed tabs, Presets (saved views), Filter, Group and Sort; tap a column heading to sort. Tap a status or priority pill to change it, tick the circle to complete, or Select to update or delete several at once. Board shows pending tasks in columns by status (drag to change); Calendar shows what's due each day. Export writes the rows you see to a CSV.
+
+            Insights shows tasks to do for a day by priority, job counters (approaching deadline, no activity, overdue, in progress), jobs by stage, planned vs done per week, and money and time. Edit widgets turns them on or off and reorders them.
+            """,
+            keywords: "tasks table insights dashboard workflow board calendar filter presets overdue"
+        ),
+        HelpTopic(
+            id: "automove", title: "Automove to the next stage", systemImage: "arrow.right.circle",
+            summary: "Move a job on when a stage's tasks are all done.",
+            body: """
+            In a stage's task setup (More ▸ Pipelines ▸ Set up stage tasks, or a custom pipeline's stage), switch on "Automove". When every task that stage created is completed, the job moves to the next stage and that stage's tasks are created. Waiting / On Hold stages are never entered automatically. Tasks that didn't come from a stage (or an older stage) never trigger it.
+            """,
+            keywords: "automove automatic advance next stage complete tasks taxdome"
+        ),
+        HelpTopic(
             id: "stagetasks", title: "Tasks for each stage", systemImage: "list.bullet.rectangle",
             summary: "Give every stage of a service its own tasks.",
             body: """

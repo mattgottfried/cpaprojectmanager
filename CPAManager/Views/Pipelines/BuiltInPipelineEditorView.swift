@@ -7,6 +7,7 @@ struct StageAutomationEditor: View {
     @Binding var automation: StageAutomation
 
     var body: some View {
+        Toggle("Automove: go to the next stage when all these tasks are done", isOn: $automation.autoMove)
         Toggle("Reset job due date on entry", isOn: Binding(
             get: { automation.setDueInDays != nil },
             set: { automation.setDueInDays = $0 ? 14 : nil }

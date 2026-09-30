@@ -12,7 +12,7 @@ extension SettingsKeys {
         timeRoundingMinutes, timerReminderHours, hasOnboarded,
         uploadPageURL, signatureChaseDays, taxSeasonMode,
         googleGmailEnabled, googleGmailQuery, googleScheduleEnabled, googlePushEnabled,
-        googleCalendarID,
+        googleCalendarID, taskPresets, defaultReturnTemplate,
         // Which calendar events this app has pushed — shared so any device can clean up
         // events another device created.
         googleSyncedEvents,

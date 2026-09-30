@@ -306,10 +306,12 @@ struct TodayView: View {
             .background(Color.appGroupedBackground)
             .macReadableWidth()
             .navigationTitle("Today")
+            .inlineNavigationTitle()
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .navigationDestination(for: Client.self) { ClientDetailView(client: $0) }
             .navigationDestination(for: Invoice.self) { InvoiceDetailView(invoice: $0) }
             .toolbar {
+                ToolbarItem(placement: .principal) { TodayModePicker() }
                 ToolbarItem(placement: .primaryAction) {
                     Button { router.showingQuickOpen = true } label: { Image(systemName: "magnifyingglass") }
                         .accessibilityLabel("Search")

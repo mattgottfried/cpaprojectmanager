@@ -10,13 +10,13 @@ enum PipelineEngine {
         let plan = PipelineMove.plan(entering: stage, now: now)
         project.stageKey = stage.id
         project.status = plan.status          // also stamps/clears completedAt
-        runAutomation(stage.automation, for: project, context: context, now: now)
+        runAutomation(stage.automation, stageKey: stage.id, for: project, context: context, now: now)
     }
 
     /// A stage's entry automation: reset the job's due date and create the stage's tasks.
     /// Only the first task gets a due date; each later one waits on the one before it and is
     /// dated when that one is completed (`TaskCompletion.complete`).
-    static func runAutomation(_ automation: StageAutomation, for project: Project, context: ModelContext, now: Date = .now) {
+    static func runAutomation(_ automation: StageAutomation, stageKey: String, for project: Project, context: ModelContext, now: Date = .now) {
         let plan = PipelineMove.plan(entering: PipelineStage(name: "", automation: automation), now: now)
         if let due = plan.dueDate { project.dueDate = due }
 
@@ -29,6 +29,8 @@ enum PipelineEngine {
                 continue
             }
             let item = TaskItem(title: task.title, dueDate: previous == nil ? task.dueDate : nil, sortIndex: index, project: project)
+            item.startDate = previous == nil ? now : nil
+            item.stageKey = stageKey
             if let previous {
                 item.blockedByID = previous.id
                 item.dueInDaysAfterBlocker = task.dueInDays
@@ -51,7 +53,9 @@ enum PipelineEngine {
     /// for custom-pipeline jobs, which run their own stage automation).
     static func runBuiltInAutomation(_ project: Project, context: ModelContext, now: Date = .now) {
         guard project.pipelineID == nil else { return }
-        runAutomation(builtInAutomation(for: project, context: context), for: project, context: context, now: now)
+        runAutomation(builtInAutomation(for: project, context: context),
+                      stageKey: project.statusFlow.normalize(project.status).rawValue,
+                      for: project, context: context, now: now)
     }
 
     /// Moves a built-in-pipeline job to `status` and runs that stage's setup. Setting the
@@ -132,6 +136,36 @@ enum PipelineEngine {
         } else {
             setBuiltInStatus(project, to: .complete, context: context)
         }
+    }
+
+    /// Automove: after a stage task is completed, moves the job to the next stage if its
+    /// current stage has automove on and all the tasks the stage created are done. Returns
+    /// whether the job moved.
+    @discardableResult
+    static func autoMoveIfReady(after task: TaskItem, context: ModelContext, now: Date = .now) -> Bool {
+        guard let project = task.project, !task.stageKey.isEmpty, !project.status.isComplete else { return false }
+        let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
+        let custom = pipeline(for: project, in: pipelines)
+
+        let currentKey: String
+        let automation: StageAutomation
+        if let custom {
+            currentKey = project.stageKey
+            automation = custom.definition.stage(withKey: currentKey)?.automation ?? StageAutomation()
+        } else {
+            currentKey = project.statusFlow.normalize(project.status).rawValue
+            automation = builtInAutomation(for: project, context: context)
+        }
+        let done = project.taskList.filter { $0.stageKey == currentKey }.map(\.isDone)
+        guard StageAutoMove.shouldMove(autoMove: automation.autoMove, completedTaskStageKey: task.stageKey,
+                                       currentStageKey: currentKey, stageTasksDone: done) else { return false }
+
+        if let custom {
+            return advance(project, in: custom, context: context)
+        }
+        guard project.advance() else { return false }
+        runBuiltInAutomation(project, context: context, now: now)
+        return true
     }
 
     /// One-tap advance for either kind of pipeline.

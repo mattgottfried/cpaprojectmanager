@@ -20,6 +20,8 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.focusWeekends) private var focusWeekends = true
 
     @State private var showingRestoreConfirm = false
+    @AppStorage(SettingsKeys.defaultReturnTemplate) private var defaultReturnTemplate = ""
+    @Query(sort: \WorkflowTemplate.name) private var templates: [WorkflowTemplate]
     @State private var restoreMessage: String?
     @State private var showingRemindersImport = false
 
@@ -173,6 +175,12 @@ struct SettingsView: View {
             }
 
             Section {
+                Picker("Default for new tax returns", selection: $defaultReturnTemplate) {
+                    Text("Tax Return Routing Sheet").tag("")
+                    ForEach(templates.filter { $0.serviceType == .taxReturn && $0.name != "Tax Return Routing Sheet" }) {
+                        Text($0.name).tag($0.id.uuidString)
+                    }
+                }
                 Button {
                     showingRestoreConfirm = true
                 } label: {
@@ -182,7 +190,7 @@ struct SettingsView: View {
                     Text(restoreMessage).font(.caption).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("Adds the built-in engagement templates back. Your existing templates are kept.")
+                Text("The checklist a new tax return starts with (you can still change it on the New Tax Return screen). Edit the steps in More ▸ Templates. \"Restore\" adds the built-in templates back; your existing ones are kept.")
             }
 
             CloudSyncSection()

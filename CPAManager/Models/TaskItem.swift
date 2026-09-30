@@ -26,6 +26,14 @@ final class TaskItem {
     /// Set on pipeline tasks that wait for the one before them: when the blocker is
     /// completed this task gets a due date this many days later (see `TaskDependencies`).
     var dueInDaysAfterBlocker: Int? = nil
+    /// Raw `Priority`; empty = normal.
+    var priorityRaw: String = ""
+    /// Raw `TaskStatus`; empty = no status (see the Tasks page).
+    var statusRaw: String = ""
+    /// When work on this task can begin (set for tasks a stage or template creates).
+    var startDate: Date? = nil
+    /// The pipeline stage whose entry automation created this task ("" = not from a stage).
+    var stageKey: String = ""
     /// Free-text "waiting on…" note (e.g. "client's W-2"), shown on the task.
     var waitingOn: String = ""
 
@@ -56,6 +64,16 @@ final class TaskItem {
     var repeatRule: RepeatRule {
         get { RepeatRule(rawValue: repeatRuleRaw) ?? .none }
         set { repeatRuleRaw = newValue == .none ? "" : newValue.rawValue }
+    }
+
+    var priority: Priority {
+        get { Priority(rawValue: priorityRaw) ?? .normal }
+        set { priorityRaw = newValue == .normal ? "" : newValue.rawValue }
+    }
+
+    var status: TaskStatus {
+        get { TaskStatus(rawValue: statusRaw) ?? .none }
+        set { statusRaw = newValue.rawValue }
     }
 
     /// Toggle done state and keep the completion timestamp in sync.

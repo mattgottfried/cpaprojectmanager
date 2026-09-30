@@ -17,6 +17,9 @@ struct NewTaxReturnView: View {
     @State private var receivedDate = Date.now
     @State private var copyNotes = true
     @State private var copyTasks = true
+    @AppStorage(SettingsKeys.defaultReturnTemplate) private var defaultTemplateRaw = ""
+    @State private var templateChoice: UUID?
+    @State private var templateLoaded = false
 
     private let returnTypes = EntityType.allCases.filter { $0 != .other }
 
@@ -32,12 +35,24 @@ struct NewTaxReturnView: View {
 
     private var taxYear: Int { Calendar.current.component(.year, from: receivedDate) - 1 }
     private var selectedClient: Client? { clients.first { $0.id == selectedClientID } }
-    private var routingSheet: WorkflowTemplate? { templates.first { $0.name == "Tax Return Routing Sheet" } }
+    /// The checklist applied to the new return: the one picked here, which starts as the
+    /// default chosen in Settings (else the built-in "Tax Return Routing Sheet").
+    private var chosenTemplate: WorkflowTemplate? { templates.first { $0.id == templateChoice } }
+
+    private var defaultTemplateID: UUID? {
+        if let id = UUID(uuidString: defaultTemplateRaw), templates.contains(where: { $0.id == id }) { return id }
+        return templates.first { $0.name == "Tax Return Routing Sheet" }?.id
+    }
+
+    private var returnTemplates: [WorkflowTemplate] {
+        templates.filter { $0.serviceType == .taxReturn || $0.id == templateChoice }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
     private var prior: Project? {
         selectedClient.flatMap { CarryoverService.priorJob(for: $0, serviceType: .taxReturn, taxYear: taxYear) }
     }
     private var extraTasks: [String] {
-        prior.map { CarryoverService.extraTasks(from: $0, newTemplate: routingSheet, newYear: taxYear) } ?? []
+        prior.map { CarryoverService.extraTasks(from: $0, newTemplate: chosenTemplate, newYear: taxYear) } ?? []
     }
 
     var body: some View {
@@ -60,6 +75,10 @@ struct NewTaxReturnView: View {
                         ForEach(returnTypes) { Text($0.code).tag($0) }
                     }
                     DatePicker("Date received", selection: $receivedDate, displayedComponents: .date)
+                    Picker("Checklist template", selection: $templateChoice) {
+                        Text("None").tag(UUID?.none)
+                        ForEach(returnTemplates) { Text($0.name).tag(Optional($0.id)) }
+                    }
                 }
 
                 if let prior {
@@ -91,6 +110,11 @@ struct NewTaxReturnView: View {
             }
             .navigationTitle("New Tax Return")
             .inlineNavigationTitle()
+            .onAppear {
+                guard !templateLoaded else { return }
+                templateLoaded = true
+                templateChoice = defaultTemplateID
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Create", action: save).disabled(!canSave) }
@@ -123,8 +147,8 @@ struct NewTaxReturnView: View {
         context.insert(project)
         PipelineEngine.applyDefault(to: project, context: context)
 
-        if let routingSheet {
-            WorkflowEngine.applyTemplate(routingSheet, to: project, startDate: receivedDate, into: context)
+        if let chosenTemplate {
+            WorkflowEngine.applyTemplate(chosenTemplate, to: project, startDate: receivedDate, into: context)
         }
 
         if let prior {

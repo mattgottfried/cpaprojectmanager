@@ -36,6 +36,11 @@ enum SettingsKeys {
     /// Set once the first-run walkthrough has been finished or skipped.
     static let hasOnboarded = "hasOnboarded"
 
+    /// The template New Tax Return applies (a `WorkflowTemplate` id; empty = "Tax Return Routing Sheet").
+    static let defaultReturnTemplate = "defaultReturnTemplate"
+    /// Saved views on the Tasks page (JSON `[TaskPreset]`).
+    static let taskPresets = "taskPresets"
+
     // Automatic backups (per device; deliberately not synced).
     static let autoBackupEnabled = "autoBackupEnabled"
     static let lastAutoBackup = "lastAutoBackup"
