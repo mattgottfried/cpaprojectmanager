@@ -38,6 +38,9 @@ final class Client {
     var hourlyRateOverride: Double = 0
     /// Flat-fee clients' timers default to non-billable (the fee goes on a quote/invoice).
     var isFlatFee: Bool = false
+    /// The client's folder in Google Drive (see `DriveBrowserView`); empty = none chosen.
+    var driveFolderID: String = ""
+    var driveFolderName: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []

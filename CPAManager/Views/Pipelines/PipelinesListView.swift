@@ -23,7 +23,7 @@ struct PipelinesListView: View {
             } header: {
                 Text("Pipeline for each service")
             } footer: {
-                Text("Every service has its own built-in pipeline. Tax returns use Not Started → In Progress → Awaiting Signature → Ready to File → Filed → Complete; other services use Not Started → In Progress → Completed. On Hold / Waiting on Client is never entered automatically — you choose it. Tap Customize stages on a service to copy its built-in stages into a pipeline you can rename, reorder and add automatic tasks to; new work of that service then starts in it. Custom stages keep only the broad status: Not started, In progress, Waiting or Done.")
+                Text("Every service has its own built-in pipeline. Tax returns use Not Started → In Progress → Awaiting Signature → Ready to File → Filed → Complete; other services use Not Started → In Progress → Completed. On Hold / Waiting on Client is never entered automatically — you choose it. Tap Set up stage tasks to give each stage of a service's built-in pipeline its own tasks (created when a job enters that stage) while keeping the built-in statuses. Customize stages instead copies the stages into your own pipeline you can rename and reorder; those keep only the broad status: Not started, In progress, Waiting or Done.")
             }
 
             Section("Your pipelines") {
@@ -101,6 +101,8 @@ private struct ServicePipelineRow: View {
     let pipelines: [Pipeline]
     let onCustomize: (Pipeline) -> Void
     @AppStorage private var chosen: String
+    @Query private var stageSetups: [BuiltInStageSetup]
+    @State private var showingStageTasks = false
 
     init(service: ServiceType, pipelines: [Pipeline], onCustomize: @escaping (Pipeline) -> Void) {
         self.service = service
@@ -124,10 +126,27 @@ private struct ServicePipelineRow: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             if chosen.isEmpty {
-                Button("Customize stages…") { customize() }
-                    .font(.caption)
+                HStack(spacing: 14) {
+                    Button("Set up stage tasks…") { showingStageTasks = true }
+                    Button("Customize stages…") { customize() }
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                if configuredStageCount > 0 {
+                    Text("\(configuredStageCount) stage\(configuredStageCount == 1 ? " has" : "s have") tasks set up.")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
+        .sheet(isPresented: $showingStageTasks) { BuiltInPipelineEditorView(service: service) }
+    }
+
+    /// Stages of this service's built-in pipeline that have tasks or a due-date reset.
+    private var configuredStageCount: Int {
+        let resolved = BuiltInSetup.resolve(stageSetups.map {
+            BuiltInSetupInput(serviceTypeRaw: $0.serviceTypeRaw, stageKey: $0.stageKey, automation: $0.automation, updatedAt: $0.updatedAt)
+        })
+        return builtIn.stages.filter { !BuiltInSetup.automation(serviceTypeRaw: service.rawValue, stageKey: $0.id, in: resolved).isEmpty }.count
     }
 
     /// Copies the built-in stages into a real pipeline, makes it this service's default,

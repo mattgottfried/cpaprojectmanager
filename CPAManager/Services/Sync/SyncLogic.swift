@@ -15,6 +15,7 @@ enum SyncCollection: String, CaseIterable {
     case clients, projects, tasks, timeEntries, documents, templates, templateTasks, engagements
     case invoices, invoiceLines, payments, inbox, interactions, savedFilters, documentRequests
     case recurringInvoices, expenses, pipelines, letterTemplates, emailTemplates, feeItems, quotes
+    case builtInStages
 }
 
 struct SyncKey: Hashable {
@@ -84,6 +85,7 @@ extension BackupFile.LetterTemplateRecord: SyncIdentifiable {}
 extension BackupFile.EmailTemplateRecord: SyncIdentifiable {}
 extension BackupFile.FeeItemRecord: SyncIdentifiable {}
 extension BackupFile.QuoteRecord: SyncIdentifiable {}
+extension BackupFile.BuiltInStageRecord: SyncIdentifiable {}
 
 enum SyncCodec {
     /// Firestore documents are capped at 1 MiB; leave headroom for field names.
@@ -145,6 +147,7 @@ enum SyncCodec {
         add(.emailTemplates, file.emailTemplates ?? [])
         add(.feeItems, file.feeItems ?? [])
         add(.quotes, file.quotes ?? [])
+        add(.builtInStages, file.builtInStages ?? [])
         return result
     }
 
@@ -170,6 +173,7 @@ enum SyncCodec {
         var emails: [BackupFile.EmailTemplateRecord] = []
         var fees: [BackupFile.FeeItemRecord] = []
         var quotes: [BackupFile.QuoteRecord] = []
+        var builtIn: [BackupFile.BuiltInStageRecord] = []
 
         for entry in entries {
             switch entry.key.collection {
@@ -195,6 +199,7 @@ enum SyncCodec {
             case .emailTemplates:    take(BackupFile.EmailTemplateRecord.self, entry, into: &emails)
             case .feeItems:          take(BackupFile.FeeItemRecord.self, entry, into: &fees)
             case .quotes:            take(BackupFile.QuoteRecord.self, entry, into: &quotes)
+            case .builtInStages:     take(BackupFile.BuiltInStageRecord.self, entry, into: &builtIn)
             }
         }
         file.pipelines = pipelines
@@ -202,6 +207,7 @@ enum SyncCodec {
         file.emailTemplates = emails
         file.feeItems = fees
         file.quotes = quotes
+        file.builtInStages = builtIn
         return (file, failed)
     }
 }

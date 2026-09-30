@@ -106,4 +106,43 @@ struct GoogleAPI {
             throw GoogleError.http(result.1, String(data: result.0, encoding: .utf8) ?? "")
         }
     }
+
+    // MARK: Drive (read-only)
+
+    /// One page of files matching a Drive query, in Drive's order. Works across My Drive and
+    /// shared drives.
+    func driveFiles(query: String, pageSize: Int = 100, pageToken: String? = nil, orderBy: String = "folder,name") async throws -> DriveListResponse {
+        var items = [
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "fields", value: DriveQuery.fields),
+            URLQueryItem(name: "pageSize", value: String(pageSize)),
+            URLQueryItem(name: "orderBy", value: orderBy),
+            URLQueryItem(name: "corpora", value: "allDrives"),
+            URLQueryItem(name: "supportsAllDrives", value: "true"),
+            URLQueryItem(name: "includeItemsFromAllDrives", value: "true"),
+        ]
+        if let pageToken { items.append(URLQueryItem(name: "pageToken", value: pageToken)) }
+        let target = try url("https://www.googleapis.com/drive/v3/files", items)
+        let result = try await request("GET", target)
+        guard (200..<300).contains(result.1) else {
+            throw GoogleError.http(result.1, String(data: result.0, encoding: .utf8) ?? "")
+        }
+        guard let response = DriveParsing.decode(result.0) else { throw GoogleError.decoding }
+        return response
+    }
+
+    /// One file or folder's details (used to name a folder the user pasted or picked).
+    func driveFile(id: String) async throws -> DriveFile {
+        guard DriveQuery.isSafeID(id) else { throw GoogleError.decoding }
+        let target = try url("https://www.googleapis.com/drive/v3/files/\(id)", [
+            URLQueryItem(name: "fields", value: DriveQuery.fileFields),
+            URLQueryItem(name: "supportsAllDrives", value: "true"),
+        ])
+        let result = try await request("GET", target)
+        guard (200..<300).contains(result.1) else {
+            throw GoogleError.http(result.1, String(data: result.0, encoding: .utf8) ?? "")
+        }
+        guard let file = DriveParsing.decodeFile(result.0) else { throw GoogleError.decoding }
+        return file
+    }
 }

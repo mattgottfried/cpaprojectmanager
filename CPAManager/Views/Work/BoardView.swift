@@ -108,7 +108,7 @@ struct BoardView: View {
                   project.pipelineID == pipeline?.id else { return false }
             if pipeline == nil {
                 guard project.serviceType == builtInService else { return false }
-                if let status = ProjectStatus(rawValue: stage.id) { project.status = status }
+                if let status = ProjectStatus(rawValue: stage.id) { PipelineEngine.setBuiltInStatus(project, to: status, context: context) }
             } else if project.stageKey != stage.id {
                 PipelineEngine.enter(project, stage: stage, context: context)
             }

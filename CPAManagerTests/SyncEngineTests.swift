@@ -275,6 +275,73 @@ final class SyncEngineTests: XCTestCase {
         await a.engine.pushNow()
         XCTAssertTrue(cloud.documents.isEmpty)
     }
+
+    // MARK: Attached files
+
+    private func documents(_ context: ModelContext) -> [Document] {
+        (try? context.fetch(FetchDescriptor<Document>())) ?? []
+    }
+
+    func testEditingADocumentRecordDoesNotStripItsFileFromTheCloud() async throws {
+        let cloud = FakeCloud()
+        let a = try makeDevice(cloud: cloud)
+        let doc = Document(filename: "W-2", fileExtension: "pdf", data: Data(repeating: 7, count: 10_000))
+        a.context.insert(doc)
+        try a.context.save()
+        a.engine.start()
+        await a.engine.pushNow()
+
+        doc.filename = "W-2 (renamed)"
+        try a.context.save()
+        await a.engine.pushNow()
+
+        let c = try makeDevice(cloud: cloud)
+        c.engine.start()
+        let received = try XCTUnwrap(documents(c.context).first)
+        XCTAssertEqual(received.filename, "W-2 (renamed)")
+        XCTAssertEqual(received.data.count, 10_000, "a device joining later still gets the file")
+        a.engine.stop(); c.engine.stop()
+    }
+
+    func testOversizedFileIsCountedOnceAndTheRecordStillSyncs() async throws {
+        let cloud = FakeCloud()
+        let a = try makeDevice(cloud: cloud)
+        let doc = Document(filename: "Huge", fileExtension: "pdf", data: Data(repeating: 1, count: 900_000))
+        a.context.insert(doc)
+        try a.context.save()
+        a.engine.start()
+        await a.engine.pushNow()
+        XCTAssertNotNil(cloud.documents[SyncKey(.documents, doc.id)])
+        XCTAssertEqual(a.engine.oversizedFileCount, 1)
+
+        doc.filename = "Huge (renamed)"
+        try a.context.save()
+        await a.engine.pushNow()
+        XCTAssertEqual(a.engine.oversizedFileCount, 1, "not counted again on every push")
+        a.engine.stop()
+    }
+
+    func testAnEmptyLocalFileNeverWipesTheCopyOnAnotherDevice() async throws {
+        let cloud = FakeCloud()
+        let a = try makeDevice(cloud: cloud)
+        a.context.insert(Document(filename: "ID", fileExtension: "jpg", data: Data(repeating: 3, count: 5_000)))
+        try a.context.save()
+        a.engine.start()
+        await a.engine.pushNow()
+
+        // A device that has the record but not the bytes edits it.
+        let b = try makeDevice(cloud: cloud)
+        b.engine.start()
+        let onB = try XCTUnwrap(documents(b.context).first)
+        onB.data = Data()
+        onB.filename = "ID (b)"
+        try b.context.save()
+        await b.engine.pushNow()
+
+        XCTAssertEqual(documents(a.context).first?.data.count, 5_000)
+        XCTAssertEqual(documents(a.context).first?.filename, "ID (b)")
+        a.engine.stop(); b.engine.stop()
+    }
 }
 
 extension FakeCloud {

@@ -298,7 +298,7 @@ struct ProjectDetailView: View {
     // MARK: Bindings that persist on change
 
     private var statusBinding: Binding<ProjectStatus> {
-        Binding(get: { project.statusFlow.normalize(project.status) }, set: { project.status = $0; persist() })
+        Binding(get: { project.statusFlow.normalize(project.status) }, set: { PipelineEngine.setBuiltInStatus(project, to: $0, context: context); persist() })
     }
     private var pipelineBinding: Binding<UUID?> {
         Binding(

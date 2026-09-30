@@ -40,7 +40,11 @@ final class SyncEngine {
     private(set) var lastPushDate: Date?
     private(set) var lastPullDate: Date?
     private(set) var pendingUploads = 0
-    private(set) var oversizedFileCount = 0
+    /// Files too big to travel inside a record (they stay on the device that added them).
+    var oversizedFileCount: Int { oversizedKeys.count }
+    private var oversizedKeys: Set<SyncKey> = []
+    /// Records waiting for a parent record to arrive.
+    var deferredCount: Int { deferred.count }
     private(set) var blockedDeletionCount = 0
 
     private let context: ModelContext
@@ -212,12 +216,13 @@ final class SyncEngine {
             }
 
             let slimEntries = plan.upserts.compactMap { snapshot.entries[$0] }
-            // New file-carrying records go up with their files; the ledger tracks the slim form.
-            let fileKeys = plan.upserts.filter {
-                ($0.collection == .documents || $0.collection == .expenses) && ledger.localHash($0) == nil
-            }
+            // File-carrying records always go up with their files, so a later edit (a rename, a
+            // signature status) never strips the file from the cloud copy. The ledger tracks
+            // the slim form.
+            let fileKeys = plan.upserts.filter { $0.collection == .documents || $0.collection == .expenses }
             let full = fileKeys.isEmpty ? SyncStore.Snapshot(entries: [:], oversizedFiles: []) : SyncStore.fullEntries(for: fileKeys, context: context)
-            oversizedFileCount += full.oversizedFiles.count
+            oversizedKeys.subtract(fileKeys)
+            oversizedKeys.formUnion(full.oversizedFiles)
             let entries = slimEntries.map { full.entries[$0.key] ?? $0 }
             if entries.isEmpty && plan.deletes.isEmpty {
                 pendingUploads = 0
@@ -236,7 +241,7 @@ final class SyncEngine {
                 // What we sent is now the cloud's version (our own confirmed writes aren't
                 // delivered back to us as changes).
                 for sent in entries { remoteCache[sent.key] = sent }
-                for key in plan.deletes { ledger.forget(key); remoteCache[key] = nil }
+                for key in plan.deletes { ledger.forget(key); remoteCache[key] = nil; oversizedKeys.remove(key) }
                 ledgerStore.save(ledger)
                 lastPushDate = .now
                 pendingUploads = 0

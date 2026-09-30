@@ -10,6 +10,8 @@ enum GoogleOAuth {
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/calendar.events",
+        // Read-only: lets the app browse Drive and link files/folders. Never writes.
+        "https://www.googleapis.com/auth/drive.readonly",
     ]
 
     /// Google's iOS-type OAuth clients redirect to the *reversed* client ID:

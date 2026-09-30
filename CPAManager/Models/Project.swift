@@ -38,6 +38,9 @@ final class Project {
     /// How a finished job was settled when not by its own invoice: "" (undecided),
     /// "invoiced", "notBillable" or "billedElsewhere" (see `BillingState`).
     var billingStateRaw: String = ""
+    /// This job's folder in Google Drive; empty = none chosen.
+    var driveFolderID: String = ""
+    var driveFolderName: String = ""
 
     var client: Client? = nil
 

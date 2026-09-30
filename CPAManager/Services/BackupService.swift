@@ -34,6 +34,8 @@ struct BackupFile: Codable {
     // Added in batch 6.
     var feeItems: [FeeItemRecord]? = nil
     var quotes: [QuoteRecord]? = nil
+    // Added in batch 7.
+    var builtInStages: [BuiltInStageRecord]? = nil
 
     // MARK: Records (one per model; relationships are stored as IDs)
 
@@ -47,6 +49,8 @@ struct BackupFile: Codable {
         var birthdayAckYear: Int? = nil; var anniversaryAckYear: Int? = nil
         // Batch 6.
         var hourlyRateOverride: Double? = nil; var isFlatFee: Bool? = nil
+        // Batch 7.
+        var driveFolderID: String? = nil; var driveFolderName: String? = nil
     }
     struct ProjectRecord: Codable {
         var id: UUID; var title: String; var detail: String; var statusRaw: String; var serviceTypeRaw: String
@@ -56,6 +60,7 @@ struct BackupFile: Codable {
         var pipelineID: UUID? = nil; var stageKey: String? = nil
         // Batch 7.
         var invoiceID: UUID? = nil; var billingStateRaw: String? = nil
+        var driveFolderID: String? = nil; var driveFolderName: String? = nil
     }
     struct TaskRecord: Codable {
         var id: UUID; var title: String; var notes: String; var isDone: Bool; var dueDate: Date?; var sortIndex: Int
@@ -75,6 +80,8 @@ struct BackupFile: Codable {
         var clientID: UUID?; var projectID: UUID?
         // Batch 6.
         var signatureStatusRaw: String? = nil; var signatureSentAt: Date? = nil; var signedAt: Date? = nil
+        // Batch 7: a file that lives in Google Drive.
+        var driveFileID: String? = nil; var driveURL: String? = nil; var driveMimeType: String? = nil
     }
     struct TemplateRecord: Codable {
         var id: UUID; var name: String; var detail: String; var serviceTypeRaw: String
@@ -128,6 +135,10 @@ struct BackupFile: Codable {
         var clientID: UUID?
     }
 
+    struct BuiltInStageRecord: Codable {
+        var id: UUID; var serviceTypeRaw: String; var stageKey: String; var automationData: Data; var updatedAt: Date
+    }
+
     struct FeeItemRecord: Codable {
         var id: UUID; var name: String; var detail: String; var unitPrice: Double; var isHourly: Bool
         var sortIndex: Int; var createdAt: Date
@@ -171,6 +182,7 @@ struct BackupFile: Codable {
         add("Email templates", emailTemplates?.count ?? 0)
         add("Fee items", feeItems?.count ?? 0)
         add("Quotes", quotes?.count ?? 0)
+        add("Built-in stage tasks", builtInStages?.count ?? 0)
         return rows
     }
 
@@ -180,7 +192,7 @@ struct BackupFile: Codable {
             + inbox.count + interactions.count + savedFilters.count + documentRequests.count
             + recurringInvoices.count + expenses.count
             + (pipelines?.count ?? 0) + (letterTemplates?.count ?? 0) + (emailTemplates?.count ?? 0)
-            + (feeItems?.count ?? 0) + (quotes?.count ?? 0)
+            + (feeItems?.count ?? 0) + (quotes?.count ?? 0) + (builtInStages?.count ?? 0)
     }
 }
 
@@ -232,7 +244,8 @@ enum BackupService {
                   extensionYearsRaw: c.extensionYearsRaw,
                   birthday: c.birthday, anniversary: c.anniversary,
                   birthdayAckYear: c.birthdayAckYear, anniversaryAckYear: c.anniversaryAckYear,
-                  hourlyRateOverride: c.hourlyRateOverride, isFlatFee: c.isFlatFee)
+                  hourlyRateOverride: c.hourlyRateOverride, isFlatFee: c.isFlatFee,
+                  driveFolderID: c.driveFolderID, driveFolderName: c.driveFolderName)
         }
         file.projects = all(Project.self).map { p in
             BackupFile.ProjectRecord(id: p.id, title: p.title, detail: p.detail, statusRaw: p.statusRaw, serviceTypeRaw: p.serviceTypeRaw,
@@ -241,7 +254,8 @@ enum BackupService {
                   nextAction: p.nextAction, holdReasonRaw: p.holdReasonRaw, holdDetail: p.holdDetail,
                   holdResumeStatusRaw: p.holdResumeStatusRaw, clientID: p.client?.id,
                   pipelineID: p.pipelineID, stageKey: p.stageKey,
-                  invoiceID: p.invoiceID, billingStateRaw: p.billingStateRaw)
+                  invoiceID: p.invoiceID, billingStateRaw: p.billingStateRaw,
+                  driveFolderID: p.driveFolderID, driveFolderName: p.driveFolderName)
         }
         file.tasks = all(TaskItem.self).map { t in
             BackupFile.TaskRecord(id: t.id, title: t.title, notes: t.notes, isDone: t.isDone, dueDate: t.dueDate, sortIndex: t.sortIndex,
@@ -256,9 +270,10 @@ enum BackupService {
                   createdAt: t.createdAt, invoiceID: t.invoiceID, projectID: t.project?.id)
         }
         file.documents = all(Document.self).map { d in
-            BackupFile.DocumentRecord(id: d.id, filename: d.filename, fileExtension: d.fileExtension, data: includeFiles ? d.data : nil,
+            BackupFile.DocumentRecord(id: d.id, filename: d.filename, fileExtension: d.fileExtension, data: includeFiles && !d.data.isEmpty ? d.data : nil,
                   createdAt: d.createdAt, clientID: d.client?.id, projectID: d.project?.id,
-                  signatureStatusRaw: d.signatureStatusRaw, signatureSentAt: d.signatureSentAt, signedAt: d.signedAt)
+                  signatureStatusRaw: d.signatureStatusRaw, signatureSentAt: d.signatureSentAt, signedAt: d.signedAt,
+                  driveFileID: d.driveFileID, driveURL: d.driveURL, driveMimeType: d.driveMimeType)
         }
         file.templates = all(WorkflowTemplate.self).map { t in
             BackupFile.TemplateRecord(id: t.id, name: t.name, detail: t.detail, serviceTypeRaw: t.serviceTypeRaw,
@@ -312,7 +327,7 @@ enum BackupService {
         }
         file.expenses = all(Expense.self).map { e in
             BackupFile.ExpenseRecord(id: e.id, amount: e.amount, date: e.date, categoryRaw: e.categoryRaw, vendor: e.vendor, note: e.note,
-                  deductiblePercent: e.deductiblePercent, receiptData: includeFiles ? e.receiptData : nil,
+                  deductiblePercent: e.deductiblePercent, receiptData: includeFiles && !e.receiptData.isEmpty ? e.receiptData : nil,
                   receiptExtension: e.receiptExtension, createdAt: e.createdAt, clientID: e.client?.id)
         }
         file.pipelines = all(Pipeline.self).map { p in
@@ -325,6 +340,10 @@ enum BackupService {
         file.feeItems = all(FeeItem.self).map { f in
             BackupFile.FeeItemRecord(id: f.id, name: f.name, detail: f.detail, unitPrice: f.unitPrice, isHourly: f.isHourly,
                   sortIndex: f.sortIndex, createdAt: f.createdAt)
+        }
+        file.builtInStages = all(BuiltInStageSetup.self).map { b in
+            BackupFile.BuiltInStageRecord(id: b.id, serviceTypeRaw: b.serviceTypeRaw, stageKey: b.stageKey,
+                  automationData: b.automationData, updatedAt: b.updatedAt)
         }
         file.quotes = all(Quote.self).map { q in
             BackupFile.QuoteRecord(id: q.id, number: q.number, statusRaw: q.statusRaw, issueDate: q.issueDate, validUntil: q.validUntil,
@@ -411,6 +430,7 @@ enum BackupService {
             c.birthday = r.birthday; c.anniversary = r.anniversary
             c.birthdayAckYear = r.birthdayAckYear ?? 0; c.anniversaryAckYear = r.anniversaryAckYear ?? 0
             c.hourlyRateOverride = r.hourlyRateOverride ?? 0; c.isFlatFee = r.isFlatFee ?? false
+            c.driveFolderID = r.driveFolderID ?? ""; c.driveFolderName = r.driveFolderName ?? ""
         }, link: { _, _ in })
 
         let projects = merge(Project.self, id: \.id, records: file.projects, recordID: { $0.id }, make: { Project() }, fill: { r, p in
@@ -422,6 +442,7 @@ enum BackupService {
             p.holdResumeStatusRaw = r.holdResumeStatusRaw
             p.pipelineID = r.pipelineID; p.stageKey = r.stageKey ?? ""
             p.invoiceID = r.invoiceID; p.billingStateRaw = r.billingStateRaw ?? ""
+            p.driveFolderID = r.driveFolderID ?? ""; p.driveFolderName = r.driveFolderName ?? ""
         }, link: { r, p in p.client = r.clientID.flatMap { clients[$0] } })
 
         _ = merge(TaskItem.self, id: \.id, records: file.tasks, recordID: { $0.id }, make: { TaskItem() }, fill: { r, t in
@@ -450,6 +471,7 @@ enum BackupService {
             if let data = r.data { d.data = data }
             d.createdAt = r.createdAt
             d.signatureStatusRaw = r.signatureStatusRaw ?? ""; d.signatureSentAt = r.signatureSentAt; d.signedAt = r.signedAt
+            d.driveFileID = r.driveFileID ?? ""; d.driveURL = r.driveURL ?? ""; d.driveMimeType = r.driveMimeType ?? ""
         }, link: { r, d in
             d.client = r.clientID.flatMap { clients[$0] }
             d.project = r.projectID.flatMap { projects[$0] }
@@ -534,6 +556,11 @@ enum BackupService {
         _ = merge(FeeItem.self, id: \.id, records: file.feeItems ?? [], recordID: { $0.id }, make: { FeeItem() }, fill: { r, f in
             f.id = r.id; f.name = r.name; f.detail = r.detail; f.unitPrice = r.unitPrice; f.isHourly = r.isHourly
             f.sortIndex = r.sortIndex; f.createdAt = r.createdAt
+        }, link: { _, _ in })
+
+        _ = merge(BuiltInStageSetup.self, id: \.id, records: file.builtInStages ?? [], recordID: { $0.id }, make: { BuiltInStageSetup() }, fill: { r, b in
+            b.id = r.id; b.serviceTypeRaw = r.serviceTypeRaw; b.stageKey = r.stageKey
+            b.automationData = r.automationData; b.updatedAt = r.updatedAt
         }, link: { _, _ in })
 
         _ = merge(Quote.self, id: \.id, records: file.quotes ?? [], recordID: { $0.id }, make: { Quote() }, fill: { r, q in

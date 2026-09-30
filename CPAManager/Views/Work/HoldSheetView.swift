@@ -27,6 +27,7 @@ struct HoldSheetView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(project.statusFlow == .taxReturn ? "Hold" : "Save") {
                         project.putOnHold(reason: reason, detail: detail.trimmingCharacters(in: .whitespaces))
+                        PipelineEngine.runBuiltInAutomation(project, context: context)
                         try? context.save()
                         SnapshotBuilder.rebuild(context: context)
                         NotificationScheduler.rescheduleAll(context: context)
