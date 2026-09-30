@@ -21,6 +21,9 @@ macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
   redeploy to Production before the next TestFlight build (see README).
 - **Merging PRs:** always include `[ci skip]` in the merge commit title (Xcode Cloud then
   doesn't build the merge) unless the owner says otherwise for that merge.
+- **TestFlight notes:** every build's "What to test" comes from `TestFlight/WhatToTest.en-US.txt`
+  (Xcode Cloud reads it; keep it under ~1 KB, plain text). Rewrite it in every PR that will
+  be built, describing what's new in that build, and bump `CURRENT_PROJECT_VERSION`.
 - **Testing on device:** keep a running "what to test" list in the PR/summary.
 
 ## Architecture

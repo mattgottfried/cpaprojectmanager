@@ -1,0 +1,9 @@
+Build 4 - what's new (please test):
+
+- Quotes & Fee Schedule (More): price a job, export a PDF, turn an accepted quote into a draft invoice.
+- Client billing: custom hourly rate and flat-fee flag on a client. Start a timer for that client and check the rate.
+- Tasks: tap the (i) on a task for subtasks, "waiting on" and "can't start until". Blocked tasks stay off Today.
+
+Also still worth a look from the last build: Pipelines, Recurring work setup for several clients, Letters & Emails, Watch app.
+
+Report anything odd, especially crashes on launch or after updating.
