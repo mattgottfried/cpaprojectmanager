@@ -14,6 +14,7 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
     @State private var confirmingDelete = false
+    @State private var toast: UndoToastState?
     @Environment(\.dismiss) private var dismiss
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
@@ -57,6 +58,7 @@ struct ProjectDetailView: View {
                 dismiss()
             }
         }
+        .undoToast($toast)
         .sheet(isPresented: $showingEdit) { ProjectFormView(project: project) }
         .sheet(isPresented: $showingTemplatePicker) {
             TemplatePickerSheet { template in
@@ -314,8 +316,11 @@ struct ProjectDetailView: View {
 
     private func deleteTasks(_ offsets: IndexSet) {
         let list = project.taskList
-        for index in offsets { context.delete(list[index]) }
-        persist()
+        let doomed = offsets.map { list[$0] }
+        toast = context.deleteWithUndo(doomed.count == 1 ? "Deleted task" : "Deleted \(doomed.count) tasks") {
+            for task in doomed { context.delete(task) }
+        }
+        NotificationScheduler.rescheduleAll(context: context)
     }
 
     private func persist() {

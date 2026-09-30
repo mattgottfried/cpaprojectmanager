@@ -6,6 +6,7 @@ struct TimeLogView: View {
     @Environment(TimerController.self) private var timer
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @Query(sort: \TimeEntry.startedAt, order: .reverse) private var entries: [TimeEntry]
+    @State private var toast: UndoToastState?
 
     private var completed: [TimeEntry] { entries.filter { !$0.isRunning } }
 
@@ -60,6 +61,7 @@ struct TimeLogView: View {
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
         .macReadableWidth()
+        .undoToast($toast)
         .navigationTitle("Time")
     }
 
@@ -137,7 +139,10 @@ struct TimeLogView: View {
     }
 
     private func delete(_ offsets: IndexSet) {
-        for index in offsets { context.delete(completed[index]) }
-        try? context.save()
+        let list = completed
+        let doomed = offsets.map { list[$0] }
+        toast = context.deleteWithUndo(doomed.count == 1 ? "Deleted time entry" : "Deleted \(doomed.count) entries") {
+            for entry in doomed { context.delete(entry) }
+        }
     }
 }

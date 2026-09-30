@@ -13,6 +13,10 @@ struct ClientsListView: View {
     @State private var linkedClient: Client?
     @Environment(AppRouter.self) private var router
     @State private var newFilterName = ""
+    @State private var selection = ListSelection<UUID>()
+    @State private var toast: UndoToastState?
+    @State private var showingBulkTag = false
+    @State private var bulkTag = ""
 
     private var effectiveFilter: ClientFilter {
         var f = filter
@@ -43,11 +47,20 @@ struct ClientsListView: View {
                         chipRow
                         List {
                             ForEach(filtered) { client in
-                                NavigationLink(value: client) {
+                                SelectableRow(
+                                    isSelecting: selection.isSelecting,
+                                    isSelected: selection.selected.contains(client.id),
+                                    isCursor: selection.cursor == client.id,
+                                    toggle: { selection.toggle(client.id) }
+                                ) {
                                     ClientRow(client: client)
+                                } link: {
+                                    NavigationLink(value: client) {
+                                        ClientRow(client: client)
+                                    }
                                 }
                                 .cardListRow()
-                                .deleteMenu(of: client, in: filtered, title: "Delete Client", perform: delete)
+                                .deleteMenu("Delete Client") { deleteClients([client]) }
                             }
                             .onDelete(perform: delete)
                         }
@@ -61,12 +74,30 @@ struct ClientsListView: View {
                     }
                     .background(Color.appGroupedBackground)
                     .macReadableWidth()
+                    .listKeyboard(
+                        move: { selection.cursor = ListSelection.moved(from: selection.cursor, in: filtered.map(\.id), by: $0) },
+                        open: { if let id = selection.cursor { linkedClient = filtered.first { $0.id == id } } },
+                        toggle: { if let id = selection.cursor { selection.toggle(id) } },
+                        delete: { deleteClients(keyboardTargets) }
+                    )
+                    .safeAreaInset(edge: .bottom) {
+                        if selection.isSelecting { bulkBar }
+                    }
+                    .onChange(of: filtered.map(\.id)) { _, ids in selection.prune(to: ids) }
                 }
             }
             .navigationTitle("Clients")
             .searchable(text: $search, prompt: "Search name, company, tag")
             .toolbar {
                 ToolbarItem(placement: .leading) { filterMenu }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        if selection.isSelecting { selection.finish() } else { selection.isSelecting = true }
+                    } label: {
+                        Image(systemName: selection.isSelecting ? "checkmark.circle.fill" : "checkmark.circle")
+                    }
+                    .accessibilityLabel(selection.isSelecting ? "Stop selecting" : "Select clients")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                         .accessibilityLabel("Add client")
@@ -84,8 +115,61 @@ struct ClientsListView: View {
             } message: {
                 Text("Give this combination of filters a name to reuse it.")
             }
+            .alert("Add tag", isPresented: $showingBulkTag) {
+                TextField("Tag", text: $bulkTag)
+                Button("Add") {
+                    let tag = bulkTag
+                    bulkTag = ""
+                    toast = context.performUndoable("Tagged \(selectedClients.count) clients", overwrite: true) {
+                        BulkActions.addTag(tag, to: selectedClients)
+                    }
+                }
+                Button("Cancel", role: .cancel) { bulkTag = "" }
+            } message: {
+                Text("Adds this tag to every selected client.")
+            }
+            .undoToast($toast)
             .sensoryFeedback(.selection, trigger: filter)
         }
+    }
+
+    // MARK: Selecting several clients
+
+    private var selectedClients: [Client] { clients.filter { selection.selected.contains($0.id) } }
+
+    /// What the Delete key acts on: the ticked rows, else the row under the cursor.
+    private var keyboardTargets: [Client] {
+        if !selection.selected.isEmpty { return selectedClients }
+        return clients.filter { $0.id == selection.cursor }
+    }
+
+    private var bulkBar: some View {
+        BulkBar(count: selection.count, done: { selection.finish() }) {
+            Menu {
+                Button { showingBulkTag = true } label: { Label("Add tag…", systemImage: "tag") }
+                Menu("Set status") {
+                    ForEach(ClientStatus.allCases) { status in
+                        Button(status.label) {
+                            toast = context.performUndoable("Updated \(selectedClients.count) clients", overwrite: true) {
+                                BulkActions.setStatus(status, for: selectedClients)
+                            }
+                        }
+                    }
+                }
+            } label: { Label("Update", systemImage: "ellipsis.circle") }
+            Button(role: .destructive) {
+                deleteClients(selectedClients)
+            } label: { Label("Delete", systemImage: "trash") }
+        }
+    }
+
+    private func deleteClients(_ doomed: [Client]) {
+        guard !doomed.isEmpty else { return }
+        let message = doomed.count == 1 ? "Deleted client" : "Deleted \(doomed.count) clients"
+        toast = context.deleteWithUndo(message, includeFiles: true) {
+            for client in doomed { context.delete(client) }
+        }
+        selection.finish()
     }
 
     // MARK: Filter UI
@@ -179,9 +263,7 @@ struct ClientsListView: View {
 
     private func delete(_ offsets: IndexSet) {
         let list = filtered
-        for index in offsets { context.delete(list[index]) }
-        try? context.save()
-        SnapshotBuilder.rebuild(context: context)
+        deleteClients(offsets.map { list[$0] })
     }
 }
 

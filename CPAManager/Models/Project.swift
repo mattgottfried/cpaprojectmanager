@@ -156,6 +156,17 @@ final class Project {
         (tasks ?? []).sorted { $0.sortIndex < $1.sortIndex }
     }
 
+    /// The task to do next on this job (see `NextStep`).
+    var nextTask: TaskItem? {
+        let list = taskList
+        let inputs = list.map {
+            NextStepTask(id: $0.id, title: $0.title, dueDate: $0.dueDate, sortIndex: $0.sortIndex,
+                         isDone: $0.isDone, blockedByID: $0.blockedByID)
+        }
+        guard let pick = NextStep.pick(inputs) else { return nil }
+        return list.first { $0.id == pick.id }
+    }
+
     var completedTaskCount: Int { taskList.filter { $0.isDone }.count }
     var totalTaskCount: Int { taskList.count }
 

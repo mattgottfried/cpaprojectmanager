@@ -90,6 +90,16 @@ enum PipelineEngine {
         return project.nextStatusPreview.map { project.statusFlow.label($0) }
     }
 
+    /// Finishes a job: the built-in "complete" status, or a custom pipeline's last done stage.
+    static func complete(_ project: Project, pipelines: [Pipeline], context: ModelContext) {
+        if let custom = pipeline(for: project, in: pipelines),
+           let done = custom.definition.stages.last(where: { $0.kind.isDone }) {
+            enter(project, stage: done, context: context)
+        } else {
+            project.status = .complete
+        }
+    }
+
     /// One-tap advance for either kind of pipeline.
     static func advanceAny(_ project: Project, pipelines: [Pipeline], context: ModelContext) {
         if let custom = pipeline(for: project, in: pipelines) {

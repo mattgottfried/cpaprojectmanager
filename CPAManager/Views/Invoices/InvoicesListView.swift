@@ -8,6 +8,7 @@ struct InvoicesListView: View {
     @State private var showingBuilder = false
     @State private var refreshing = false
     @State private var linkedInvoice: Invoice?
+    @State private var toast: UndoToastState?
     @Environment(AppRouter.self) private var router
 
     private var sent: [Invoice] { invoices.filter { $0.status == .sent } }
@@ -68,6 +69,7 @@ struct InvoicesListView: View {
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
         .macReadableWidth()
+        .undoToast($toast)
         .navigationTitle("Invoices")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -156,19 +158,15 @@ struct InvoicesListView: View {
     }
 
     private func delete(_ offsets: IndexSet) {
-        guard let allEntries = try? context.fetch(FetchDescriptor<TimeEntry>()) else {
-            for index in offsets { context.delete(invoices[index]) }
-            try? context.save()
-            return
-        }
-        for index in offsets {
-            let invoice = invoices[index]
-            let entryIDs = Set(invoice.lineList.compactMap(\.timeEntryID))
-            for entry in allEntries where entryIDs.contains(entry.id) {
-                entry.invoiceID = nil
+        let doomed = offsets.map { invoices[$0] }
+        // Overwrite-restore, because deleting also frees the invoice's time entries.
+        toast = context.performUndoable("Deleted invoice", systemImage: "trash", overwrite: true) {
+            let allEntries = (try? context.fetch(FetchDescriptor<TimeEntry>())) ?? []
+            for invoice in doomed {
+                let entryIDs = Set(invoice.lineList.compactMap(\.timeEntryID))
+                for entry in allEntries where entryIDs.contains(entry.id) { entry.invoiceID = nil }
+                context.delete(invoice)
             }
-            context.delete(invoice)
         }
-        try? context.save()
     }
 }
