@@ -21,3 +21,9 @@ if [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
 fi
 
 xcodegen generate
+
+# Xcode Cloud builds with automatic package resolution turned off and needs a
+# Package.resolved inside the generated project. Resolve the Swift packages (Firebase) now so
+# the file exists at CPAManager.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/.
+xcodebuild -resolvePackageDependencies -project CPAManager.xcodeproj
+ls CPAManager.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/ || true
