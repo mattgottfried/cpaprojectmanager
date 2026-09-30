@@ -79,6 +79,7 @@ struct LeadsView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .overlay {
             if leads.isEmpty {
                 ContentUnavailableView {
@@ -266,6 +267,7 @@ struct LeadFormView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Save", action: save).disabled(!canSave) }
             }
         }
+        .macSheetFrame()
     }
 
     private func save() {

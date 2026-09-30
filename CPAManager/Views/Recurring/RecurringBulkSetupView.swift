@@ -92,6 +92,7 @@ struct RecurringBulkSetupView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Create", action: save).disabled(!canSave) }
             }
         }
+        .macSheetFrame()
     }
 
     private var sampleTitle: String {

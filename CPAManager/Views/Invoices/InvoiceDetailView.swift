@@ -15,7 +15,7 @@ struct InvoiceDetailView: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        List {
+        GroupedList {
             Section {
                 LabeledContent("Invoice #", value: invoice.displayNumber)
                 LabeledContent("Client", value: invoice.client?.displayName ?? "No client")
@@ -44,6 +44,7 @@ struct InvoiceDetailView: View {
                         Text(Format.currency(line.amount))
                             .font(.subheadline.monospacedDigit())
                     }
+                    .deleteMenu(of: line, in: invoice.lineList, title: "Delete Line", perform: deleteLine)
                 }
                 .onDelete(perform: deleteLine)
 
@@ -141,6 +142,12 @@ struct InvoiceDetailView: View {
                     }
                 }
                 .accessibilityElement(children: .combine)
+                .deleteMenu("Delete Payment") {
+                    invoice.payments?.removeAll { $0.id == payment.id }
+                    context.delete(payment)
+                    invoice.refreshPaidStatus()
+                    persist()
+                }
             }
             .onDelete { offsets in
                 let list = invoice.paymentList

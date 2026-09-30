@@ -134,6 +134,7 @@ struct ClientFormView: View {
             }
             #endif
         }
+        .macSheetFrame()
     }
 
     #if os(iOS)

@@ -304,6 +304,7 @@ struct TodayView: View {
                 }
             }
             .background(Color.appGroupedBackground)
+            .macReadableWidth()
             .navigationTitle("Today")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .navigationDestination(for: Client.self) { ClientDetailView(client: $0) }

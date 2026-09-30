@@ -62,6 +62,7 @@ struct DeadlinesView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color.appGroupedBackground)
+            .macReadableWidth()
             .navigationTitle("Deadlines")
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingTaxDates) { TaxDatesView() }
@@ -143,7 +144,7 @@ struct TaxDatesView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            GroupedList {
                 Section {
                     ForEach(deadlines) { deadline in
                         HStack(alignment: .top, spacing: 12) {
@@ -166,5 +167,6 @@ struct TaxDatesView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .macSheetFrame()
     }
 }

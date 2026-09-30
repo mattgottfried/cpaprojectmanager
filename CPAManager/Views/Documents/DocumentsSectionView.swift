@@ -79,6 +79,10 @@ struct DocumentsSectionView: View {
                     if document.signatureStatus != .none {
                         Button { setSignature(document, .none) } label: { Label("Clear signature status", systemImage: "xmark.circle") }
                     }
+                    Divider()
+                    Button(role: .destructive) {
+                        if let index = documents.firstIndex(where: { $0.id == document.id }) { delete(IndexSet(integer: index)) }
+                    } label: { Label("Delete Document", systemImage: "trash") }
                 }
             }
             .onDelete(perform: delete)

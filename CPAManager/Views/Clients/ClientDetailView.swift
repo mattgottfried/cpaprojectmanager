@@ -19,7 +19,7 @@ struct ClientDetailView: View {
     }
 
     var body: some View {
-        List {
+        GroupedList {
             Section {
                 HStack(spacing: 14) {
                     Avatar(initials: client.initials, size: 60)
@@ -341,6 +341,7 @@ struct FollowUpDateSheet: View {
             }
             .onAppear { if let initial, initial > .now { date = initial } }
         }
+        .macSheetFrame()
         .presentationDetents([.medium, .large])
     }
 }

@@ -27,7 +27,7 @@ struct ProjectDetailView: View {
     }
 
     var body: some View {
-        List {
+        GroupedList {
             headerSection
             workflowSection
             statusSection
@@ -187,6 +187,7 @@ struct ProjectDetailView: View {
             }
             ForEach(project.taskList) { task in
                 TaskRowView(task: task, onToggle: { toggle(task) }, onOpen: { detailTask = task })
+                    .deleteMenu(of: task, in: project.taskList, title: "Delete Task", perform: deleteTasks)
             }
             .onDelete(perform: deleteTasks)
 

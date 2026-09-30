@@ -28,6 +28,7 @@ struct RecurringListView: View {
                 }
                 .buttonStyle(.plain)
                 .cardListRow()
+                .deleteMenu(of: engagement, in: engagements, title: "Delete", perform: delete)
                 .swipeActions(edge: .leading) {
                     Button { skipNext(engagement) } label: { Label("Skip next", systemImage: "forward.end.fill") }
                         .tint(.orange)
@@ -42,6 +43,7 @@ struct RecurringListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Recurring")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

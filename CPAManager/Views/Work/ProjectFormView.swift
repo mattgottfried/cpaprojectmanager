@@ -97,6 +97,7 @@ struct ProjectFormView: View {
             }
             .onAppear(perform: loadOnce)
         }
+        .macSheetFrame()
     }
 
     private func loadOnce() {

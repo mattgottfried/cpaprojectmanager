@@ -119,6 +119,7 @@ struct InboxTriageSheet: View {
             }
             .onAppear(perform: prefill)
         }
+        .macSheetFrame()
     }
 
     private func prefill() {

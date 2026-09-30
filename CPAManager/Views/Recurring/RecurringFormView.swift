@@ -96,6 +96,7 @@ struct RecurringFormView: View {
             }
             .onAppear(perform: loadOnce)
         }
+        .macSheetFrame()
     }
 
     private var previewDates: [Date] {

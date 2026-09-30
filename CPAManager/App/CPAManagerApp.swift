@@ -68,7 +68,8 @@ struct CPAManagerApp: App {
         // ⌘, opens Settings.
         Settings {
             NavigationStack { SettingsView() }
-                .frame(minWidth: 520, minHeight: 620)
+                .appChrome()
+                .frame(minWidth: 560, idealWidth: 620, minHeight: 620, idealHeight: 760)
                 .modelContainer(container)
                 .environment(cloud)
                 .environment(qboAuth)

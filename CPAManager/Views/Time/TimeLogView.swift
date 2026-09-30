@@ -49,6 +49,7 @@ struct TimeLogView: View {
                 ForEach(completed) { entry in
                     entryRow(entry)
                         .cardListRow()
+                        .deleteMenu(of: entry, in: completed, title: "Delete Entry", perform: delete)
                 }
                 .onDelete(perform: delete)
             } header: {
@@ -58,6 +59,7 @@ struct TimeLogView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Time")
     }
 

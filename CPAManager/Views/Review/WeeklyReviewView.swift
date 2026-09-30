@@ -89,7 +89,7 @@ struct WeeklyReviewView: View {
     // MARK: View
 
     private var content: some View {
-        List {
+        GroupedList {
             Section {
                 Text("Ten minutes. Work top to bottom, then tap Finish.")
                     .font(.subheadline)

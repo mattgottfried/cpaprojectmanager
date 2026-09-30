@@ -106,6 +106,7 @@ struct QuoteEditorView: View {
             }
             .onAppear(perform: loadOnce)
         }
+        .macSheetFrame()
     }
 
     // MARK: Lines

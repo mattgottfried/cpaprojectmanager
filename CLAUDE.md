@@ -256,6 +256,12 @@ CPAManagerTests/  XCTest for the pure logic above.
   `Clipboard.string`, `PlatformPDF` (+ `PlatformFont/PlatformColor`). UIKit-only views
   (scanner, contact picker, QuickLook) are `#if os(iOS)` with Mac fallbacks or hidden.
 - macOS has no `horizontalSizeClass`; `RootView` always uses the sidebar there.
+- **Mac look** (`Platform/MacStyle.swift`, all no-ops on iOS): `appChrome()` sets the grouped form
+  style once per window root; `macSheetFrame()` on every sheet's root `NavigationStack` (Mac sheets
+  don't size to a form); `macReadableWidth()` keeps card lists/forms ≤ ~860pt centered;
+  `GroupedList` = `List` on iOS, grouped `Form` on Mac (use for detail screens made of sections);
+  `deleteMenu` adds right-click Delete (the Mac has no swipe-to-delete — any list with
+  `.onDelete` should also get one).
 - `AppGroup.sharedDefaults` is `.standard` on macOS (no extensions there, and an
   unentitled group container makes macOS prompt the user).
 

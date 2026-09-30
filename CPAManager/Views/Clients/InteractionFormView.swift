@@ -49,6 +49,7 @@ struct InteractionFormView: View {
                 }
             }
         }
+        .macSheetFrame()
         .presentationDetents([.medium, .large])
     }
 
@@ -100,9 +101,10 @@ struct InteractionHistoryView: View {
     }
 
     var body: some View {
-        List {
+        GroupedList {
             ForEach(entries) { entry in
                 InteractionRow(interaction: entry)
+                    .deleteMenu { context.delete(entry); try? context.save() }
             }
             .onDelete { offsets in
                 let list = entries
