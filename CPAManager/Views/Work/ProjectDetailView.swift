@@ -13,6 +13,8 @@ struct ProjectDetailView: View {
 
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
+    @State private var confirmingDelete = false
+    @Environment(\.dismiss) private var dismiss
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
     @State private var detailTask: TaskItem?
@@ -41,6 +43,18 @@ struct ProjectDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("Edit") { showingEdit = true }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button(role: .destructive) { confirmingDelete = true } label: {
+                    Image(systemName: "trash").accessibilityLabel("Delete project")
+                }
+            }
+        }
+        .confirmationDialog("Delete this project and its tasks?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("Delete Project", role: .destructive) {
+                context.delete(project)
+                persist()
+                dismiss()
             }
         }
         .sheet(isPresented: $showingEdit) { ProjectFormView(project: project) }
