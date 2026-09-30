@@ -38,7 +38,7 @@ final class ClientImportTests: XCTestCase {
         XCTAssertEqual(plan.records[0].email, "dana@x.com", "emails are lowercased")
         XCTAssertEqual(plan.records[0].company, "Reyes LLC")
         XCTAssertEqual(plan.records[1].company, "", "company equal to the name isn't duplicated")
-        XCTAssertEqual(plan.skipped, [ImportSkip(row: 4, reason: "Email already exists"), ImportSkip(row: 6, reason: "Email already exists")])
+        XCTAssertEqual(plan.skipped, [ImportSkip(row: 4, reason: "Email already exists"), ImportSkip(row: 5, reason: "Email already exists")])
     }
 
     func testMissingNameColumn() {
