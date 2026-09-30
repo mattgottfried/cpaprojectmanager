@@ -21,8 +21,10 @@ Firebase project (Cloud Firestore + email/password Auth); see "Cloud sync" below
 - **Schema changes:** a new `@Model` or stored property needs a `BackupFile` record/field
   (optional!), export and restore updates — that is what cloud sync sends. There is no
   CloudKit schema to deploy any more.
-- **Merging PRs:** always include `[ci skip]` in the merge commit title (Xcode Cloud then
-  doesn't build the merge) unless the owner says otherwise for that merge.
+- **Merging PRs:** include `[ci skip]` in the merge commit title (Xcode Cloud then doesn't
+  build the merge) for small changes (docs, fixes, tweaks). For **major changes** (new
+  features, batches, schema/storage/target changes) merge *without* `[ci skip]` so a build
+  starts — the owner said so. When unsure, treat it as small and say a build wasn't started.
 - **TestFlight notes:** every build's "What to test" comes from `TestFlight/WhatToTest.en-US.txt`
   (Xcode Cloud reads it; keep it under ~1 KB, plain text). Rewrite it in every PR that will
   be built, describing what's new in that build, and bump `CURRENT_PROJECT_VERSION`.
