@@ -237,6 +237,10 @@ struct TodayView: View {
                         .listRowBackground(Color.clear)
                     }
 
+                    TaxSeasonCard(projects: projects, clients: clients, docRequests: docRequests)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+
                     TipCard()
                         .listRowSeparator(.hidden)
                         .listRowBackground(Color.clear)

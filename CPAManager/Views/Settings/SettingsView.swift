@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
+    @AppStorage(SettingsKeys.taxSeasonMode) private var taxSeasonMode = TaxSeasonMode.auto.rawValue
     @AppStorage(SettingsKeys.uploadPageURL) private var uploadPageURL = ""
     @AppStorage(SettingsKeys.signatureChaseDays) private var signatureChaseDays = 3
     @AppStorage(SettingsKeys.timeRoundingMinutes) private var roundingMinutes = 0
@@ -44,6 +45,14 @@ struct SettingsView: View {
                 Text("Firm")
             } footer: {
                 Text("Shown on printed routing sheets and invoices.")
+            }
+
+            Section {
+                Picker("Tax-season card on Today", selection: $taxSeasonMode) {
+                    ForEach(TaxSeasonMode.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+            } footer: {
+                Text("Shows days to the deadline, open returns by stage, and what's still outstanding.")
             }
 
             Section {

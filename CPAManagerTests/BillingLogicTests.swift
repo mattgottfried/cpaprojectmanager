@@ -200,3 +200,62 @@ final class SignatureAndUploadLinkTests: XCTestCase {
         XCTAssertTrue(without.contains("reply to this email"))
     }
 }
+
+final class TaxSeasonTests: XCTestCase {
+    private var calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }()
+
+    private func date(_ y: Int, _ m: Int, _ d: Int) -> Date { calendar.date(from: DateComponents(year: y, month: m, day: d, hour: 12))! }
+
+    func testAutomaticWindows() {
+        XCTAssertTrue(TaxSeason.isActive(mode: .auto, now: date(2026, 1, 2), calendar: calendar))
+        XCTAssertTrue(TaxSeason.isActive(mode: .auto, now: date(2026, 4, 20), calendar: calendar))
+        XCTAssertFalse(TaxSeason.isActive(mode: .auto, now: date(2026, 4, 21), calendar: calendar))
+        XCTAssertFalse(TaxSeason.isActive(mode: .auto, now: date(2026, 7, 1), calendar: calendar))
+        XCTAssertTrue(TaxSeason.isActive(mode: .auto, now: date(2026, 10, 10), calendar: calendar))
+        XCTAssertFalse(TaxSeason.isActive(mode: .auto, now: date(2026, 11, 1), calendar: calendar))
+        XCTAssertTrue(TaxSeason.isActive(mode: .on, now: date(2026, 7, 1), calendar: calendar))
+        XCTAssertFalse(TaxSeason.isActive(mode: .off, now: date(2026, 2, 1), calendar: calendar))
+    }
+
+    func testWorkingYearAndNextDeadline() {
+        XCTAssertEqual(TaxSeason.workingTaxYear(now: date(2026, 3, 1), calendar: calendar), 2025)
+        // 2026-04-15 is a Wednesday.
+        XCTAssertEqual(TaxSeason.nextDeadline(now: date(2026, 3, 1), calendar: calendar), calendar.startOfDay(for: date(2026, 4, 15)))
+        // After April, the next one is Oct 15 (a Thursday in 2026).
+        XCTAssertEqual(TaxSeason.nextDeadline(now: date(2026, 5, 1), calendar: calendar), calendar.startOfDay(for: date(2026, 10, 15)))
+        // After October, roll to next April.
+        let after = TaxSeason.nextDeadline(now: date(2026, 11, 1), calendar: calendar)
+        XCTAssertEqual(calendar.component(.year, from: after), 2027)
+        XCTAssertEqual(calendar.component(.month, from: after), 4)
+    }
+
+    func testSummaryCountsOnlyThisYearsOpenReturns() {
+        let projects = [
+            SeasonProject(statusRaw: "awaitingDocs", taxYear: 2025, isTaxReturn: true),
+            SeasonProject(statusRaw: "awaitingDocs", taxYear: 2025, isTaxReturn: true),
+            SeasonProject(statusRaw: "inProgress", taxYear: 2025, isTaxReturn: true),
+            SeasonProject(statusRaw: "complete", taxYear: 2025, isTaxReturn: true),
+            SeasonProject(statusRaw: "inProgress", taxYear: 2024, isTaxReturn: true),
+            SeasonProject(statusRaw: "inProgress", taxYear: 2025, isTaxReturn: false),
+        ]
+        let clients = [
+            SeasonClient(isActive: true, extensionYears: [], hasReturnForYear: true),
+            SeasonClient(isActive: true, extensionYears: [], hasReturnForYear: false),
+            SeasonClient(isActive: true, extensionYears: [2025], hasReturnForYear: false),
+            SeasonClient(isActive: false, extensionYears: [], hasReturnForYear: false),
+        ]
+        let s = TaxSeason.summary(projects: projects, clients: clients, documentsOutstanding: 7, now: date(2026, 3, 1), calendar: calendar)
+        XCTAssertEqual(s.taxYear, 2025)
+        XCTAssertEqual(s.openReturns, 3)
+        XCTAssertEqual(s.stages.map { $0.count }, [2, 1])
+        XCTAssertEqual(s.stages.map { $0.status }, [.awaitingDocs, .inProgress], "ordered by pipeline stage")
+        XCTAssertEqual(s.noReturnStarted, 1, "inactive and extended clients don't count")
+        XCTAssertEqual(s.onExtension, 1)
+        XCTAssertEqual(s.documentsOutstanding, 7)
+        XCTAssertEqual(s.daysToDeadline, 45)
+    }
+}

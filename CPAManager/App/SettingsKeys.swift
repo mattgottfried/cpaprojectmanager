@@ -27,6 +27,8 @@ enum SettingsKeys {
     static let timeRoundingMinutes = "timeRoundingMinutes"
     /// Notify if a timer is still running after this many hours (0 = never).
     static let timerReminderHours = "timerReminderHours"
+    /// `TaxSeasonMode` raw value: auto (default) / on / off.
+    static let taxSeasonMode = "taxSeasonMode"
     /// Your secure client-upload page (e.g. an Encyro page); inserted into requests and emails.
     static let uploadPageURL = "uploadPageURL"
     /// Days after sending for signature before Today nudges you.
