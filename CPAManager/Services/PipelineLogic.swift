@@ -64,8 +64,36 @@ struct StageAutomation: Codable, Equatable {
     var tasks: [StageTask] = []
     /// Reset the job's due date to this many days from now.
     var setDueInDays: Int? = nil
+    /// "Automove": when every task this stage created is done, move the job to the next stage.
+    var autoMove = false
 
-    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil }
+    init(tasks: [StageTask] = [], setDueInDays: Int? = nil, autoMove: Bool = false) {
+        self.tasks = tasks
+        self.setDueInDays = setDueInDays
+        self.autoMove = autoMove
+    }
+
+    // Older saved pipelines have no `autoMove` (or even `tasks`); read them as "off"/empty
+    // instead of failing to decode the whole stage list.
+    private enum CodingKeys: String, CodingKey { case tasks, setDueInDays, autoMove }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        tasks = try c.decodeIfPresent([StageTask].self, forKey: .tasks) ?? []
+        setDueInDays = try c.decodeIfPresent(Int.self, forKey: .setDueInDays)
+        autoMove = try c.decodeIfPresent(Bool.self, forKey: .autoMove) ?? false
+    }
+
+    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil && !autoMove }
+}
+
+/// The automove rule: a job moves on when the task just completed belongs to its current
+/// stage, that stage has automove on, and every task the stage created is done.
+enum StageAutoMove {
+    static func shouldMove(autoMove: Bool, completedTaskStageKey: String, currentStageKey: String, stageTasksDone: [Bool]) -> Bool {
+        guard autoMove, !completedTaskStageKey.isEmpty, completedTaskStageKey == currentStageKey else { return false }
+        return !stageTasksDone.isEmpty && stageTasksDone.allSatisfy { $0 }
+    }
 }
 
 struct PipelineStage: Codable, Equatable, Identifiable {

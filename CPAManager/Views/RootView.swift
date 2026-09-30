@@ -96,7 +96,7 @@ struct RootView: View {
 
     private var tabLayout: some View {
         TabView(selection: tabBinding) {
-            TodayView()
+            TodayHubView()
                 .tabItem { Label("Today", systemImage: "sun.max.fill") }
                 .tag(CompactTab.today)
 
@@ -173,7 +173,7 @@ struct RootView: View {
     @ViewBuilder
     private func detail(for section: AppSection) -> some View {
         switch section {
-        case .today:     TodayView()
+        case .today:     TodayHubView()
         case .inbox:     InboxView()
         case .clients:   ClientsListView()
         case .leads:     LeadsView()

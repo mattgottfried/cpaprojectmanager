@@ -75,6 +75,7 @@ enum WorkflowEngine {
                 sortIndex: startIndex + offset,
                 project: project
             )
+            item.startDate = previous == nil ? baseDate : nil
             if let previous {
                 item.blockedByID = previous.id
                 item.dueInDaysAfterBlocker = delays[offset]

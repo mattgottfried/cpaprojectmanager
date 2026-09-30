@@ -10,6 +10,7 @@ enum TaskCompletion {
         guard !task.isDone else { return nil }
         task.toggle()
         dateChainedTasks(after: task, completedAt: task.completedAt ?? now)
+        PipelineEngine.autoMoveIfReady(after: task, context: context, now: now)
 
         let rule = task.repeatRule
         guard rule != .none,
@@ -33,7 +34,7 @@ enum TaskCompletion {
     static func undo(_ task: TaskItem, spawned: TaskItem?, context: ModelContext) {
         if task.isDone { task.toggle() }
         if let spawned { context.delete(spawned) }
-        for next in chained(after: task) where !next.isDone { next.dueDate = nil }
+        for next in chained(after: task) where !next.isDone { next.dueDate = nil; next.startDate = nil }
     }
 
     /// Pipeline tasks that were waiting on `task` and have no date yet.
@@ -45,6 +46,7 @@ enum TaskCompletion {
     private static func dateChainedTasks(after task: TaskItem, completedAt: Date) {
         for next in chained(after: task) where next.dueDate == nil && !next.isDone {
             next.dueDate = TaskDependencies.dueDateOnUnblock(daysAfter: next.dueInDaysAfterBlocker ?? 0, completedAt: completedAt)
+            next.startDate = Calendar.current.startOfDay(for: completedAt)
         }
     }
 }

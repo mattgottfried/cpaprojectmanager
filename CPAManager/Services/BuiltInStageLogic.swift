@@ -39,6 +39,7 @@ enum BuiltInSetup {
         var parts: [String] = []
         if count > 0 { parts.append("\(count) task\(count == 1 ? "" : "s")") }
         if let days = automation.setDueInDays { parts.append("due in \(days) days") }
+        if automation.autoMove { parts.append("automove") }
         return parts.isEmpty ? "No tasks" : parts.joined(separator: " · ")
     }
 
