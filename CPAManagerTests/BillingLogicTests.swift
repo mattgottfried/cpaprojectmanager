@@ -102,3 +102,54 @@ final class QuoteServiceTests: XCTestCase {
         XCTAssertEqual(quote.total, 21)
     }
 }
+
+final class TaskDependencyTests: XCTestCase {
+    func testBlockedWhileBlockerOpen() {
+        let a = UUID(), b = UUID()
+        XCTAssertTrue(TaskDependencies.isBlocked(blockedByID: b, openTaskIDs: [a, b]))
+        XCTAssertFalse(TaskDependencies.isBlocked(blockedByID: b, openTaskIDs: [a]), "done or deleted blocker unblocks")
+        XCTAssertFalse(TaskDependencies.isBlocked(blockedByID: nil, openTaskIDs: [a, b]))
+    }
+
+    func testCycleDetection() {
+        let a = UUID(), b = UUID(), c = UUID()
+        // b waits on c; c waits on a.
+        let map = [b: c, c: a]
+        XCTAssertTrue(TaskDependencies.wouldCreateCycle(taskID: a, newBlockerID: b, blockedBy: map), "a<-b<-c<-a")
+        XCTAssertTrue(TaskDependencies.wouldCreateCycle(taskID: a, newBlockerID: a, blockedBy: map), "self")
+        XCTAssertFalse(TaskDependencies.wouldCreateCycle(taskID: b, newBlockerID: a, blockedBy: map))
+        // A pre-existing loop elsewhere must not hang the check.
+        let x = UUID(), y = UUID()
+        XCTAssertFalse(TaskDependencies.wouldCreateCycle(taskID: a, newBlockerID: x, blockedBy: [x: y, y: x]))
+    }
+
+    func testCandidateBlockersExcludeSelfAndCycles() {
+        let a = UUID(), b = UUID(), c = UUID()
+        let result = TaskDependencies.candidateBlockers(taskID: a, openTaskIDs: [a, b, c], blockedBy: [b: a])
+        XCTAssertEqual(result, [c], "b already waits on a, so a can't wait on b")
+    }
+
+    func testChecklistHelpers() {
+        var list = TaskChecklist.adding("  call bank ", to: "")
+        list = TaskChecklist.adding("send letter", to: list)
+        XCTAssertEqual(list, "- [ ] call bank\n- [ ] send letter")
+        XCTAssertEqual(TaskChecklist.adding("   ", to: list), list)
+        XCTAssertEqual(TaskChecklist.summary(list), "0/2")
+        XCTAssertNil(TaskChecklist.summary("just notes"))
+        XCTAssertFalse(TaskChecklist.isComplete(list))
+        list = MarkdownBlocks.toggleCheckbox(in: list, lineIndex: 0)
+        list = MarkdownBlocks.toggleCheckbox(in: list, lineIndex: 1)
+        XCTAssertTrue(TaskChecklist.isComplete(list))
+        XCTAssertEqual(TaskChecklist.summary(list), "2/2")
+    }
+
+    func testPlannerHidesBlockedItemsAndCountsThem() {
+        let today = Date(timeIntervalSince1970: 1_800_000_000)
+        let open = PlannerItem(id: UUID(), dueDate: today, snoozedUntil: nil, isDone: false, isNextAction: false)
+        let blocked = PlannerItem(id: UUID(), dueDate: today, snoozedUntil: nil, isDone: false, isNextAction: false, isBlocked: true)
+        let plan = TodayPlanner.plan([open, blocked], now: today)
+        XCTAssertEqual(plan.blockedCount, 1)
+        XCTAssertEqual(plan.ids(.today), [open.id])
+        XCTAssertEqual(plan.snoozedCount, 0)
+    }
+}

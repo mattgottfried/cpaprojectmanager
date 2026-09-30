@@ -19,6 +19,12 @@ final class TaskItem {
     var snoozedUntil: Date? = nil
     /// Raw `RepeatRule`; empty/"none" means it doesn't repeat.
     var repeatRuleRaw: String = ""
+    /// Subtasks as Markdown checkbox lines ("- [ ] call the bank"); see `TaskChecklist`.
+    var checklist: String = ""
+    /// Hidden from Today until that task is done (see `TaskDependencies`).
+    var blockedByID: UUID? = nil
+    /// Free-text "waiting on…" note (e.g. "client's W-2"), shown on the task.
+    var waitingOn: String = ""
 
     var project: Project? = nil
     /// Optional client link for tasks that don't belong to a project.

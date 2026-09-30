@@ -46,11 +46,14 @@ struct PlannerItem: Equatable {
     var snoozedUntil: Date?
     var isDone: Bool
     var isNextAction: Bool
+    /// Waiting on another open task; hidden like a snoozed item.
+    var isBlocked: Bool = false
 }
 
 struct TodayPlan: Equatable {
     var sections: [TodaySection: [UUID]]
     var snoozedCount: Int
+    var blockedCount: Int = 0
 
     func ids(_ section: TodaySection) -> [UUID] { sections[section] ?? [] }
     var isEmpty: Bool { sections.values.allSatisfy(\.isEmpty) }
@@ -70,9 +73,15 @@ enum TodayPlanner {
         let today = calendar.startOfDay(for: now)
         var buckets: [TodaySection: [(index: Int, sortDate: Date, id: UUID)]] = [:]
         var snoozed = 0
+        var blocked = 0
 
         for (index, item) in items.enumerated() {
             if item.isDone { continue }
+
+            if item.isBlocked {
+                blocked += 1
+                continue
+            }
 
             if let until = item.snoozedUntil, calendar.startOfDay(for: until) > today {
                 snoozed += 1
@@ -108,7 +117,7 @@ enum TodayPlanner {
                 .sorted { ($0.sortDate, $0.index) < ($1.sortDate, $1.index) }
                 .map { $0.id }
         }
-        return TodayPlan(sections: sections, snoozedCount: snoozed)
+        return TodayPlan(sections: sections, snoozedCount: snoozed, blockedCount: blocked)
     }
 
     /// The day a task should reappear after a snooze choice.
