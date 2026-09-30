@@ -13,11 +13,22 @@ enum PipelineEngine {
         if let due = plan.dueDate { project.dueDate = due }
 
         var index = (project.tasks ?? []).map(\.sortIndex).max().map { $0 + 1 } ?? 0
+        // Only the first task gets a due date. Each later one waits for the task before it
+        // and is dated when that one is completed (`TaskCompletion.complete`).
+        var previous: TaskItem?
         for task in plan.tasks {
             // A job that re-enters a stage shouldn't grow duplicate automation tasks.
-            let exists = (project.tasks ?? []).contains { $0.title == task.title && !$0.isDone }
-            if exists { continue }
-            context.insert(TaskItem(title: task.title, dueDate: task.dueDate, sortIndex: index, project: project))
+            if let existing = (project.tasks ?? []).first(where: { $0.title == task.title && !$0.isDone }) {
+                previous = existing
+                continue
+            }
+            let item = TaskItem(title: task.title, dueDate: previous == nil ? task.dueDate : nil, sortIndex: index, project: project)
+            if let previous {
+                item.blockedByID = previous.id
+                item.dueInDaysAfterBlocker = task.dueInDays
+            }
+            context.insert(item)
+            previous = item
             index += 1
         }
     }

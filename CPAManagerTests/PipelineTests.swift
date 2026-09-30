@@ -83,7 +83,7 @@ final class PipelineLogicTests: XCTestCase {
         XCTAssertEqual(plan.status, .awaitingDocs)
         XCTAssertFalse(plan.isDone)
         XCTAssertEqual(plan.dueDate, date(2026, 10, 14))
-        XCTAssertEqual(plan.tasks, [PipelineMove.NewTask(title: "Collect IDs", dueDate: date(2026, 10, 3))], "blank task titles are skipped")
+        XCTAssertEqual(plan.tasks, [PipelineMove.NewTask(title: "Collect IDs", dueDate: date(2026, 10, 3), dueInDays: 3)], "blank task titles are skipped")
     }
 
     func testDoneStageCompletesAndLeavesDueDateAlone() {
@@ -371,5 +371,32 @@ final class PipelineEngineTests: XCTestCase {
         let project = WorkflowEngine.instantiate(template: template, for: nil, into: context)
         XCTAssertEqual(project.pipelineID, pipeline.id)
     }
-}
 
+    func testStageTasksAreChainedAndDatedOnlyWhenThePreviousIsDone() throws {
+        let context = try makeContext()
+        let project = Project(title: "Chain")
+        context.insert(project)
+        let stage = PipelineStage(name: "Setup", automation: StageAutomation(tasks: [
+            StageTask(title: "First", dueInDays: 1),
+            StageTask(title: "Second", dueInDays: 3),
+            StageTask(title: "Third", dueInDays: 2)
+        ]))
+        PipelineEngine.enter(project, stage: stage, context: context)
+
+        let tasks = project.taskList.sorted { $0.sortIndex < $1.sortIndex }
+        XCTAssertEqual(tasks.map(\.title), ["First", "Second", "Third"])
+        XCTAssertNotNil(tasks[0].dueDate)
+        XCTAssertNil(tasks[1].dueDate, "no date until First is done")
+        XCTAssertNil(tasks[2].dueDate)
+        XCTAssertEqual(tasks[1].blockedByID, tasks[0].id)
+        XCTAssertEqual(tasks[2].blockedByID, tasks[1].id)
+
+        let now = Date.now
+        TaskCompletion.complete(tasks[0], context: context, now: now)
+        XCTAssertEqual(tasks[1].dueDate, TaskDependencies.dueDateOnUnblock(daysAfter: 3, completedAt: now))
+        XCTAssertNil(tasks[2].dueDate, "Third still waits on Second")
+
+        TaskCompletion.undo(tasks[0], spawned: nil, context: context)
+        XCTAssertNil(tasks[1].dueDate, "undo takes the date away again")
+    }
+}

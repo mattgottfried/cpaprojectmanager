@@ -9,6 +9,7 @@ enum TaskCompletion {
     static func complete(_ task: TaskItem, context: ModelContext, now: Date = .now) -> TaskItem? {
         guard !task.isDone else { return nil }
         task.toggle()
+        dateChainedTasks(after: task, completedAt: task.completedAt ?? now)
 
         let rule = task.repeatRule
         guard rule != .none,
@@ -32,5 +33,18 @@ enum TaskCompletion {
     static func undo(_ task: TaskItem, spawned: TaskItem?, context: ModelContext) {
         if task.isDone { task.toggle() }
         if let spawned { context.delete(spawned) }
+        for next in chained(after: task) where !next.isDone { next.dueDate = nil }
+    }
+
+    /// Pipeline tasks that were waiting on `task` and have no date yet.
+    private static func chained(after task: TaskItem) -> [TaskItem] {
+        (task.project?.tasks ?? []).filter { $0.blockedByID == task.id && $0.dueInDaysAfterBlocker != nil }
+    }
+
+    /// Gives the tasks that were waiting on `task` their due date, counted from today.
+    private static func dateChainedTasks(after task: TaskItem, completedAt: Date) {
+        for next in chained(after: task) where next.dueDate == nil && !next.isDone {
+            next.dueDate = TaskDependencies.dueDateOnUnblock(daysAfter: next.dueInDaysAfterBlocker ?? 0, completedAt: completedAt)
+        }
     }
 }

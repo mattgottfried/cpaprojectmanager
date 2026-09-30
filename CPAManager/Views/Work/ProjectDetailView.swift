@@ -289,7 +289,11 @@ struct ProjectDetailView: View {
     }
 
     private func toggle(_ task: TaskItem) {
-        task.toggle()
+        if task.isDone {
+            TaskCompletion.undo(task, spawned: nil, context: context)
+        } else {
+            TaskCompletion.complete(task, context: context)
+        }
         persist()
     }
 

@@ -140,7 +140,7 @@ enum HelpCatalog {
             id: "subtasks", title: "Subtasks and waiting", systemImage: "checklist",
             summary: "Break a task down and hold it until something else is done.",
             body: """
-            Tap the (i) on a task (or "Details…" in its long-press menu on Today) to add subtasks, note what you're waiting on, and choose another task it can't start until. A blocked task stays off Today and comes back automatically when the other task is finished.
+            Tap the (i) on a task (or "Details…" in its long-press menu on Today) to add subtasks, note what you're waiting on, and choose another task it can't start until. A blocked task stays off Today and comes back automatically when the other task is finished. Tasks a pipeline stage creates work this way: only the first has a due date, and each next one is dated when the one before it is completed.
             """,
             keywords: "checklist dependency blocked waiting on client"
         ),
