@@ -111,6 +111,12 @@ final class TaskDependencyTests: XCTestCase {
         XCTAssertFalse(TaskDependencies.isBlocked(blockedByID: nil, openTaskIDs: [a, b]))
     }
 
+    func testChainDelaysAreGapsBetweenStepOffsets() {
+        XCTAssertEqual(TaskDependencies.chainDelays(offsets: [0, 3, 6, 16]), [0, 3, 3, 10])
+        XCTAssertEqual(TaskDependencies.chainDelays(offsets: [5, 2]), [5, 0], "out-of-order offsets never go negative")
+        XCTAssertEqual(TaskDependencies.chainDelays(offsets: []), [])
+    }
+
     func testDueDateOnUnblockCountsFromCompletionDay() {
         var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
         let done = cal.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 15))!

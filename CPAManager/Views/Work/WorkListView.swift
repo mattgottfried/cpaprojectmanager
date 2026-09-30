@@ -12,6 +12,7 @@ struct WorkListView: View {
     @State private var linkedProject: Project?
     @Environment(AppRouter.self) private var router
     @State private var showingNewTaxReturn = false
+    @State private var projectToDelete: Project?
     @AppStorage("workShowsBoard") private var showBoard = false
 
     enum WorkFilter: String, CaseIterable, Identifiable {
@@ -71,6 +72,11 @@ struct WorkListView: View {
                                 ProjectRow(project: project)
                             }
                             .cardListRow()
+                            .contextMenu {
+                                Button(role: .destructive) { projectToDelete = project } label: {
+                                    Label("Delete Project", systemImage: "trash")
+                                }
+                            }
                             .swipeActions(edge: .leading) {
                                 if let next = PipelineEngine.nextStageName(for: project, in: pipelines) {
                                     Button {
@@ -137,6 +143,19 @@ struct WorkListView: View {
             .onChange(of: router.pendingLink) { _, _ in consumeLink() }
             .sheet(isPresented: $showingAdd) { ProjectFormView() }
             .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }
+            .confirmationDialog(
+                "Delete this project and its tasks?",
+                isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: projectToDelete
+            ) { project in
+                Button("Delete \"\(project.title)\"", role: .destructive) {
+                    context.delete(project)
+                    try? context.save()
+                    SnapshotBuilder.rebuild(context: context)
+                    projectToDelete = nil
+                }
+            }
         }
     }
 
