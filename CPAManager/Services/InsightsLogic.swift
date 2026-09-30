@@ -17,6 +17,8 @@ struct InsightsJob: Identifiable, Equatable {
     /// The latest thing that happened on the job: a task added or finished, time logged, a
     /// document added, or the job itself created.
     var lastActivity: Date
+    /// Days past the current stage's time limit (0 = within it, or no limit).
+    var stageDaysOver = 0
 }
 
 struct StageCount: Identifiable, Equatable {
@@ -60,6 +62,13 @@ enum JobInsights {
         return open(jobs)
             .filter { job in job.dueDate.map { calendar.startOfDay(for: $0) < today } ?? false }
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    /// Open jobs that have stayed in their stage past its time limit, worst first.
+    static func overStageLimit(_ jobs: [InsightsJob]) -> [InsightsJob] {
+        open(jobs).filter { $0.stageDaysOver > 0 }
+            .sorted { $0.stageDaysOver != $1.stageDaysOver ? $0.stageDaysOver > $1.stageDaysOver
+                      : $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
     static func inProgress(_ jobs: [InsightsJob]) -> [InsightsJob] {

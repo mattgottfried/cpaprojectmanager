@@ -19,6 +19,7 @@ enum PipelineEngine {
     static func runAutomation(_ automation: StageAutomation, stageKey: String, for project: Project, context: ModelContext, now: Date = .now) {
         let plan = PipelineMove.plan(entering: PipelineStage(name: "", automation: automation), now: now)
         if let due = plan.dueDate { project.dueDate = due }
+        StageRules.stamp(project, now: now)
 
         var index = (project.tasks ?? []).map(\.sortIndex).max().map { $0 + 1 } ?? 0
         var previous: TaskItem?
@@ -159,6 +160,9 @@ enum PipelineEngine {
         let done = project.taskList.filter { $0.stageKey == currentKey }.map(\.isDone)
         guard StageAutoMove.shouldMove(autoMove: automation.autoMove, completedTaskStageKey: task.stageKey,
                                        currentStageKey: currentKey, stageTasksDone: done) else { return false }
+        // Conditions (invoice paid, documents received…) must also hold; the sweep moves the job
+        // later if they become true after the last task is done.
+        guard StageConditions.allMet(automation.conditions, facts: StageRules.facts(for: project, context: context)) else { return false }
 
         if let custom {
             return advance(project, in: custom, context: context)

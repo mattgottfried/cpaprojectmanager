@@ -61,6 +61,8 @@ struct BackupFile: Codable {
         // Batch 7.
         var invoiceID: UUID? = nil; var billingStateRaw: String? = nil
         var driveFolderID: String? = nil; var driveFolderName: String? = nil
+        // Batch 10: stage clock.
+        var stageEnteredAt: Date? = nil; var stageEnteredKey: String? = nil
     }
     struct TaskRecord: Codable {
         var id: UUID; var title: String; var notes: String; var isDone: Bool; var dueDate: Date?; var sortIndex: Int
@@ -258,7 +260,8 @@ enum BackupService {
                   holdResumeStatusRaw: p.holdResumeStatusRaw, clientID: p.client?.id,
                   pipelineID: p.pipelineID, stageKey: p.stageKey,
                   invoiceID: p.invoiceID, billingStateRaw: p.billingStateRaw,
-                  driveFolderID: p.driveFolderID, driveFolderName: p.driveFolderName)
+                  driveFolderID: p.driveFolderID, driveFolderName: p.driveFolderName,
+                  stageEnteredAt: p.stageEnteredAt, stageEnteredKey: p.stageEnteredKey)
         }
         file.tasks = all(TaskItem.self).map { t in
             BackupFile.TaskRecord(id: t.id, title: t.title, notes: t.notes, isDone: t.isDone, dueDate: t.dueDate, sortIndex: t.sortIndex,
@@ -447,6 +450,7 @@ enum BackupService {
             p.pipelineID = r.pipelineID; p.stageKey = r.stageKey ?? ""
             p.invoiceID = r.invoiceID; p.billingStateRaw = r.billingStateRaw ?? ""
             p.driveFolderID = r.driveFolderID ?? ""; p.driveFolderName = r.driveFolderName ?? ""
+            p.stageEnteredAt = r.stageEnteredAt; p.stageEnteredKey = r.stageEnteredKey ?? ""
         }, link: { r, p in p.client = r.clientID.flatMap { clients[$0] } })
 
         _ = merge(TaskItem.self, id: \.id, records: file.tasks, recordID: { $0.id }, make: { TaskItem() }, fill: { r, t in

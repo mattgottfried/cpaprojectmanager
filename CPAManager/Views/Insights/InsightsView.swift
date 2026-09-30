@@ -30,7 +30,7 @@ struct InsightsView: View {
     }
 
     private var rows: [TaskTableRow] { TaskTableService.rows(tasks: tasks, pipelines: pipelines) }
-    private var jobs: [InsightsJob] { InsightsService.jobs(projects: projects, pipelines: pipelines) }
+    private var jobs: [InsightsJob] { InsightsService.jobs(projects: projects, pipelines: pipelines, context: context) }
 
     var body: some View {
         let currentJobs = self.jobs
@@ -174,6 +174,7 @@ struct InsightsView: View {
         let quiet = JobInsights.noActivity(jobs, overDays: quietDays)
         let overdue = JobInsights.overdue(jobs)
         let inProgress = JobInsights.inProgress(jobs)
+        let overLimit = JobInsights.overStageLimit(jobs)
         return VStack(alignment: .leading, spacing: 10) {
             Text("Jobs").font(.title3.weight(.semibold))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 210), spacing: 12)], spacing: 12) {
@@ -191,6 +192,10 @@ struct InsightsView: View {
 
                 counterCard(count: overdue.count, title: "Overdue", tint: .bad) { EmptyView() } onTap: {
                     jobList = JobList(title: "Overdue jobs", jobs: overdue)
+                }
+
+                counterCard(count: overLimit.count, title: "Over stage time limit", tint: .bad) { EmptyView() } onTap: {
+                    jobList = JobList(title: "Jobs past their stage's time limit", jobs: overLimit)
                 }
 
                 counterCard(count: inProgress.count, title: "In progress", tint: .info) { EmptyView() } onTap: {

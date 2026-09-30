@@ -66,25 +66,34 @@ struct StageAutomation: Codable, Equatable {
     var setDueInDays: Int? = nil
     /// "Automove": when every task this stage created is done, move the job to the next stage.
     var autoMove = false
+    /// Days a job may stay in this stage before it counts as over the limit.
+    var timeLimitDays: Int? = nil
+    /// Must all be true before automove moves the job on.
+    var conditions: [StageCondition] = []
 
-    init(tasks: [StageTask] = [], setDueInDays: Int? = nil, autoMove: Bool = false) {
+    init(tasks: [StageTask] = [], setDueInDays: Int? = nil, autoMove: Bool = false,
+         timeLimitDays: Int? = nil, conditions: [StageCondition] = []) {
         self.tasks = tasks
         self.setDueInDays = setDueInDays
         self.autoMove = autoMove
+        self.timeLimitDays = timeLimitDays
+        self.conditions = conditions
     }
 
     // Older saved pipelines have no `autoMove` (or even `tasks`); read them as "off"/empty
     // instead of failing to decode the whole stage list.
-    private enum CodingKeys: String, CodingKey { case tasks, setDueInDays, autoMove }
+    private enum CodingKeys: String, CodingKey { case tasks, setDueInDays, autoMove, timeLimitDays, conditions }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         tasks = try c.decodeIfPresent([StageTask].self, forKey: .tasks) ?? []
         setDueInDays = try c.decodeIfPresent(Int.self, forKey: .setDueInDays)
         autoMove = try c.decodeIfPresent(Bool.self, forKey: .autoMove) ?? false
+        timeLimitDays = try c.decodeIfPresent(Int.self, forKey: .timeLimitDays)
+        conditions = try c.decodeIfPresent([StageCondition].self, forKey: .conditions) ?? []
     }
 
-    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil && !autoMove }
+    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil && !autoMove && timeLimitDays == nil && conditions.isEmpty }
 }
 
 /// The automove rule: a job moves on when the task just completed belongs to its current
