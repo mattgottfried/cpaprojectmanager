@@ -56,11 +56,16 @@ struct ProjectFormView: View {
                 }
 
                 Section {
-                    Picker("Service", selection: $serviceType) {
+                    Picker("Service", selection: Binding(
+                        get: { serviceType },
+                        set: { serviceType = $0; status = StatusFlow.flow(for: $0).normalize(status) }
+                    )) {
                         ForEach(ServiceType.allCases) { Text($0.label).tag($0) }
                     }
                     Picker("Status", selection: $status) {
-                        ForEach(ProjectStatus.allCases) { Text($0.label).tag($0) }
+                        ForEach(StatusFlow.flow(for: serviceType).statuses) {
+                            Text(StatusFlow.flow(for: serviceType).label($0)).tag($0)
+                        }
                     }
                     Picker("Priority", selection: $priority) {
                         ForEach(Priority.allCases) { Text($0.label).tag($0) }
@@ -100,7 +105,7 @@ struct ProjectFormView: View {
         if let project {
             title = project.title
             detail = project.detail
-            status = project.status
+            status = project.statusFlow.normalize(project.status)
             serviceType = project.serviceType
             priority = project.priority
             selectedClientID = project.client?.id

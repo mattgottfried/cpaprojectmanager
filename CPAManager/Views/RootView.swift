@@ -205,6 +205,7 @@ struct RootView: View {
         SettingsSync.shared.start()
         SpotlightIndexer.reindex(context: context)
         SeedData.seedIfNeeded(context: context)
+        StatusMigration.run(context: context)
         applyHandoffs()
         RecurrenceService.run(context: context)
         RecurringInvoiceService.run(context: context)

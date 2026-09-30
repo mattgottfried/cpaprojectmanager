@@ -167,6 +167,19 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Backup**: new collections/fields are *optional* in `BackupFile` so older backups decode
   (`testBackupFromBeforeBatch5StillDecodes`).
 
+### Statuses vs pipelines (after batch 6)
+
+- `ProjectStatus` raw values are stored on every project and never change. **Which statuses
+  a job offers comes from `StatusFlow`**: `.taxReturn` (Not Started, In Progress, On Hold,
+  Awaiting Signature, Ready to File, Filed, Complete) for `serviceType == .taxReturn`, else
+  `.general` (Not Started, In Progress, Waiting on Client, Completed). Use
+  `project.statusFlow` / `statusLabel` / `flow.label(_:)` — never `status.label` for work.
+  `awaitingDocs` and `review` are retired; `StatusFlow.normalize` maps them and
+  `StatusMigration.run` (on launch, idempotent) rewrites old data.
+- The two built-in pipelines are virtual (`PipelineDefinition.builtIn(flow)`). Custom
+  pipelines keep their own stages; their jobs are never "on hold" (`isOnHold` needs
+  `pipelineID == nil`). `StageKind.waiting` maps to `.waitingOnClient`, `.review` to `.inProgress`.
+
 ### Batch 6: quotes, subtasks, signatures, import, tax season, windows, health
 
 - **Quotes/fees** (`BillingLogic.swift` pure, `Quote`/`FeeItem` in `Models/Billing.swift`,

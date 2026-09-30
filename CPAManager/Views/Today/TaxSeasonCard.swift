@@ -49,7 +49,7 @@ struct TaxSeasonCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(s.stages) { stage in
-                                CapsuleBadge(text: "\(stage.status.label) \(stage.count)", systemImage: stage.status.systemImage, state: .info)
+                                CapsuleBadge(text: "\(StatusFlow.taxReturn.label(stage.status)) \(stage.count)", systemImage: stage.status.systemImage, state: .info)
                             }
                         }
                     }

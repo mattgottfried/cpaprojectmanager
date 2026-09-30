@@ -215,10 +215,10 @@ enum RemindersImporter {
 
     private static let stageListNames: [String: ProjectStatus] = [
         "not started": .notStarted,
-        "awaiting docs": .awaitingDocs,
+        "awaiting docs": .notStarted,
         "in progress": .inProgress,
         "on hold": .waitingOnClient,
-        "in review": .review,
+        "in review": .inProgress,
         "awaiting signature": .awaitingSignature,
         "ready to file": .readyToFile,
         "filed": .filed,

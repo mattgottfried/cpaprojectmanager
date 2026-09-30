@@ -13,13 +13,17 @@ final class PipelineLogicTests: XCTestCase {
         calendar.date(from: DateComponents(year: y, month: m, day: d, hour: hour))!
     }
 
-    func testStandardPipelineMirrorsProjectStatuses() {
-        let standard = PipelineDefinition.standard
-        XCTAssertEqual(standard.stages.count, ProjectStatus.allCases.count)
-        XCTAssertEqual(standard.firstStage?.id, ProjectStatus.notStarted.rawValue)
-        XCTAssertEqual(standard.stages.last?.kind, .done)
-        XCTAssertEqual(Set(standard.stages.map { $0.id }).count, standard.stages.count)
-        XCTAssertFalse(standard.boardStages.contains { $0.id == ProjectStatus.complete.rawValue })
+    func testBuiltInPipelinesMirrorTheirStatusFlows() {
+        for flow in StatusFlow.allCases {
+            let definition = PipelineDefinition.builtIn(flow)
+            XCTAssertEqual(definition.stages.map { $0.id }, flow.statuses.map { $0.rawValue })
+            XCTAssertEqual(definition.stages.map { $0.name }, flow.statuses.map { flow.label($0) })
+            XCTAssertEqual(definition.firstStage?.id, ProjectStatus.notStarted.rawValue)
+            XCTAssertEqual(definition.stages.last?.kind, .done)
+            XCTAssertEqual(Set(definition.stages.map { $0.id }).count, definition.stages.count)
+            XCTAssertFalse(definition.boardStages.contains { $0.id == ProjectStatus.complete.rawValue })
+        }
+        XCTAssertEqual(PipelineDefinition.standard, PipelineDefinition.builtIn(.taxReturn))
     }
 
     func testEveryKindMapsToALegacyStatusAndOnlyDoneIsComplete() {
@@ -92,10 +96,14 @@ final class PipelineLogicTests: XCTestCase {
         XCTAssertEqual(info.name, "Documents & setup")
         XCTAssertEqual(info.color, .orange)
 
-        // Built-in pipeline: the status is the stage.
-        let standard = PipelineResolver.info(definition: nil, stageKey: "", status: .review)
-        XCTAssertEqual(standard.name, ProjectStatus.review.label)
-        XCTAssertEqual(standard.color, .purple)
+        // Built-in pipeline: the status is the stage (a tax return's Awaiting Signature).
+        let standard = PipelineResolver.info(definition: nil, stageKey: "", status: .awaitingSignature)
+        XCTAssertEqual(standard.name, "Awaiting Signature")
+        XCTAssertEqual(standard.color, .yellow)
+        // Out-of-flow statuses read as the stage they map to; general work says "Waiting on Client".
+        XCTAssertEqual(PipelineResolver.info(definition: nil, stageKey: "", status: .review).name, "In Progress")
+        XCTAssertEqual(PipelineResolver.info(definition: nil, stageKey: "", status: .waitingOnClient, flow: .general).name, "Waiting on Client")
+        XCTAssertEqual(PipelineResolver.info(definition: nil, stageKey: "", status: .waitingOnClient, flow: .taxReturn).name, "On Hold")
 
         // A custom stage that no longer exists falls back to the coarse status.
         let orphan = PipelineResolver.info(definition: custom, stageKey: "deleted", status: .inProgress)

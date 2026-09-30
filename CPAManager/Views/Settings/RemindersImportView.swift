@@ -153,7 +153,7 @@ struct RemindersImportView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.wrappedValue.title).font(.subheadline.weight(.medium))
                 HStack(spacing: 6) {
-                    Text(item.wrappedValue.status.label)
+                    Text(StatusFlow.taxReturn.label(item.wrappedValue.status))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     if item.wrappedValue.isDuplicate {

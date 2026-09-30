@@ -69,11 +69,24 @@ struct ReportsView: View {
 
     private var unbilledByClient: [ClientAmount] { grouped(timeEntries.filter(\.isUnbilled)) }
 
-    private var statusCounts: [(status: ProjectStatus, count: Int)] {
-        ProjectStatus.allCases.compactMap { status in
-            let count = projects.filter { $0.status == status }.count
-            return count > 0 ? (status, count) : nil
+    private struct StatusCount: Identifiable {
+        let flow: StatusFlow
+        let status: ProjectStatus
+        let count: Int
+        var id: String { "\(flow.rawValue)-\(status.rawValue)" }
+    }
+
+    /// Open-work counts, tax returns and other work listed separately (they use different stages).
+    private var statusCounts: [StatusCount] {
+        var rows: [StatusCount] = []
+        for flow in StatusFlow.allCases {
+            let inFlow = projects.filter { $0.pipelineID == nil && $0.statusFlow == flow }
+            for status in flow.statuses {
+                let count = inFlow.filter { flow.normalize($0.status) == status }.count
+                if count > 0 { rows.append(StatusCount(flow: flow, status: status, count: count)) }
+            }
         }
+        return rows
     }
 
     private var overdueProjects: [Project] {
@@ -143,9 +156,10 @@ struct ReportsView: View {
 
                 if !statusCounts.isEmpty {
                     SectionCard(title: "Open Work by Stage", systemImage: "checklist", state: .info) {
-                        ForEach(statusCounts, id: \.status) { entry in
+                        ForEach(statusCounts) { entry in
                             HStack {
-                                StatusBadge(status: entry.status)
+                                StatusBadge(status: entry.status, flow: entry.flow)
+                                Text(entry.flow.pipelineName).font(.caption).foregroundStyle(.secondary)
                                 Spacer()
                                 Text("\(entry.count)").font(.subheadline.monospacedDigit())
                             }

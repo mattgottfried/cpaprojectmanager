@@ -38,8 +38,8 @@ enum StageKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .notStarted: return .notStarted
         case .working:    return .inProgress
-        case .waiting:    return .awaitingDocs
-        case .review:     return .review
+        case .waiting:    return .waitingOnClient
+        case .review:     return .inProgress
         case .done:       return .complete
         }
     }
@@ -126,18 +126,20 @@ struct PipelineDefinition: Equatable {
 
     // MARK: Built-in pipeline
 
-    /// The original tax-return pipeline. It is virtual (never stored): projects with no
-    /// `pipelineID` live in it, and their stage *is* their `ProjectStatus`.
-    static let standardName = "Tax Return"
+    /// The built-in pipelines. They are virtual (never stored): a project with no
+    /// `pipelineID` lives in the one for its service type, and its stage *is* its
+    /// `ProjectStatus` (stage id = the status raw value).
+    static let standardName = StatusFlow.taxReturn.pipelineName
 
-    static var standard: PipelineDefinition {
-        let stages: [PipelineStage] = ProjectStatus.allCases
-            .sorted { $0.order < $1.order }
-            .map { status in
-                PipelineStage(id: status.rawValue, name: status.label, kind: standardKind(status), color: standardColor(status))
-            }
-        return PipelineDefinition(name: standardName, systemImage: "doc.text.fill", stages: stages)
+    static func builtIn(_ flow: StatusFlow) -> PipelineDefinition {
+        let stages: [PipelineStage] = flow.statuses.map { status in
+            PipelineStage(id: status.rawValue, name: flow.label(status), kind: standardKind(status), color: standardColor(status))
+        }
+        return PipelineDefinition(name: flow.pipelineName, systemImage: flow == .taxReturn ? "doc.text.fill" : "checklist", stages: stages)
     }
+
+    /// The tax-return pipeline (kept for callers that predate the split).
+    static var standard: PipelineDefinition { builtIn(.taxReturn) }
 
     private static func standardKind(_ status: ProjectStatus) -> StageKind {
         switch status {
@@ -178,7 +180,8 @@ enum PipelineResolver {
     ///   - stageKey: `Project.stageKey`.
     ///   - status: the job's legacy status (authoritative for the built-in pipeline, and
     ///     the fallback when a custom stage has since been deleted).
-    static func info(definition: PipelineDefinition?, stageKey: String, status: ProjectStatus) -> StageInfo {
+    static func info(definition: PipelineDefinition?, stageKey: String, status rawStatus: ProjectStatus, flow: StatusFlow = .taxReturn) -> StageInfo {
+        let status = flow.normalize(rawStatus)
         if let definition {
             if let stage = definition.stage(withKey: stageKey) {
                 return StageInfo(name: stage.name, color: stage.color, systemImage: stage.kind.systemImage, isDone: stage.kind.isDone)
@@ -187,7 +190,7 @@ enum PipelineResolver {
         }
         let standard = PipelineDefinition.standard.stage(withKey: status.rawValue)
         return StageInfo(
-            name: status.label,
+            name: flow.label(status),
             color: standard?.color ?? .gray,
             systemImage: status.systemImage,
             isDone: status.isComplete

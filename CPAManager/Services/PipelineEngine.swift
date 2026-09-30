@@ -51,14 +51,11 @@ enum PipelineEngine {
     }
 
     static func info(for project: Project, in pipelines: [Pipeline]) -> StageInfo {
-        // "On Hold" is a job-level state in every pipeline, so show it as such.
-        if project.isOnHold {
-            return PipelineResolver.info(definition: nil, stageKey: "", status: project.status)
-        }
-        return PipelineResolver.info(
+        PipelineResolver.info(
             definition: pipeline(for: project, in: pipelines)?.definition,
             stageKey: project.stageKey,
-            status: project.status
+            status: project.status,
+            flow: project.statusFlow
         )
     }
 
@@ -67,7 +64,7 @@ enum PipelineEngine {
         if let custom = pipeline(for: project, in: pipelines) {
             return custom.definition.next(after: project.stageKey)?.name
         }
-        return project.nextStatusPreview?.label
+        return project.nextStatusPreview.map { project.statusFlow.label($0) }
     }
 
     /// One-tap advance for either kind of pipeline.
