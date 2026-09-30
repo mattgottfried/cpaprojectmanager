@@ -15,6 +15,15 @@ enum TaskDependencies {
         return calendar.date(byAdding: .day, value: max(0, daysAfter), to: day) ?? day
     }
 
+    /// Days between consecutive template steps whose offsets count from the job's start:
+    /// the first keeps its own offset, each later one gets the gap after the step before
+    /// it (never negative). Used to date a chained step once its predecessor is done.
+    static func chainDelays(offsets: [Int]) -> [Int] {
+        offsets.enumerated().map { index, offset in
+            index == 0 ? max(0, offset) : max(0, offset - offsets[index - 1])
+        }
+    }
+
     /// True if making `taskID` depend on `newBlockerID` would loop back on itself
     /// (A blocked by B blocked by A). `blockedBy` maps task id → the id it waits on.
     static func wouldCreateCycle(taskID: UUID, newBlockerID: UUID, blockedBy: [UUID: UUID]) -> Bool {

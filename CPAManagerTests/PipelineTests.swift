@@ -399,4 +399,26 @@ final class PipelineEngineTests: XCTestCase {
         TaskCompletion.undo(tasks[0], spawned: nil, context: context)
         XCTAssertNil(tasks[1].dueDate, "undo takes the date away again")
     }
+
+    func testTemplateStepsAreChainedToo() throws {
+        let context = try makeContext()
+        let template = WorkflowTemplate(name: "Steps", serviceType: .bookkeeping)
+        context.insert(template)
+        for (i, day) in [0, 3, 10].enumerated() {
+            context.insert(TemplateTask(title: "S\(i)", sortIndex: i, dayOffset: day, template: template))
+        }
+        let project = WorkflowEngine.instantiate(template: template, for: nil, into: context)
+        let tasks = project.taskList.sorted { $0.sortIndex < $1.sortIndex }
+        XCTAssertEqual(tasks.count, 3)
+        XCTAssertNotNil(tasks[0].dueDate)
+        XCTAssertNil(tasks[1].dueDate)
+        XCTAssertNil(tasks[2].dueDate)
+        XCTAssertEqual(tasks[2].blockedByID, tasks[1].id)
+        XCTAssertEqual(tasks[2].dueInDaysAfterBlocker, 7)
+
+        let now = Date.now
+        TaskCompletion.complete(tasks[0], context: context, now: now)
+        XCTAssertEqual(tasks[1].dueDate, TaskDependencies.dueDateOnUnblock(daysAfter: 3, completedAt: now))
+        XCTAssertNil(tasks[2].dueDate)
+    }
 }

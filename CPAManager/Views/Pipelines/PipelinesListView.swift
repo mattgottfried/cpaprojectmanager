@@ -16,12 +16,14 @@ struct PipelinesListView: View {
         List {
             Section {
                 ForEach(ServiceType.allCases) { service in
-                    ServicePipelineRow(service: service, pipelines: pipelines)
+                    ServicePipelineRow(service: service, pipelines: pipelines) { pipeline in
+                        editing = pipeline
+                    }
                 }
             } header: {
                 Text("Pipeline for each service")
             } footer: {
-                Text("Every service has its own built-in pipeline. Tax returns use Not Started → In Progress → Awaiting Signature → Ready to File → Filed → Complete; other services use Not Started → In Progress → Completed. On Hold / Waiting on Client is never entered automatically — you choose it. To change a service's stages, make a pipeline below and pick it here; new work of that service starts in it.")
+                Text("Every service has its own built-in pipeline. Tax returns use Not Started → In Progress → Awaiting Signature → Ready to File → Filed → Complete; other services use Not Started → In Progress → Completed. On Hold / Waiting on Client is never entered automatically — you choose it. Tap Customize stages on a service to copy its built-in stages into a pipeline you can rename, reorder and add automatic tasks to; new work of that service then starts in it. Custom stages keep only the broad status: Not started, In progress, Waiting or Done.")
             }
 
             Section("Your pipelines") {
@@ -93,13 +95,16 @@ struct PipelinesListView: View {
 
 /// One service's pipeline: the built-in stages, or a custom pipeline you've chosen for it.
 private struct ServicePipelineRow: View {
+    @Environment(\.modelContext) private var context
     let service: ServiceType
     let pipelines: [Pipeline]
+    let onCustomize: (Pipeline) -> Void
     @AppStorage private var chosen: String
 
-    init(service: ServiceType, pipelines: [Pipeline]) {
+    init(service: ServiceType, pipelines: [Pipeline], onCustomize: @escaping (Pipeline) -> Void) {
         self.service = service
         self.pipelines = pipelines
+        self.onCustomize = onCustomize
         _chosen = AppStorage(wrappedValue: "", PipelineDefaults.key(for: service))
     }
 
@@ -117,7 +122,27 @@ private struct ServicePipelineRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
+            if chosen.isEmpty {
+                Button("Customize stages…") { customize() }
+                    .font(.caption)
+            }
         }
+    }
+
+    /// Copies the built-in stages into a real pipeline, makes it this service's default,
+    /// and opens it for editing.
+    private func customize() {
+        var definition = builtIn
+        definition.stages = definition.stages.map { stage in
+            var copy = stage
+            copy.id = UUID().uuidString
+            return copy
+        }
+        let pipeline = Pipeline(definition: definition, sortIndex: pipelines.count)
+        context.insert(pipeline)
+        try? context.save()
+        chosen = pipeline.id.uuidString
+        onCustomize(pipeline)
     }
 
     private var stageSummary: String {

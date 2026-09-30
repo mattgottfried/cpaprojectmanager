@@ -1,6 +1,7 @@
-Build 7 - what's new (please test):
+Build 8 - what's new (please test):
 
-- PIPELINE TASKS NOW GO ONE AT A TIME. When a job enters a stage with several tasks, only the first gets a due date. Each next task stays off Today, undated, until you complete the one before it; then it gets its date (its "due in N days" counted from that day). Undo brings the date back off.
-- Ticking a task inside a job now follows the same rules as Today (repeats, chains).
+- JOB STEPS GO ONE AT A TIME. Tasks that come from a template (e.g. a tax return's steps) now behave like pipeline-stage tasks: only the first has a due date; each next one stays off Today until you complete the one before it, then gets dated (the gap between the two steps in the template, counted from that day). Only NEW jobs are affected.
+- More > Pipelines: tap "Customize stages..." on any service to copy its built-in stages into your own pipeline (rename, reorder, add stage tasks).
+- Templates (More > Templates) were already editable; steps can be renamed, reordered, re-dated.
 
-Still worth checking from build 6: Cloud Sync (Settings > Cloud Sync) across devices, per-service pipelines, status split.
+Still worth checking: Cloud Sync across devices.

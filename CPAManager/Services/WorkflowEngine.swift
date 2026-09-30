@@ -63,15 +63,24 @@ enum WorkflowEngine {
         into context: ModelContext
     ) {
         let cal = Calendar.current
-        for (offset, templateTask) in template.taskList.enumerated() {
-            let taskDue = cal.date(byAdding: .day, value: templateTask.dayOffset, to: baseDate)
+        // Steps go one at a time: only the first is dated. Each later step waits on the one
+        // before it and is dated when that one is completed (`TaskCompletion.complete`).
+        let steps = template.taskList
+        let delays = TaskDependencies.chainDelays(offsets: steps.map(\.dayOffset))
+        var previous: TaskItem?
+        for (offset, templateTask) in steps.enumerated() {
             let item = TaskItem(
                 title: templateTask.title,
-                dueDate: taskDue,
+                dueDate: previous == nil ? cal.date(byAdding: .day, value: templateTask.dayOffset, to: baseDate) : nil,
                 sortIndex: startIndex + offset,
                 project: project
             )
+            if let previous {
+                item.blockedByID = previous.id
+                item.dueInDaysAfterBlocker = delays[offset]
+            }
             context.insert(item)
+            previous = item
         }
     }
 
