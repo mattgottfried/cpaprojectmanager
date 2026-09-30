@@ -196,6 +196,7 @@ struct ReportsView: View {
             .padding()
         }
         .background(Color.appGroupedBackground)
+        .macReadableWidth(960)
         .navigationTitle("Reports")
     }
 }

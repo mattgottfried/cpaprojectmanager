@@ -143,9 +143,9 @@ struct DocumentsSectionView: View {
             DocumentPreviewView(document: document)
         }
         .sheet(isPresented: $showingDriveBrowser) {
-            DriveBrowserView(mode: .files, startFolder: startFolder) { picked in
+            DriveBrowserView(mode: .files, startFolder: startFolder, onPickFiles: { picked in
                 DriveLinker.link(picked, client: client, project: project, context: context)
-            }
+            })
         }
     }
 

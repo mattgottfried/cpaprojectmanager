@@ -211,6 +211,37 @@ CPAManagerTests/  XCTest for the pure logic above.
   duplicate seeded templates, shared client emails, forgotten timers. `docs/TESTING.md` is the
   manual device checklist.
 
+### Batch 7: lists, money, stage tasks, Drive, reliability
+
+- **Owner doesn't use QuickBooks Online** — never build features that depend on QBO (the old
+  code stays, unused). Documents live in Google Drive, not in the app.
+- **Lists** (`ListInteractionLogic.swift` pure): `ListSelection` drives select mode + the Mac
+  keyboard cursor on Work and Clients (`SelectableRow`, `BulkBar`, `listKeyboard` in
+  `ListSelectionViews.swift`); `NextStep` picks a job's next open task (`Project.nextTask`).
+  **Undo**: `ModelContext.performUndoable / deleteWithUndo` snapshot the store with
+  `BackupService.export` and restore it on Undo (`overwrite: true` for edits; deletes only re-add).
+  New delete/bulk paths should use it and show the toast, not a confirmation.
+- **Stage tasks**: `StageAutomation` (tasks + due-date reset) runs through
+  `PipelineEngine.runAutomation` for custom stages *and* for the built-in pipelines, whose
+  per-(service, stage) setup lives in synced `BuiltInStageSetup` (`BuiltInSetup.resolve`: newest
+  wins). Move built-in jobs with `PipelineEngine.setBuiltInStatus/advanceAny/complete`, never
+  by assigning `project.status` directly. **Tasks from a stage or a template are chained**: only
+  the first is dated; later ones carry `blockedByID` + `dueInDaysAfterBlocker` and get their date
+  in `TaskCompletion.complete` (undo clears it).
+- **Money/practice** (`BillingInsightsLogic`, `PracticeInsightsLogic` pure; `…Service`
+  store-facing): bill a finished job (`Project.invoiceID/billingStateRaw`), unbilled-work report,
+  tiered payment reminders (logged as an Interaction; mailto links go through `MailtoBuilder`,
+  which encodes `&`), effective hourly rate, extension tracker (uses `TaxCalendar`), client health
+  card, year-over-year carryover on New Tax Return.
+- **Google Drive** (`DriveLogic.swift` pure, `DriveLinker`, `Views/Drive/`): read-only
+  (`drive.readonly`). `Client/Project.driveFolderID/Name` and `Document.driveFileID/URL/MimeType`
+  (a linked document has empty `data`). Never upload, copy, move or delete Drive files.
+- **Reliability**: `SyncHealth` (pure) explains engine state; `DuplicateClients` +
+  `ClientMergeService` merge look-alike clients; `AutoBackupService` writes a daily backup
+  (last 7, per device, not synced). File-carrying records always send their file on edit.
+- **Navigation**: `AppSection.tools` (Extensions, Pipelines, Fee Schedule, Letters, Import, Data
+  Health, Sync Health, Backups, Help) are sidebar items on iPad/Mac; iPhone reaches them via More.
+
 ### Cloud sync (Firestore) — replaced CloudKit mirroring
 
 - `Persistence` opens a **purely local** store (`cloudKitDatabase: .none`). `Services/Sync/`
