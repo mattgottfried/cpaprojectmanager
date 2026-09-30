@@ -358,7 +358,7 @@ struct TasksPageView: View {
     // MARK: Content
 
     @ViewBuilder
-    private func content(rows: [TaskTableRow], groups: [TaskGroup]) -> some View {
+    private func content(rows: [TaskTableRow], groups: [TaskRowGroup]) -> some View {
         switch layout {
         case .table:
             if groups.isEmpty {
@@ -380,7 +380,7 @@ struct TasksPageView: View {
         }
     }
 
-    private func taskList(_ groups: [TaskGroup]) -> some View {
+    private func taskList(_ groups: [TaskRowGroup]) -> some View {
         List {
             if layout == .table && isWide { columnHeader }
             ForEach(groups) { group in

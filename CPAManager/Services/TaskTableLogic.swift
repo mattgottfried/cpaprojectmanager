@@ -204,7 +204,7 @@ enum TaskGrouping: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-struct TaskGroup: Identifiable, Equatable {
+struct TaskRowGroup: Identifiable, Equatable {
     var id: String
     var title: String
     var rows: [TaskTableRow]
@@ -215,7 +215,7 @@ enum TaskTable {
     static func apply(
         _ rows: [TaskTableRow], tab: TaskTab, filter: TaskFilter, sort: TaskSort, grouping: TaskGrouping,
         now: Date = .now, calendar: Calendar = .current
-    ) -> [TaskGroup] {
+    ) -> [TaskRowGroup] {
         let shown = rows
             .filter { tab == .pending ? !$0.isDone : $0.isDone }
             .filter { filter.matches($0, now: now, calendar: calendar) }
@@ -258,9 +258,9 @@ enum TaskTable {
         return a.id.uuidString < b.id.uuidString
     }
 
-    static func group(_ rows: [TaskTableRow], by grouping: TaskGrouping, now: Date, calendar: Calendar) -> [TaskGroup] {
+    static func group(_ rows: [TaskTableRow], by grouping: TaskGrouping, now: Date, calendar: Calendar) -> [TaskRowGroup] {
         guard grouping != .none else {
-            return rows.isEmpty ? [] : [TaskGroup(id: "all", title: "", rows: rows)]
+            return rows.isEmpty ? [] : [TaskRowGroup(id: "all", title: "", rows: rows)]
         }
         var buckets: [String: [TaskTableRow]] = [:]
         var titles: [String: String] = [:]
@@ -298,7 +298,7 @@ enum TaskTable {
             if ra != rb { return ra < rb }
             return (titles[a] ?? "").localizedCaseInsensitiveCompare(titles[b] ?? "") == .orderedAscending
         }
-        .map { TaskGroup(id: $0, title: titles[$0] ?? "", rows: buckets[$0] ?? []) }
+        .map { TaskRowGroup(id: $0, title: titles[$0] ?? "", rows: buckets[$0] ?? []) }
     }
 }
 

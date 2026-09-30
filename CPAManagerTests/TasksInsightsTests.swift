@@ -24,7 +24,7 @@ private func row(_ title: String, job: String = "", client: String = "", due: Da
 }
 
 final class TaskTableTests: XCTestCase {
-    private func titles(_ groups: [TaskGroup]) -> [String] { groups.flatMap(\.rows).map(\.title) }
+    private func titles(_ groups: [TaskRowGroup]) -> [String] { groups.flatMap(\.rows).map(\.title) }
 
     func testTabsSplitPendingAndCompleted() {
         let rows = [row("open"), row("done", done: true, completed: now)]
