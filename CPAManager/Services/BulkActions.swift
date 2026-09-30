@@ -35,6 +35,7 @@ extension ModelContext {
     ///     something that owns files, such as a client or a job).
     ///   - overwrite: restore over records that changed (edits) rather than only re-adding
     ///     missing ones (deletes).
+    @MainActor
     @discardableResult
     func performUndoable(
         _ message: String,
@@ -48,13 +49,17 @@ extension ModelContext {
         try? save()
         SnapshotBuilder.rebuild(context: self)
         return UndoToastState(message: message, systemImage: systemImage) { [self] in
-            _ = BackupService.restore(snapshot, into: self, overwrite: overwrite)
-            try? save()
-            SnapshotBuilder.rebuild(context: self)
+            // Undo is tapped on the main thread; the toast's closure type just doesn't say so.
+            MainActor.assumeIsolated {
+                _ = BackupService.restore(snapshot, into: self, overwrite: overwrite)
+                try? save()
+                SnapshotBuilder.rebuild(context: self)
+            }
         }
     }
 
     /// `performUndoable` for deletes.
+    @MainActor
     @discardableResult
     func deleteWithUndo(_ message: String, includeFiles: Bool = false, _ work: () -> Void) -> UndoToastState {
         performUndoable(message, systemImage: "trash", includeFiles: includeFiles, overwrite: false, work)
