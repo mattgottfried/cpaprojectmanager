@@ -43,7 +43,7 @@ struct TemplateFormView: View {
                             get: { pipelineID },
                             set: { pipelineID = $0; startStageKey = "" }
                         )) {
-                            Text(PipelineDefinition.standardName).tag(UUID?.none)
+                            Text("Built-in (by service type)").tag(UUID?.none)
                             ForEach(pipelines) { Text($0.name).tag(Optional($0.id)) }
                         }
                         if let selected = pipelines.first(where: { $0.id == pipelineID }) {

@@ -1,13 +1,10 @@
-Build 4 - what's new (please test):
+Build 5 - what's new (please test):
 
-- Quotes & Fee Schedule (More): make a quote, export the PDF, turn it into a draft invoice.
-- Client billing: hourly rate + flat-fee flag on a client; start a timer and check the rate.
-- Tasks: tap (i) on a task for subtasks, "waiting on", "can't start until". Blocked tasks stay off Today.
-- Settings: paste your upload page link; save a letter as PDF and check it tracks "awaiting signature".
-- More > Import from CSV (clients, time). More > Data Health.
-- Tax-season card on Today (Settings to turn off).
+- Statuses split: tax returns now use Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed, Complete. Everything else uses Not Started, In Progress, Waiting on Client, Completed. Check existing jobs landed on the right status (Awaiting Docs -> Not Started, In Review -> In Progress). Board and Work filter have Tax Return and General.
+- Quotes & Fee Schedule (More). Client hourly rate + flat-fee flag.
+- Task details (i): subtasks, waiting on, can't start until.
+- Settings: upload page link; letters tracked as awaiting signature.
+- More > Import from CSV, Data Health. Tax-season card on Today.
 - Mac/iPad: extra windows.
 
-From last build, still worth a look: Pipelines, Recurring for several clients, Letters & Emails, Watch app.
-
-Please report crashes on launch or after updating.
+Report crashes on launch or after updating.

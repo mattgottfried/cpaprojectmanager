@@ -75,10 +75,11 @@ enum ClientStatus: String, CaseIterable, Identifiable, Codable {
 
 // MARK: - Project / engagement status
 //
-// Mirrors the firm's real pipeline (Not Started -> Awaiting Docs -> In Progress ->
-// On Hold -> In Review -> Awaiting Signature -> Ready to File -> Filed -> Complete).
-// Raw values for the original five cases are unchanged so existing TestFlight data
-// (and CloudKit records already synced) keep working; only new cases were added.
+// The stored values are shared by every kind of work, but which ones are *offered* depends
+// on the work's `StatusFlow`: tax returns use Not Started / In Progress / On Hold /
+// Awaiting Signature / Ready to File / Filed / Complete; everything else uses Not Started /
+// In Progress / Waiting on Client / Completed. `awaitingDocs` and `review` are retired (kept
+// so old data decodes; `StatusMigration` moves them). Never rename or remove a raw value.
 
 enum ProjectStatus: String, CaseIterable, Identifiable, Codable {
     case notStarted

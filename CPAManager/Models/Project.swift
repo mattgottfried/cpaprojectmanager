@@ -103,19 +103,22 @@ final class Project {
     // the due date out (see `DateMath.advancedDueDate`); holding stashes the current
     // stage so taking it off hold can resume there.
 
-    private static let advanceSequence: [ProjectStatus] = [
-        .notStarted, .awaitingDocs, .inProgress, .review,
-        .awaitingSignature, .readyToFile, .filed, .complete,
-    ]
+    /// The status list this work uses: tax returns have their own stages; everything else
+    /// uses Not Started / In Progress / Waiting on Client / Completed.
+    var statusFlow: StatusFlow { StatusFlow.flow(for: serviceType) }
 
-    var isOnHold: Bool { status == .waitingOnClient }
+    /// The status as it should read for this kind of work ("On Hold" on a return,
+    /// "Waiting on Client" elsewhere).
+    var statusLabel: String { statusFlow.label(statusFlow.normalize(status)) }
+
+    /// On hold / waiting on the client. Custom-pipeline jobs express waiting as a stage
+    /// instead, so they are never "on hold" in this sense.
+    var isOnHold: Bool { pipelineID == nil && status == .waitingOnClient }
 
     /// The stage `advance()` would move to, or `nil` if already on hold/complete.
     var nextStatusPreview: ProjectStatus? {
-        guard status != .waitingOnClient else { return nil }
-        guard let index = Project.advanceSequence.firstIndex(of: status),
-              index + 1 < Project.advanceSequence.count else { return nil }
-        return Project.advanceSequence[index + 1]
+        guard !isOnHold else { return nil }
+        return statusFlow.next(after: status)
     }
 
     var canAdvance: Bool { nextStatusPreview != nil }
@@ -131,7 +134,7 @@ final class Project {
     }
 
     func putOnHold(reason: HoldReason, detail: String) {
-        guard status != .waitingOnClient, status != .complete else { return }
+        guard pipelineID == nil, status != .waitingOnClient, status != .complete else { return }
         holdResumeStatusRaw = statusRaw
         holdReason = reason
         holdDetail = detail
@@ -139,8 +142,8 @@ final class Project {
     }
 
     func takeOffHold() {
-        guard status == .waitingOnClient else { return }
-        status = ProjectStatus(rawValue: holdResumeStatusRaw) ?? .inProgress
+        guard isOnHold else { return }
+        status = statusFlow.normalize(ProjectStatus(rawValue: holdResumeStatusRaw) ?? .inProgress)
         dueDate = DateMath.advancedDueDate()
         holdReasonRaw = ""
         holdDetail = ""

@@ -252,7 +252,7 @@ final class TaxSeasonTests: XCTestCase {
         XCTAssertEqual(s.taxYear, 2025)
         XCTAssertEqual(s.openReturns, 3)
         XCTAssertEqual(s.stages.map { $0.count }, [2, 1])
-        XCTAssertEqual(s.stages.map { $0.status }, [.awaitingDocs, .inProgress], "ordered by pipeline stage")
+        XCTAssertEqual(s.stages.map { $0.status }, [.notStarted, .inProgress], "old Awaiting Docs counts as Not Started; ordered by stage")
         XCTAssertEqual(s.noReturnStarted, 1, "inactive and extended clients don't count")
         XCTAssertEqual(s.onExtension, 1)
         XCTAssertEqual(s.documentsOutstanding, 7)

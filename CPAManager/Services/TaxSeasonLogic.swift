@@ -88,12 +88,15 @@ enum TaxSeason {
         let deadline = nextDeadline(now: now, calendar: calendar)
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: deadline).day ?? 0
 
-        let open = projects.filter { $0.isTaxReturn && $0.taxYear == taxYear && $0.statusRaw != ProjectStatus.complete.rawValue }
-        let stages: [TaxSeasonSummary.StageCount] = ProjectStatus.allCases
+        let flow = StatusFlow.taxReturn
+        // Older statuses (Awaiting Docs, In Review) are counted under the stage they map to.
+        let open = projects.filter { $0.isTaxReturn && $0.taxYear == taxYear }
+            .map { flow.normalize(ProjectStatus(rawValue: $0.statusRaw) ?? .notStarted) }
             .filter { $0 != .complete }
-            .sorted { $0.order < $1.order }
+        let stages: [TaxSeasonSummary.StageCount] = flow.statuses
+            .filter { $0 != .complete }
             .compactMap { status -> TaxSeasonSummary.StageCount? in
-                let count = open.filter { $0.statusRaw == status.rawValue }.count
+                let count = open.filter { $0 == status }.count
                 return count > 0 ? TaxSeasonSummary.StageCount(status: status, count: count) : nil
             }
 

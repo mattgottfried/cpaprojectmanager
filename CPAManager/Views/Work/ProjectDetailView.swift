@@ -94,7 +94,7 @@ struct ProjectDetailView: View {
 
             if project.isOnHold {
                 if let reason = project.holdReason {
-                    LabeledContent("On hold", value: reason.label)
+                    LabeledContent(project.statusFlow == .taxReturn ? "On hold" : "Waiting", value: reason.label)
                 }
                 if !project.holdDetail.isEmpty {
                     Text(project.holdDetail)
@@ -105,7 +105,7 @@ struct ProjectDetailView: View {
                     project.takeOffHold()
                     persist()
                 } label: {
-                    Label("Take off hold", systemImage: "play.circle.fill")
+                    Label(project.statusFlow == .taxReturn ? "Take off hold" : "Resume", systemImage: "play.circle.fill")
                 }
             } else {
                 if !project.nextAction.isEmpty {
@@ -121,11 +121,11 @@ struct ProjectDetailView: View {
                         Label("Advance to \(next)", systemImage: "arrow.right.circle.fill")
                     }
                 }
-                if !project.status.isComplete {
+                if !project.status.isComplete && project.pipelineID == nil {
                     Button {
                         showingHoldSheet = true
                     } label: {
-                        Label("Put on hold…", systemImage: "pause.circle")
+                        Label(project.statusFlow == .taxReturn ? "Put on hold…" : "Waiting on client…", systemImage: "pause.circle")
                     }
                 }
             }
@@ -136,7 +136,7 @@ struct ProjectDetailView: View {
         Section {
             if !pipelines.isEmpty {
                 Picker("Pipeline", selection: pipelineBinding) {
-                    Text(PipelineDefinition.standardName).tag(UUID?.none)
+                    Text(project.statusFlow.pipelineName).tag(UUID?.none)
                     ForEach(pipelines) { Text($0.name).tag(Optional($0.id)) }
                 }
             }
@@ -146,7 +146,7 @@ struct ProjectDetailView: View {
                 }
             } else {
                 Picker("Status", selection: statusBinding) {
-                    ForEach(ProjectStatus.allCases) { Label($0.label, systemImage: $0.systemImage).tag($0) }
+                    ForEach(project.statusFlow.statuses) { Label(project.statusFlow.label($0), systemImage: $0.systemImage).tag($0) }
                 }
             }
             Picker("Priority", selection: priorityBinding) {
@@ -239,7 +239,7 @@ struct ProjectDetailView: View {
     // MARK: Bindings that persist on change
 
     private var statusBinding: Binding<ProjectStatus> {
-        Binding(get: { project.status }, set: { project.status = $0; persist() })
+        Binding(get: { project.statusFlow.normalize(project.status) }, set: { project.status = $0; persist() })
     }
     private var pipelineBinding: Binding<UUID?> {
         Binding(

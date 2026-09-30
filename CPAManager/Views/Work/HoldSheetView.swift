@@ -20,12 +20,12 @@ struct HoldSheetView: View {
                 TextField("What are we waiting on?", text: $detail, axis: .vertical)
                     .lineLimit(2...5)
             }
-            .navigationTitle("Put on Hold")
+            .navigationTitle(project.statusFlow == .taxReturn ? "Put on Hold" : "Waiting on Client")
             .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Hold") {
+                    Button(project.statusFlow == .taxReturn ? "Hold" : "Save") {
                         project.putOnHold(reason: reason, detail: detail.trimmingCharacters(in: .whitespaces))
                         try? context.save()
                         SnapshotBuilder.rebuild(context: context)

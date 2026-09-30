@@ -15,17 +15,22 @@ struct PipelinesListView: View {
     var body: some View {
         List {
             Section {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(PipelineDefinition.standardName)
-                        Text("Built in · \(PipelineDefinition.standard.stages.count) stages")
-                            .font(.caption).foregroundStyle(.secondary)
+                ForEach(StatusFlow.allCases) { flow in
+                    let definition = PipelineDefinition.builtIn(flow)
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(definition.name)
+                            Text(definition.stages.map(\.name).joined(separator: " → "))
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                    } icon: {
+                        Image(systemName: definition.systemImage)
                     }
-                } icon: {
-                    Image(systemName: "doc.text.fill")
                 }
+            } header: {
+                Text("Built in")
             } footer: {
-                Text("Every job without a custom pipeline lives here.")
+                Text("Tax returns use the Tax Return stages. All other work without a custom pipeline uses General.")
             }
 
             Section("Your pipelines") {

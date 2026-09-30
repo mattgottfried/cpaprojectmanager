@@ -3,8 +3,9 @@ import SwiftUI
 /// Small colored pill for a project status.
 struct StatusBadge: View {
     let status: ProjectStatus
+    var flow: StatusFlow = .taxReturn
     var body: some View {
-        Label(status.label, systemImage: status.systemImage)
+        Label(flow.label(status), systemImage: status.systemImage)
             .font(.caption2.weight(.semibold))
             .labelStyle(.titleAndIcon)
             .padding(.horizontal, 8)

@@ -63,7 +63,7 @@ enum HelpCatalog {
             id: "pipelines", title: "Pipelines and stages", systemImage: "rectangle.split.3x1.fill",
             summary: "Build your own workflows, like Bookkeeping or Client Onboarding.",
             body: """
-            The built-in "Tax Return" pipeline is always there. Under More ▸ Pipelines you can create others with your own stages.
+            Two pipelines are built in. Tax returns use Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed and Complete. All other work uses Not Started, In Progress, Waiting on Client and Completed. Under More ▸ Pipelines you can create your own with custom stages.
 
             • Each stage says what it "behaves like" (Working, Waiting, Review, Done) so reports and reminders keep working.
             • A stage can add tasks and reset the due date when a job enters it.

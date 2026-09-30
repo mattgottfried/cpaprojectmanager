@@ -12,12 +12,15 @@ struct BoardView: View {
     @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
     @AppStorage("boardPipelineID") private var selectedPipeline = ""   // "" = built-in
 
+    /// "" = Tax Return (built in), "general" = General (built in), otherwise a custom pipeline's id.
     private var pipeline: Pipeline? {
         pipelines.first { $0.id.uuidString == selectedPipeline }
     }
 
+    private var builtInFlow: StatusFlow { selectedPipeline == "general" ? .general : .taxReturn }
+
     private var definition: PipelineDefinition {
-        pipeline?.definition ?? PipelineDefinition.standard
+        pipeline?.definition ?? PipelineDefinition.builtIn(builtInFlow)
     }
 
     private var columns: [PipelineStage] { definition.boardStages }
@@ -28,8 +31,9 @@ struct BoardView: View {
         let firstKey = columns.first?.id
         return projects
             .filter { $0.pipelineID == pipelineID && !$0.status.isComplete }
+            .filter { pipelineID != nil || $0.statusFlow == builtInFlow }
             .filter { project in
-                let key = pipelineID == nil ? project.status.rawValue : project.stageKey
+                let key = pipelineID == nil ? project.statusFlow.normalize(project.status).rawValue : project.stageKey
                 if definition.stage(withKey: key) != nil { return key == stage.id }
                 return stage.id == firstKey
             }
@@ -38,14 +42,13 @@ struct BoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !pipelines.isEmpty {
-                Picker("Pipeline", selection: $selectedPipeline) {
-                    Text(PipelineDefinition.standardName).tag("")
-                    ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
-                }
-                .pickerStyle(.segmented)
-                .padding([.horizontal, .top])
+            Picker("Pipeline", selection: $selectedPipeline) {
+                Text(StatusFlow.taxReturn.pipelineName).tag("")
+                Text(StatusFlow.general.pipelineName).tag("general")
+                ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
             }
+            .pickerStyle(.segmented)
+            .padding([.horizontal, .top])
             ScrollView(.horizontal) {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(columns) { stage in
@@ -100,6 +103,7 @@ struct BoardView: View {
                   let project = projects.first(where: { $0.id == id }),
                   project.pipelineID == pipeline?.id else { return false }
             if pipeline == nil {
+                guard project.statusFlow == builtInFlow else { return false }
                 if let status = ProjectStatus(rawValue: stage.id) { project.status = status }
             } else if project.stageKey != stage.id {
                 PipelineEngine.enter(project, stage: stage, context: context)

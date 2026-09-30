@@ -76,7 +76,7 @@ struct NewTaxReturnView: View {
         let taxYear = Calendar.current.component(.year, from: receivedDate) - 1
         let project = Project(
             title: "\(taxYear) - \(client.displayName) - \(returnType.code)",
-            status: .awaitingDocs,
+            status: .notStarted,
             serviceType: .taxReturn,
             dueDate: computedDueDate,
             taxYear: taxYear,

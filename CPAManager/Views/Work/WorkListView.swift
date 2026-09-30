@@ -32,9 +32,10 @@ struct WorkListView: View {
             }
             .filter { project in
                 switch pipelineFilter {
-                case "":        return true
-                case "builtin": return project.pipelineID == nil
-                default:        return project.pipelineID?.uuidString == pipelineFilter
+                case "":                 return true
+                case "tax", "builtin":   return project.pipelineID == nil && project.statusFlow == .taxReturn
+                case "general":          return project.pipelineID == nil && project.statusFlow == .general
+                default:                 return project.pipelineID?.uuidString == pipelineFilter
                 }
             }
             .filter { project in
@@ -95,11 +96,12 @@ struct WorkListView: View {
                     .pickerStyle(.menu)
                     .disabled(showBoard)
                 }
-                if !pipelines.isEmpty && !showBoard {
+                if !showBoard {
                     ToolbarItem(placement: .primaryAction) {
                         Picker("Pipeline", selection: $pipelineFilter) {
                             Text("All pipelines").tag("")
-                            Text(PipelineDefinition.standardName).tag("builtin")
+                            Text(StatusFlow.taxReturn.pipelineName).tag("tax")
+                            Text(StatusFlow.general.pipelineName).tag("general")
                             ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
                         }
                         .pickerStyle(.menu)
