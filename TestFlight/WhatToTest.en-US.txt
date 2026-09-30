@@ -1,4 +1,4 @@
-Build 10 - what's new (please test):
+Build 11 - what's new (please test):
 
 - STAGE TASKS: More > Pipelines > "Set up stage tasks..." under any service. Each stage (e.g. Awaiting Signature) gets its own tasks, created when a job enters it; one at a time.
 - GOOGLE DRIVE: Settings > Google > Reconnect (once), then pick a client's Drive folder on their screen; Documents > Link from Google Drive.
