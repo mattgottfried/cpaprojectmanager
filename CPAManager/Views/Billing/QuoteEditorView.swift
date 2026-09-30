@@ -172,7 +172,7 @@ struct QuoteEditorView: View {
         }
         Task {
             let result = await DriveFiling.add(
-                data: data, filename: filename, fileExtension: "pdf", client: client, project: nil,
+                data: data, title: "Quote \(saved.displayNumber)", fileExtension: "pdf", kind: .quote, client: client, project: nil,
                 auth: google, context: context
             )
             if let reason = result.outcome.reason {

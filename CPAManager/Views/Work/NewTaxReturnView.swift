@@ -7,6 +7,7 @@ import SwiftData
 /// Awaiting Docs with a standard next action.
 struct NewTaxReturnView: View {
     @Environment(\.modelContext) private var context
+    @Environment(GoogleAuthService.self) private var google
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Client.name) private var clients: [Client]
     @Query private var templates: [WorkflowTemplate]
@@ -166,6 +167,8 @@ struct NewTaxReturnView: View {
         try? context.save()
         SnapshotBuilder.rebuild(context: context)
         NotificationScheduler.rescheduleAll(context: context)
+        let auth = google, store = context
+        Task { await DriveFolders.autoCreateIfNeeded(client, auth: auth, context: store) }
         dismiss()
     }
 }

@@ -18,38 +18,43 @@ enum DriveFiling {
         (UserDefaults.standard.object(forKey: SettingsKeys.saveToDrive) as? Bool) ?? true
     }
 
-    /// Adds a document to the client/job and files it in Drive when possible.
+    /// Adds a document to the client/job and files it in Drive when possible. The name comes from
+    /// the naming pattern in Settings (year, client, title), and `kind` picks the Drive subfolder.
     @discardableResult
     static func add(
-        data: Data, filename: String, fileExtension: String,
+        data: Data, title: String, fileExtension: String, kind: DocumentKind,
         client: Client?, project: Project?,
         auth: GoogleAuthService, context: ModelContext,
         configure: ((Document) -> Void)? = nil
     ) async -> (document: Document, outcome: Outcome) {
+        let owner = client ?? project?.client
+        let filename = DocumentNaming.render(
+            pattern: DriveFolders.template.namePattern, title: title, client: owner?.displayName ?? "",
+            year: DocumentNaming.year(taxYear: project?.taxYear, date: .now), date: .now
+        )
         let document = Document(filename: filename, fileExtension: fileExtension, data: data, client: client, project: project)
         configure?(document)
         context.insert(document)
         try? context.save()
-        let outcome = await move(document, auth: auth, context: context)
+        let outcome = await move(document, kind: kind, auth: auth, context: context)
         return (document, outcome)
     }
 
     /// Uploads a document's bytes to its job's (else its client's) Drive folder and turns it
     /// into a Drive link. The local bytes are dropped only after Drive confirms the file.
     @discardableResult
-    static func move(_ document: Document, auth: GoogleAuthService, context: ModelContext) async -> Outcome {
+    static func move(_ document: Document, kind: DocumentKind? = nil, auth: GoogleAuthService, context: ModelContext) async -> Outcome {
         guard DriveFilingPlan.canMove(hasData: !document.data.isEmpty, isDriveLink: document.isDriveLink) else {
             return Outcome(reason: document.isDriveLink ? nil : .failed)
         }
         guard enabled else { return Outcome(reason: .turnedOff) }
         guard auth.isConnected else { return Outcome(reason: .notConnected) }
-        let owner = document.client ?? document.project?.client
-        guard let folder = DriveFilingPlan.destinationFolder(
-            projectFolder: document.project?.driveFolderID ?? "",
-            clientFolder: owner?.driveFolderID ?? ""
-        ) else { return Outcome(reason: .noFolder) }
         guard inFlight.insert(document.id).inserted else { return Outcome(reason: .failed) }
         defer { inFlight.remove(document.id) }
+        let resolvedKind = kind ?? DocumentKind.infer(filename: document.displayName, fileExtension: document.fileExtension)
+        guard let folder = await DriveFolders.destination(for: document, kind: resolvedKind, auth: auth) else {
+            return Outcome(reason: .noFolder)
+        }
 
         do {
             let file = try await GoogleAPI(auth: auth).driveUpload(

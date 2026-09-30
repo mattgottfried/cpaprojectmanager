@@ -88,7 +88,7 @@ final class DriveFilingServiceTests: XCTestCase {
         context.insert(client)
 
         let result = await DriveFiling.add(
-            data: Data([1, 2, 3]), filename: "Scan", fileExtension: "pdf",
+            data: Data([1, 2, 3]), title: "Scan", fileExtension: "pdf", kind: .upload,
             client: client, project: nil, auth: auth, context: context
         )
         XCTAssertEqual(result.outcome.reason, .notConnected)

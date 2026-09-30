@@ -8,6 +8,8 @@ struct DriveFolderSection: View {
     @Binding var folderName: String
     /// "client" / "job", for the wording.
     var subject = "client"
+    /// When set, a folder can be created with the standard structure (clients only).
+    var createFolder: (() async -> DriveFolders.CreateResult)? = nil
 
     @Environment(GoogleAuthService.self) private var auth
     @Environment(\.modelContext) private var context
@@ -17,10 +19,27 @@ struct DriveFolderSection: View {
     @State private var recent: [DriveFile] = []
     @State private var loading = false
     @State private var errorText: String?
+    @State private var creating = false
 
     var body: some View {
         Section {
             if folderID.isEmpty {
+                if let createFolder, auth.isConnected, !DriveFolders.rootID.isEmpty {
+                    Button {
+                        Task {
+                            creating = true
+                            let result = await createFolder()
+                            creating = false
+                            switch result {
+                            case .failed(let message): errorText = message
+                            default: errorText = nil
+                            }
+                        }
+                    } label: {
+                        Label(creating ? "Creating…" : "Create \(subject)'s folder in Drive", systemImage: "folder.badge.plus")
+                    }
+                    .disabled(creating)
+                }
                 Button { showingBrowser = true } label: {
                     Label("Choose \(subject)'s Drive folder…", systemImage: "externaldrive.badge.plus")
                 }
@@ -76,7 +95,7 @@ struct DriveFolderSection: View {
         } header: {
             Text("Google Drive")
         } footer: {
-            Text("Documents stay in Drive; this only links to them. Newest changes first.")
+            Text("Documents live in Drive; the app links to them and files new ones here. Newest changes first.")
         }
         .sheet(isPresented: $showingBrowser) {
             DriveBrowserView(

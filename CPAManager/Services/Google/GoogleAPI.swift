@@ -157,6 +157,23 @@ struct GoogleAPI {
         return file
     }
 
+    /// Creates an empty folder inside `parentID`. Only ever creates.
+    func driveCreateFolder(name: String, parentID: String) async throws -> DriveFile {
+        guard DriveQuery.isSafeID(parentID) else { throw GoogleError.decoding }
+        let metadata: [String: Any] = ["name": name, "mimeType": DriveMime.folder, "parents": [parentID]]
+        let body = try JSONSerialization.data(withJSONObject: metadata)
+        let target = try url("https://www.googleapis.com/drive/v3/files", [
+            URLQueryItem(name: "supportsAllDrives", value: "true"),
+            URLQueryItem(name: "fields", value: DriveQuery.fileFields),
+        ])
+        let result = try await request("POST", target, body: body)
+        guard (200..<300).contains(result.1) else {
+            throw GoogleError.http(result.1, String(data: result.0.prefix(300), encoding: .utf8) ?? "")
+        }
+        guard let folder = DriveParsing.decodeFile(result.0) else { throw GoogleError.decoding }
+        return folder
+    }
+
     /// One file or folder's details (used to name a folder the user pasted or picked).
     func driveFile(id: String) async throws -> DriveFile {
         guard DriveQuery.isSafeID(id) else { throw GoogleError.decoding }

@@ -12,6 +12,8 @@ struct DocumentRequestsSection: View {
     @AppStorage(SettingsKeys.uploadPageURL) private var uploadPageURL = ""
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @State private var newTitle = ""
+    @Environment(GoogleAuthService.self) private var google
+    @State private var found: [RequestSuggestion] = []
 
     private var requests: [DocumentRequest] {
         client.documentRequestList.sorted {
@@ -38,6 +40,19 @@ struct DocumentRequestsSection: View {
                         .foregroundStyle(.secondary)
                 }
                 .accessibilityElement(children: .combine)
+            }
+
+            ForEach(found) { suggestion in
+                HStack(spacing: 10) {
+                    Image(systemName: "externaldrive.fill.badge.checkmark").foregroundStyle(Theme.brand)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(suggestion.requestTitle) may be in Drive").font(.subheadline)
+                        Text(suggestion.fileName).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                    Button("Mark received") { acceptSuggestion(suggestion) }
+                        .buttonStyle(.borderless)
+                }
             }
 
             ForEach(requests) { request in
@@ -79,6 +94,7 @@ struct DocumentRequestsSection: View {
         } footer: {
             Text("Requests with a due date show on Today until they arrive.")
         }
+        .task(id: scanKey) { await scanDrive() }
     }
 
     private func row(_ request: DocumentRequest) -> some View {
@@ -120,6 +136,23 @@ struct DocumentRequestsSection: View {
             } label: { Label("Need it by…", systemImage: "calendar") }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Found in Drive
+
+    private var scanKey: String { "\(client.driveFolderID)|\(outstanding.map(\.title).joined(separator: ","))" }
+
+    private func scanDrive() async {
+        let open = outstanding.map { OpenRequest(id: $0.id, title: $0.title) }
+        guard !open.isEmpty, google.isConnected, !client.driveFolderID.isEmpty else { found = []; return }
+        let files = await DriveFolders.uploadedFiles(for: client, auth: google)
+        found = RequestMatcher.suggestions(requests: open, files: files)
+    }
+
+    private func acceptSuggestion(_ suggestion: RequestSuggestion) {
+        guard let request = requests.first(where: { $0.id == suggestion.requestID }), !request.isReceived else { return }
+        toggle(request)
+        found.removeAll { $0.requestID == suggestion.requestID }
     }
 
     // MARK: Actions

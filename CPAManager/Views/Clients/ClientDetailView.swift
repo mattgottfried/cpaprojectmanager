@@ -4,6 +4,7 @@ import SwiftData
 struct ClientDetailView: View {
     @Bindable var client: Client
     @Environment(\.modelContext) private var context
+    @Environment(GoogleAuthService.self) private var google
     @State private var showingEdit = false
     @State private var showingAddProject = false
     @State private var logKind: InteractionKind?
@@ -158,7 +159,10 @@ struct ClientDetailView: View {
 
             DocumentRequestsSection(client: client)
 
-            DriveFolderSection(folderID: $client.driveFolderID, folderName: $client.driveFolderName, subject: "client")
+            DriveFolderSection(
+                folderID: $client.driveFolderID, folderName: $client.driveFolderName, subject: "client",
+                createFolder: { await DriveFolders.ensureClientFolder(client, auth: google, context: context) }
+            )
             DocumentsSectionView(client: client)
         }
         .navigationTitle(client.displayName)

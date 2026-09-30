@@ -193,7 +193,7 @@ struct DocumentsSectionView: View {
         Task {
             isFiling = true
             let result = await DriveFiling.add(
-                data: data, filename: filename, fileExtension: ext,
+                data: data, title: filename, fileExtension: ext, kind: .upload,
                 client: client, project: project, auth: google, context: context
             )
             isFiling = false

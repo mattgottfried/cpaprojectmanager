@@ -135,7 +135,7 @@ struct ClientLetterSheet: View {
         if (try? data.write(to: url)) != nil { shareURL = url }
         Task {
             let result = await DriveFiling.add(
-                data: data, filename: filename, fileExtension: "pdf", client: client, project: nil,
+                data: data, title: selected.name, fileExtension: "pdf", kind: .letter, client: client, project: nil,
                 auth: google, context: context
             ) { document in
                 if track {
