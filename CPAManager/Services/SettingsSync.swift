@@ -16,7 +16,7 @@ extension SettingsKeys {
         // Which calendar events this app has pushed — shared so any device can clean up
         // events another device created.
         googleSyncedEvents,
-    ]
+    ] + ServiceType.allCases.map { PipelineDefaults.key(for: $0) }
 }
 
 /// Pure merge rules for first launch / external changes. Unit-tested.

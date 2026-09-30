@@ -14,14 +14,6 @@ enum StatusFlow: String, CaseIterable, Identifiable {
         serviceType == .taxReturn ? .taxReturn : .general
     }
 
-    /// Name of the built-in pipeline that uses this flow.
-    var pipelineName: String {
-        switch self {
-        case .taxReturn: return "Tax Return"
-        case .general:   return "General"
-        }
-    }
-
     /// Statuses offered, in display order (the on-hold / waiting status sits after In Progress).
     var statuses: [ProjectStatus] {
         switch self {

@@ -63,7 +63,9 @@ enum HelpCatalog {
             id: "pipelines", title: "Pipelines and stages", systemImage: "rectangle.split.3x1.fill",
             summary: "Build your own workflows, like Bookkeeping or Client Onboarding.",
             body: """
-            Two pipelines are built in. Tax returns use Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed and Complete. All other work uses Not Started, In Progress, Waiting on Client and Completed. Under More ▸ Pipelines you can create your own with custom stages.
+            Every service (Tax Return, Bookkeeping, Payroll, Advisory, IRS Notice, Other) has its own pipeline. Tax returns use Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed and Complete. The others use Not Started, In Progress, Waiting on Client and Completed.
+
+            On Hold and Waiting on Client are never entered automatically: "Advance" skips them and you pick them yourself. Under More ▸ Pipelines you can create your own pipeline with custom stages and choose it for a service, so new work of that service starts there.
 
             • Each stage says what it "behaves like" (Working, Waiting, Review, Done) so reports and reminders keep working.
             • A stage can add tasks and reset the due date when a job enters it.

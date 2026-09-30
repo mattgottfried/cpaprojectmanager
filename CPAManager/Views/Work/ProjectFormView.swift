@@ -149,7 +149,8 @@ struct ProjectFormView: View {
                 titleOverride: title
             )
             created.detail = detail
-            created.status = status
+            // A custom pipeline (from the template or the service's default) owns the status.
+            if created.pipelineID == nil { created.status = status }
             created.priority = priority
             if hasDueDate { created.dueDate = dueDate }
             created.nextAction = trimmedNextAction
@@ -167,6 +168,7 @@ struct ProjectFormView: View {
             created.nextAction = trimmedNextAction
             created.receivedDate = hasReceivedDate ? receivedDate : nil
             context.insert(created)
+            PipelineEngine.applyDefault(to: created, context: context)
         }
 
         try? context.save()

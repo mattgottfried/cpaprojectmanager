@@ -82,7 +82,7 @@ struct PipelineEditorView: View {
                 } header: {
                     Text("Stages")
                 } footer: {
-                    Text("Drag to reorder. \"Behaves like\" keeps reports, overdue checks and the widget working. The bolt marks stages that add tasks or reset the due date when a job enters them.")
+                    Text("Drag to reorder. \"Behaves like\" keeps reports, overdue checks and the widget working. Waiting stages are never entered by Advance — you choose them yourself. The bolt marks stages that add tasks or reset the due date when a job enters them.")
                 }
 
                 if !errors.isEmpty && loaded && (!name.isEmpty || !stages.isEmpty) {

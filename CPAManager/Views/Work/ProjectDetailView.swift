@@ -136,7 +136,7 @@ struct ProjectDetailView: View {
         Section {
             if !pipelines.isEmpty {
                 Picker("Pipeline", selection: pipelineBinding) {
-                    Text(project.statusFlow.pipelineName).tag(UUID?.none)
+                    Text(project.serviceType.label).tag(UUID?.none)
                     ForEach(pipelines) { Text($0.name).tag(Optional($0.id)) }
                 }
             }

@@ -13,9 +13,13 @@ final class PipelineLogicTests: XCTestCase {
         calendar.date(from: DateComponents(year: y, month: m, day: d, hour: hour))!
     }
 
-    func testBuiltInPipelinesMirrorTheirStatusFlows() {
-        for flow in StatusFlow.allCases {
-            let definition = PipelineDefinition.builtIn(flow)
+    func testEveryServiceHasItsOwnBuiltInPipeline() {
+        var names: Set<String> = []
+        for service in ServiceType.allCases {
+            let definition = PipelineDefinition.builtIn(for: service)
+            let flow = StatusFlow.flow(for: service)
+            names.insert(definition.name)
+            XCTAssertEqual(definition.name, service.label)
             XCTAssertEqual(definition.stages.map { $0.id }, flow.statuses.map { $0.rawValue })
             XCTAssertEqual(definition.stages.map { $0.name }, flow.statuses.map { flow.label($0) })
             XCTAssertEqual(definition.firstStage?.id, ProjectStatus.notStarted.rawValue)
@@ -23,7 +27,8 @@ final class PipelineLogicTests: XCTestCase {
             XCTAssertEqual(Set(definition.stages.map { $0.id }).count, definition.stages.count)
             XCTAssertFalse(definition.boardStages.contains { $0.id == ProjectStatus.complete.rawValue })
         }
-        XCTAssertEqual(PipelineDefinition.standard, PipelineDefinition.builtIn(.taxReturn))
+        XCTAssertEqual(names.count, ServiceType.allCases.count, "one distinct pipeline per service")
+        XCTAssertEqual(PipelineDefinition.standard, PipelineDefinition.builtIn(for: .taxReturn))
     }
 
     func testEveryKindMapsToALegacyStatusAndOnlyDoneIsComplete() {
@@ -220,7 +225,7 @@ final class PipelineEngineTests: XCTestCase {
         XCTAssertFalse(PipelineEngine.advance(project, in: pipeline, context: context), "nothing after the last stage")
 
         // Re-entering a stage with an open automation task doesn't duplicate it.
-        let review = pipeline.stages[2]
+        let review = try XCTUnwrap(pipeline.stages.first { $0.name == "Review" })
         PipelineEngine.enter(project, stage: review, context: context)
         PipelineEngine.enter(project, stage: review, context: context)
         XCTAssertEqual(project.taskList.filter { $0.title == "Send reports to client" }.count, 1)
@@ -264,4 +269,107 @@ final class PipelineEngineTests: XCTestCase {
         XCTAssertEqual(PipelineEngine.info(for: project, in: [pipeline]).name, "Notice received")
         XCTAssertEqual(PipelineEngine.info(for: project, in: []).name, ProjectStatus.notStarted.label, "missing pipeline falls back")
     }
+
+    // MARK: Waiting stages are manual
+
+    func testAdvanceSkipsWaitingStagesButTheyCanBeChosen() throws {
+        let context = try makeContext()
+        let pipeline = Pipeline(definition: PipelineStarters.bookkeeping)   // Not started, Reconciling, Waiting, Review, Delivered
+        context.insert(pipeline)
+        let project = Project(title: "Acme")
+        context.insert(project)
+        PipelineEngine.assign(project, to: pipeline, context: context)
+        let waiting = try XCTUnwrap(pipeline.stages.first { $0.kind == .waiting })
+
+        XCTAssertNotEqual(project.stageKey, waiting.id)
+        XCTAssertTrue(PipelineEngine.advance(project, in: pipeline, context: context))
+        XCTAssertEqual(pipeline.definition.stage(withKey: project.stageKey)?.name, "Reconciling")
+        XCTAssertTrue(PipelineEngine.advance(project, in: pipeline, context: context))
+        XCTAssertEqual(pipeline.definition.stage(withKey: project.stageKey)?.name, "Review", "advance jumped over Waiting on client")
+
+        // Choosing it by hand works, and Advance from it resumes at the next real stage.
+        PipelineEngine.enter(project, stage: waiting, context: context)
+        XCTAssertEqual(project.stageKey, waiting.id)
+        XCTAssertEqual(project.status, .waitingOnClient)
+        XCTAssertEqual(PipelineEngine.nextStageName(for: project, in: [pipeline]), "Review")
+        XCTAssertTrue(PipelineEngine.advance(project, in: pipeline, context: context))
+        XCTAssertEqual(pipeline.definition.stage(withKey: project.stageKey)?.name, "Review")
+    }
+
+    func testNewJobsNeverStartInAWaitingStage() throws {
+        let definition = PipelineDefinition(name: "X", stages: [
+            PipelineStage(name: "Waiting first", kind: .waiting),
+            PipelineStage(name: "Work", kind: .working),
+            PipelineStage(name: "Done", kind: .done),
+        ])
+        XCTAssertEqual(definition.firstStartStage?.name, "Work")
+        let context = try makeContext()
+        let pipeline = Pipeline(definition: definition)
+        context.insert(pipeline)
+        let project = Project(title: "P")
+        context.insert(project)
+        PipelineEngine.assign(project, to: pipeline, context: context)
+        XCTAssertEqual(project.status, .inProgress)
+        // An explicitly chosen start stage is honored, even a waiting one.
+        let other = Project(title: "Q")
+        context.insert(other)
+        PipelineEngine.assign(other, to: pipeline, startStageKey: definition.stages[0].id, context: context)
+        XCTAssertEqual(other.status, .waitingOnClient)
+    }
+
+    func testEveryStarterStartsOnARealStageAndAdvanceNeverLandsOnWaiting() {
+        for starter in PipelineStarters.all {
+            XCTAssertNotEqual(starter.firstStage?.kind, .waiting, starter.name)
+            var key = starter.firstStartStage!.id
+            while let next = starter.next(after: key) {
+                XCTAssertNotEqual(next.kind, .waiting, starter.name)
+                key = next.id
+            }
+            XCTAssertEqual(starter.stage(withKey: key)?.kind, .done, "advance reaches the Done stage: \(starter.name)")
+        }
+    }
+
+    // MARK: Default pipeline per service
+
+    func testDefaultPipelineIsAppliedOnlyToItsService() throws {
+        let context = try makeContext()
+        let pipeline = Pipeline(definition: PipelineStarters.payroll)
+        context.insert(pipeline)
+        let suite = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        suite.set(pipeline.id.uuidString, forKey: PipelineDefaults.key(for: .payroll))
+
+        let payroll = Project(title: "Payroll run", serviceType: .payroll)
+        context.insert(payroll)
+        PipelineEngine.applyDefault(to: payroll, context: context, defaults: suite)
+        XCTAssertEqual(payroll.pipelineID, pipeline.id)
+        XCTAssertEqual(payroll.stageKey, pipeline.stages[0].id)
+
+        let books = Project(title: "Books", serviceType: .bookkeeping)
+        context.insert(books)
+        PipelineEngine.applyDefault(to: books, context: context, defaults: suite)
+        XCTAssertNil(books.pipelineID, "other services keep their built-in pipeline")
+
+        // A stale id (pipeline deleted) is ignored; an already-assigned job isn't reassigned.
+        suite.set(UUID().uuidString, forKey: PipelineDefaults.key(for: .advisory))
+        let advisory = Project(title: "Adv", serviceType: .advisory)
+        context.insert(advisory)
+        PipelineEngine.applyDefault(to: advisory, context: context, defaults: suite)
+        XCTAssertNil(advisory.pipelineID)
+        let previous = payroll.stageKey
+        PipelineEngine.applyDefault(to: payroll, context: context, defaults: suite)
+        XCTAssertEqual(payroll.stageKey, previous)
+    }
+
+    func testTemplateWithoutPipelineUsesTheServiceDefault() throws {
+        let context = try makeContext()
+        let pipeline = Pipeline(definition: PipelineStarters.irsNotice)
+        context.insert(pipeline)
+        UserDefaults.standard.set(pipeline.id.uuidString, forKey: PipelineDefaults.key(for: .irsNotice))
+        defer { UserDefaults.standard.removeObject(forKey: PipelineDefaults.key(for: .irsNotice)) }
+        let template = WorkflowTemplate(name: "Notice", detail: "", serviceType: .irsNotice)
+        context.insert(template)
+        let project = WorkflowEngine.instantiate(template: template, for: nil, into: context)
+        XCTAssertEqual(project.pipelineID, pipeline.id)
+    }
 }
+

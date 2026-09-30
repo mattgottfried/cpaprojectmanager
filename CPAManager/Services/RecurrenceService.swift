@@ -72,8 +72,10 @@ enum RecurrenceService {
             context.insert(project)
         }
 
-        project.dueDate = engagement.nextDueDate
         project.serviceType = engagement.serviceType
+        // Use the service's default custom pipeline (if any) before pinning the due date.
+        PipelineEngine.applyDefault(to: project, context: context)
+        project.dueDate = engagement.nextDueDate
     }
 
     /// Titles the generated project by the period it covers, not its due date —

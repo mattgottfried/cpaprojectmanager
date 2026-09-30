@@ -33,9 +33,13 @@ struct WorkListView: View {
             .filter { project in
                 switch pipelineFilter {
                 case "":                 return true
-                case "tax", "builtin":   return project.pipelineID == nil && project.statusFlow == .taxReturn
-                case "general":          return project.pipelineID == nil && project.statusFlow == .general
-                default:                 return project.pipelineID?.uuidString == pipelineFilter
+                case "tax", "builtin":   return project.pipelineID == nil && project.serviceType == .taxReturn
+                case "general":          return project.pipelineID == nil && project.serviceType != .taxReturn
+                default:
+                    if pipelineFilter.hasPrefix("service:") {
+                        return project.pipelineID == nil && project.serviceType.rawValue == String(pipelineFilter.dropFirst(8))
+                    }
+                    return project.pipelineID?.uuidString == pipelineFilter
                 }
             }
             .filter { project in
@@ -100,8 +104,7 @@ struct WorkListView: View {
                     ToolbarItem(placement: .primaryAction) {
                         Picker("Pipeline", selection: $pipelineFilter) {
                             Text("All pipelines").tag("")
-                            Text(StatusFlow.taxReturn.pipelineName).tag("tax")
-                            Text(StatusFlow.general.pipelineName).tag("general")
+                            ForEach(ServiceType.allCases) { Text($0.label).tag("service:" + $0.rawValue) }
                             ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
                         }
                         .pickerStyle(.menu)

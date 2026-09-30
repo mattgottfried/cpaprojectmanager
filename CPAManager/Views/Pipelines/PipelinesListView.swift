@@ -1,8 +1,8 @@
 import SwiftUI
 import SwiftData
 
-/// Manage custom pipelines ("Bookkeeping", "Onboarding"…). The built-in tax-return
-/// pipeline is always there and isn't editable.
+/// Manage custom pipelines ("Onboarding", "IRS Notice Response"…) and choose which pipeline
+/// each service uses. The built-in per-service pipelines are always there.
 struct PipelinesListView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
@@ -15,22 +15,13 @@ struct PipelinesListView: View {
     var body: some View {
         List {
             Section {
-                ForEach(StatusFlow.allCases) { flow in
-                    let definition = PipelineDefinition.builtIn(flow)
-                    Label {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(definition.name)
-                            Text(definition.stages.map(\.name).joined(separator: " → "))
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                        }
-                    } icon: {
-                        Image(systemName: definition.systemImage)
-                    }
+                ForEach(ServiceType.allCases) { service in
+                    ServicePipelineRow(service: service, pipelines: pipelines)
                 }
             } header: {
-                Text("Built in")
+                Text("Pipeline for each service")
             } footer: {
-                Text("Tax returns use the Tax Return stages. All other work without a custom pipeline uses General.")
+                Text("Every service has its own built-in pipeline. Tax returns use Not Started → In Progress → Awaiting Signature → Ready to File → Filed → Complete; other services use Not Started → In Progress → Completed. On Hold / Waiting on Client is never entered automatically — you choose it. To change a service's stages, make a pipeline below and pick it here; new work of that service starts in it.")
             }
 
             Section("Your pipelines") {
@@ -90,8 +81,49 @@ struct PipelinesListView: View {
                 template.pipelineID = nil
                 template.startStageKey = ""
             }
+            // Services that defaulted to it go back to their built-in pipeline.
+            for service in ServiceType.allCases where PipelineDefaults.pipelineID(for: service) == pipeline.id {
+                UserDefaults.standard.removeObject(forKey: PipelineDefaults.key(for: service))
+            }
             context.delete(pipeline)
         }
         try? context.save()
+    }
+}
+
+/// One service's pipeline: the built-in stages, or a custom pipeline you've chosen for it.
+private struct ServicePipelineRow: View {
+    let service: ServiceType
+    let pipelines: [Pipeline]
+    @AppStorage private var chosen: String
+
+    init(service: ServiceType, pipelines: [Pipeline]) {
+        self.service = service
+        self.pipelines = pipelines
+        _chosen = AppStorage(wrappedValue: "", PipelineDefaults.key(for: service))
+    }
+
+    private var builtIn: PipelineDefinition { PipelineDefinition.builtIn(for: service) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Picker(selection: $chosen) {
+                Text("Built-in").tag("")
+                ForEach(pipelines) { Text($0.name).tag($0.id.uuidString) }
+            } label: {
+                Label(service.label, systemImage: service.systemImage)
+            }
+            Text(stageSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+    }
+
+    private var stageSummary: String {
+        if let custom = pipelines.first(where: { $0.id.uuidString == chosen }) {
+            return custom.stages.map(\.name).joined(separator: " → ")
+        }
+        return builtIn.stages.map(\.name).joined(separator: " → ")
     }
 }
