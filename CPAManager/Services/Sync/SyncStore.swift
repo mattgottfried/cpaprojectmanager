@@ -70,6 +70,7 @@ enum SyncStore {
         case .emailTemplates:    remove(EmailTemplate.self, id: \.id)
         case .feeItems:          remove(FeeItem.self, id: \.id)
         case .quotes:            remove(Quote.self, id: \.id)
+        case .builtInStages:     remove(BuiltInStageSetup.self, id: \.id)
         }
     }
 }

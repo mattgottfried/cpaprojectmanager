@@ -30,6 +30,7 @@ struct GoogleSettingsView: View {
                 gmailSection
                 scheduleSection
                 pushSection
+                driveSection
             }
 
             if let errorMessage {
@@ -77,7 +78,7 @@ struct GoogleSettingsView: View {
         } header: {
             Text("Account")
         } footer: {
-            Text("Create an iOS-type OAuth client in your own Google Cloud project (bundle ID com.gottfriedcpa.ProjectManager), enable the Gmail and Calendar APIs, and paste its client ID here. On Google Workspace, set the consent screen to Internal — no review needed. See the README for the step-by-step.")
+            Text("Create an iOS-type OAuth client in your own Google Cloud project (bundle ID com.gottfriedcpa.ProjectManager), enable the Gmail, Calendar and Drive APIs, and paste its client ID here. On Google Workspace, set the consent screen to Internal — no review needed. See the README for the step-by-step.")
         }
     }
 
@@ -145,7 +146,37 @@ struct GoogleSettingsView: View {
         }
     }
 
+    private var driveSection: some View {
+        Section {
+            Button {
+                Task { await testDrive() }
+            } label: {
+                Label("Test Drive access", systemImage: "externaldrive.badge.checkmark")
+            }
+            .disabled(busy)
+        } header: {
+            Text("Google Drive")
+        } footer: {
+            Text("Read-only: pick each client's (and job's) Drive folder on their screen, and link files as documents. If Drive shows a permission error, tap Reconnect to Google above so Google can ask about Drive, and check that the Drive API is enabled in your Google Cloud project.")
+        }
+    }
+
     // MARK: Actions
+
+    private func testDrive() async {
+        busy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { busy = false }
+        do {
+            let page = try await GoogleAPI(auth: auth).driveFiles(query: "'root' in parents and trashed = false", pageSize: 1)
+            statusMessage = (page.files ?? []).isEmpty ? "Drive works (My Drive looks empty)." : "Drive works."
+        } catch let GoogleError.http(status, body) {
+            errorMessage = DriveErrors.message(status: status, body: body)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 
     private func connect() async {
         errorMessage = nil

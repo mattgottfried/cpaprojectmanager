@@ -17,6 +17,12 @@ final class Document {
     var signatureSentAt: Date? = nil
     var signedAt: Date? = nil
 
+    /// A file that lives in Google Drive and is only linked here (`data` stays empty):
+    /// its Drive id, the link that opens it, and its Drive type.
+    var driveFileID: String = ""
+    var driveURL: String = ""
+    var driveMimeType: String = ""
+
     var client: Client? = nil
     var project: Project? = nil
 
@@ -35,6 +41,8 @@ final class Document {
         self.project = project
         self.createdAt = .now
     }
+
+    var isDriveLink: Bool { !driveFileID.isEmpty }
 
     var signatureStatus: SignatureStatus {
         get { SignatureStatus(rawValue: signatureStatusRaw) ?? .none }

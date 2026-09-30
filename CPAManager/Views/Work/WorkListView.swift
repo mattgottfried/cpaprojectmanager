@@ -12,7 +12,9 @@ struct WorkListView: View {
     @State private var linkedProject: Project?
     @Environment(AppRouter.self) private var router
     @State private var showingNewTaxReturn = false
-    @State private var projectToDelete: Project?
+    @State private var selection = ListSelection<UUID>()
+    @State private var toast: UndoToastState?
+    @State private var showingBulkDate = false
     @AppStorage("workShowsBoard") private var showBoard = false
 
     enum WorkFilter: String, CaseIterable, Identifiable {
@@ -68,12 +70,21 @@ struct WorkListView: View {
                 } else {
                     List {
                         ForEach(filtered) { project in
-                            NavigationLink(value: project) {
+                            SelectableRow(
+                                isSelecting: selection.isSelecting,
+                                isSelected: selection.selected.contains(project.id),
+                                isCursor: selection.cursor == project.id,
+                                toggle: { selection.toggle(project.id) }
+                            ) {
                                 ProjectRow(project: project)
+                            } link: {
+                                NavigationLink(value: project) {
+                                    ProjectRow(project: project)
+                                }
                             }
                             .cardListRow()
                             .contextMenu {
-                                Button(role: .destructive) { projectToDelete = project } label: {
+                                Button(role: .destructive) { deleteProjects([project]) } label: {
                                     Label("Delete Project", systemImage: "trash")
                                 }
                             }
@@ -95,6 +106,16 @@ struct WorkListView: View {
                     .scrollContentBackground(.hidden)
                     .background(Color.appGroupedBackground)
                     .macReadableWidth()
+                    .listKeyboard(
+                        move: { selection.cursor = ListSelection.moved(from: selection.cursor, in: filtered.map(\.id), by: $0) },
+                        open: { if let id = selection.cursor { linkedProject = filtered.first { $0.id == id } } },
+                        toggle: { if let id = selection.cursor { selection.toggle(id) } },
+                        delete: { deleteProjects(keyboardTargets) }
+                    )
+                    .safeAreaInset(edge: .bottom) {
+                        if selection.isSelecting { bulkBar }
+                    }
+                    .onChange(of: filtered.map(\.id)) { _, ids in selection.prune(to: ids) }
                 }
             }
             .navigationTitle("Work")
@@ -133,6 +154,14 @@ struct WorkListView: View {
                         Button { showingAdd = true } label: {
                             Label("New Project", systemImage: "folder.badge.plus")
                         }
+                        if !showBoard {
+                            Divider()
+                            Button {
+                                if selection.isSelecting { selection.finish() } else { selection.isSelecting = true }
+                            } label: {
+                                Label(selection.isSelecting ? "Done Selecting" : "Select Jobs…", systemImage: "checkmark.circle")
+                            }
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -144,20 +173,56 @@ struct WorkListView: View {
             .onChange(of: router.pendingLink) { _, _ in consumeLink() }
             .sheet(isPresented: $showingAdd) { ProjectFormView() }
             .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }
-            .confirmationDialog(
-                "Delete this project and its tasks?",
-                isPresented: Binding(get: { projectToDelete != nil }, set: { if !$0 { projectToDelete = nil } }),
-                titleVisibility: .visible,
-                presenting: projectToDelete
-            ) { project in
-                Button("Delete \"\(project.title)\"", role: .destructive) {
-                    context.delete(project)
-                    try? context.save()
-                    SnapshotBuilder.rebuild(context: context)
-                    projectToDelete = nil
+            .sheet(isPresented: $showingBulkDate) {
+                BulkDateSheet(title: "Set Due Date") { date in
+                    toast = context.performUndoable("Updated \(selectedProjects.count) jobs", overwrite: true) {
+                        BulkActions.setDueDate(selectedProjects, to: date)
+                    }
+                    NotificationScheduler.rescheduleAll(context: context)
                 }
             }
+            .undoToast($toast)
         }
+    }
+
+    // MARK: Selecting several jobs
+
+    private var selectedProjects: [Project] { projects.filter { selection.selected.contains($0.id) } }
+
+    /// What the Delete key acts on: the ticked rows, else the row under the cursor.
+    private var keyboardTargets: [Project] {
+        if !selection.selected.isEmpty { return selectedProjects }
+        return projects.filter { $0.id == selection.cursor }
+    }
+
+    private var bulkBar: some View {
+        BulkBar(count: selection.count, done: { selection.finish() }) {
+            Menu {
+                Button {
+                    toast = context.performUndoable("Advanced \(selectedProjects.count) jobs", overwrite: true) {
+                        BulkActions.advance(selectedProjects, pipelines: pipelines, context: context)
+                    }
+                } label: { Label("Advance stage", systemImage: "arrow.right.circle") }
+                Button {
+                    toast = context.performUndoable("Completed \(selectedProjects.count) jobs", overwrite: true) {
+                        BulkActions.complete(selectedProjects, pipelines: pipelines, context: context)
+                    }
+                } label: { Label("Mark complete", systemImage: "checkmark.circle") }
+                Button { showingBulkDate = true } label: { Label("Set due date…", systemImage: "calendar") }
+            } label: { Label("Update", systemImage: "ellipsis.circle") }
+            Button(role: .destructive) {
+                deleteProjects(selectedProjects)
+            } label: { Label("Delete", systemImage: "trash") }
+        }
+    }
+
+    private func deleteProjects(_ doomed: [Project]) {
+        guard !doomed.isEmpty else { return }
+        let message = doomed.count == 1 ? "Deleted job" : "Deleted \(doomed.count) jobs"
+        toast = context.deleteWithUndo(message, includeFiles: true) {
+            for project in doomed { context.delete(project) }
+        }
+        selection.finish()
     }
 
     private func consumeLink() {
@@ -168,9 +233,8 @@ struct WorkListView: View {
     }
 
     private func delete(_ offsets: IndexSet) {
-        for index in offsets { context.delete(filtered[index]) }
-        try? context.save()
-        SnapshotBuilder.rebuild(context: context)
+        let list = filtered
+        deleteProjects(offsets.map { list[$0] })
     }
 
     private func persistChange() {
@@ -207,7 +271,13 @@ struct ProjectRow: View {
         if project.totalTaskCount > 0 { parts.append("\(project.completedTaskCount) of \(project.totalTaskCount) tasks done") }
         if project.isOnHold, let reason = project.holdReason { parts.append("on hold: \(reason.label)") }
         else if !project.nextAction.isEmpty { parts.append("next: \(project.nextAction)") }
+        else if !project.status.isComplete, let next = project.nextTask { parts.append("next task: \(next.title)") }
         return parts.joined(separator: ", ")
+    }
+
+    private func nextStepText(_ task: TaskItem) -> String {
+        guard let due = task.dueDate else { return task.title }
+        return "\(task.title) · \(Format.relativeDay(due))"
     }
 
     private var rowContent: some View {
@@ -242,6 +312,11 @@ struct ProjectRow: View {
                     Label(project.nextAction, systemImage: "bolt.fill")
                         .font(.caption2)
                         .foregroundStyle(Theme.alert)
+                        .lineLimit(1)
+                } else if !project.status.isComplete, let next = project.nextTask {
+                    Label(nextStepText(next), systemImage: "arrow.turn.down.right")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
             }

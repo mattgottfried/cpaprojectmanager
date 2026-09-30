@@ -6,6 +6,7 @@ struct ProjectDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(TimerController.self) private var timer
     @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
+    @Query private var invoices: [Invoice]
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
@@ -14,6 +15,8 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
     @State private var confirmingDelete = false
+    @State private var showingBill = false
+    @State private var toast: UndoToastState?
     @Environment(\.dismiss) private var dismiss
     @State private var showingTemplatePicker = false
     @State private var showingHoldSheet = false
@@ -30,12 +33,14 @@ struct ProjectDetailView: View {
         GroupedList {
             headerSection
             workflowSection
+            billingSection
             statusSection
             tasksSection
             if !project.detail.isEmpty {
                 Section("Notes") { Text(project.detail) }
             }
             timeSection
+            DriveFolderSection(folderID: $project.driveFolderID, folderName: $project.driveFolderName, subject: "job")
             DocumentsSectionView(project: project)
         }
         .navigationTitle("Project")
@@ -57,6 +62,7 @@ struct ProjectDetailView: View {
                 dismiss()
             }
         }
+        .undoToast($toast)
         .sheet(isPresented: $showingEdit) { ProjectFormView(project: project) }
         .sheet(isPresented: $showingTemplatePicker) {
             TemplatePickerSheet { template in
@@ -65,6 +71,7 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
+        .sheet(isPresented: $showingBill) { BillJobSheet(project: project) }
         .sheet(item: $detailTask) { TaskDetailSheet(task: $0) }
         .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
         .sheet(isPresented: $showingRoutingSheetShare) {
@@ -144,6 +151,44 @@ struct ProjectDetailView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var billingSection: some View {
+        if project.client != nil {
+            Section("Billing") {
+                if let invoice = invoices.first(where: { $0.id == project.invoiceID }) {
+                    NavigationLink {
+                        InvoiceDetailView(invoice: invoice)
+                    } label: {
+                        LabeledContent("Invoice", value: "\(invoice.displayNumber) · \(invoice.status.label)")
+                    }
+                } else if let state = BillingState(rawValue: project.billingStateRaw) {
+                    LabeledContent("Billing", value: state.label)
+                    Button("Undo this") {
+                        BillingService.markSettled(project, as: nil)
+                        persist()
+                    }
+                } else {
+                    Button { showingBill = true } label: {
+                        Label("Create invoice…", systemImage: "doc.badge.plus")
+                    }
+                    if project.status.isComplete {
+                        Menu {
+                            Button("Not billable") { settle(.notBillable) }
+                            Button("Billed elsewhere") { settle(.billedElsewhere) }
+                        } label: {
+                            Label("Mark as settled", systemImage: "checkmark.circle")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func settle(_ state: BillingState) {
+        BillingService.markSettled(project, as: state)
+        persist()
     }
 
     private var statusSection: some View {
@@ -254,7 +299,7 @@ struct ProjectDetailView: View {
     // MARK: Bindings that persist on change
 
     private var statusBinding: Binding<ProjectStatus> {
-        Binding(get: { project.statusFlow.normalize(project.status) }, set: { project.status = $0; persist() })
+        Binding(get: { project.statusFlow.normalize(project.status) }, set: { PipelineEngine.setBuiltInStatus(project, to: $0, context: context); persist() })
     }
     private var pipelineBinding: Binding<UUID?> {
         Binding(
@@ -314,8 +359,11 @@ struct ProjectDetailView: View {
 
     private func deleteTasks(_ offsets: IndexSet) {
         let list = project.taskList
-        for index in offsets { context.delete(list[index]) }
-        persist()
+        let doomed = offsets.map { list[$0] }
+        toast = context.deleteWithUndo(doomed.count == 1 ? "Deleted task" : "Deleted \(doomed.count) tasks") {
+            for task in doomed { context.delete(task) }
+        }
+        NotificationScheduler.rescheduleAll(context: context)
     }
 
     private func persist() {

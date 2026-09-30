@@ -55,6 +55,7 @@ struct DashboardView: View {
                 .padding()
             }
             .background(Color.appGroupedBackground)
+            .macReadableWidth(1000)
             .navigationTitle(greeting)
             .navigationDestination(for: Project.self) { ProjectDetailView(project: $0) }
             .sheet(isPresented: $showingNewTaxReturn) { NewTaxReturnView() }

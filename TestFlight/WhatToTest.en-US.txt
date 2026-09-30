@@ -1,7 +1,9 @@
-Build 9 - what's new (please test):
+Build 10 - what's new (please test):
 
-- MAC LOOK OVERHAUL: forms and Settings are now grouped cards with labels on the left; sheets open at a proper size; long lists stay a readable width and centered; wider sidebar; window has a minimum size.
-- Mac: right-click Delete on projects, tasks, clients, invoices, templates, time entries, quotes, recurring items, pipelines, documents, fee items, payments.
-- Job steps from templates go one at a time (build 8); More > Pipelines > Customize stages.
+- STAGE TASKS: More > Pipelines > "Set up stage tasks..." under any service. Each stage (e.g. Awaiting Signature) gets its own tasks, created when a job enters it; one at a time.
+- GOOGLE DRIVE: Settings > Google > Reconnect (once), then pick a client's Drive folder on their screen; Documents > Link from Google Drive.
+- Select several jobs/clients (bulk actions), undo for deletes, Mac keyboard.
+- Bill a finished job, unbilled report, payment reminders, extensions, client health, carryover.
+- Sync Health + duplicate merge, daily backups (Settings).
 
-iPhone/iPad should look unchanged - report anything that moved. Mac: tell me which screens still look off.
+Mac: re-check the new look; report any screen still off.

@@ -8,11 +8,23 @@ import SwiftUI
 struct RowCardModifier: ViewModifier {
     var dimmed = false
     var outline: Color? = nil
+    /// Mac pointer hover: a faint brand tint so rows feel clickable.
+    @State private var hovering = false
 
     func body(content: Content) -> some View {
         content
             .padding(.horizontal, 12).padding(.vertical, 10)
             .background(Color.appCardBackground)
+            .overlay {
+                #if os(macOS)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Theme.brand.opacity(hovering ? 0.07 : 0))
+                    .allowsHitTesting(false)
+                #endif
+            }
+            #if os(macOS)
+            .onHover { hovering = $0 }
+            #endif
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 if let outline {

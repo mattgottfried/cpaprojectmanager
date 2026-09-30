@@ -7,6 +7,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case today, inbox, clients, leads, work, deadlines, review
     case time, invoices, recurringInvoices, expenses, reports, templates, recurring, overview
     case activity
+    case extensions, quotes, feeSchedule, pipelines, letters, importData, dataHealth, syncHealth, backups, help
     case settings
 
     var id: String { rawValue }
@@ -29,6 +30,16 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .templates: return "Templates"
         case .recurring: return "Recurring Work"
         case .overview:  return "Firm Overview"
+        case .extensions: return "Extensions"
+        case .quotes:    return "Quotes"
+        case .feeSchedule: return "Fee Schedule"
+        case .pipelines: return "Pipelines"
+        case .letters:   return "Letters & Emails"
+        case .importData: return "Import from CSV"
+        case .dataHealth: return "Data Health"
+        case .syncHealth: return "Sync Health"
+        case .backups:   return "Automatic Backups"
+        case .help:      return "Help & Tips"
         case .settings:  return "Settings"
         }
     }
@@ -51,13 +62,25 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .templates: return "square.stack.3d.up.fill"
         case .recurring: return "arrow.triangle.2.circlepath"
         case .overview:  return "house.fill"
+        case .extensions: return "calendar.badge.clock"
+        case .quotes:    return "doc.plaintext"
+        case .feeSchedule: return "tag"
+        case .pipelines: return "rectangle.split.3x1.fill"
+        case .letters:   return "doc.richtext"
+        case .importData: return "square.and.arrow.down"
+        case .dataHealth: return "stethoscope"
+        case .syncHealth: return "arrow.triangle.2.circlepath.icloud"
+        case .backups:   return "externaldrive.fill.badge.timemachine"
+        case .help:      return "questionmark.circle.fill"
         case .settings:  return "gearshape.fill"
         }
     }
 
     /// Sidebar grouping.
     static let daily: [AppSection] = [.today, .inbox, .clients, .leads, .work, .deadlines, .review, .activity]
-    static let practice: [AppSection] = [.time, .invoices, .recurringInvoices, .expenses, .reports, .templates, .recurring, .overview]
+    static let practice: [AppSection] = [.time, .invoices, .quotes, .recurringInvoices, .expenses, .reports, .templates, .recurring, .overview]
+    /// Setup and upkeep screens that iPhone reaches through More.
+    static let tools: [AppSection] = [.extensions, .pipelines, .feeSchedule, .letters, .importData, .dataHealth, .syncHealth, .backups, .help]
 }
 
 /// Which text field a keyboard shortcut / widget link wants focused once its screen

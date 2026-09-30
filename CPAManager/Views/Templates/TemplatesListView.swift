@@ -7,6 +7,7 @@ struct TemplatesListView: View {
     @Query(sort: \WorkflowTemplate.name) private var templates: [WorkflowTemplate]
     @State private var editingTemplate: WorkflowTemplate?
     @State private var showingNew = false
+    @State private var toast: UndoToastState?
 
     var body: some View {
         List {
@@ -53,6 +54,7 @@ struct TemplatesListView: View {
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
         .macReadableWidth()
+        .undoToast($toast)
         .navigationTitle("Templates")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -64,8 +66,10 @@ struct TemplatesListView: View {
     }
 
     private func delete(_ offsets: IndexSet) {
-        for index in offsets { context.delete(templates[index]) }
-        try? context.save()
+        let doomed = offsets.map { templates[$0] }
+        toast = context.deleteWithUndo(doomed.count == 1 ? "Deleted template" : "Deleted \(doomed.count) templates") {
+            for template in doomed { context.delete(template) }
+        }
     }
 }
 

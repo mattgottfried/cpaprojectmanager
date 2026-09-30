@@ -33,6 +33,15 @@ final class Project {
     var pipelineID: UUID? = nil
     var stageKey: String = ""
 
+    /// The invoice made from this job (`BillingService.createInvoice`).
+    var invoiceID: UUID? = nil
+    /// How a finished job was settled when not by its own invoice: "" (undecided),
+    /// "invoiced", "notBillable" or "billedElsewhere" (see `BillingState`).
+    var billingStateRaw: String = ""
+    /// This job's folder in Google Drive; empty = none chosen.
+    var driveFolderID: String = ""
+    var driveFolderName: String = ""
+
     var client: Client? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \TaskItem.project)
@@ -154,6 +163,17 @@ final class Project {
 
     var taskList: [TaskItem] {
         (tasks ?? []).sorted { $0.sortIndex < $1.sortIndex }
+    }
+
+    /// The task to do next on this job (see `NextStep`).
+    var nextTask: TaskItem? {
+        let list = taskList
+        let inputs = list.map {
+            NextStepTask(id: $0.id, title: $0.title, dueDate: $0.dueDate, sortIndex: $0.sortIndex,
+                         isDone: $0.isDone, blockedByID: $0.blockedByID)
+        }
+        guard let pick = NextStep.pick(inputs) else { return nil }
+        return list.first { $0.id == pick.id }
     }
 
     var completedTaskCount: Int { taskList.filter { $0.isDone }.count }

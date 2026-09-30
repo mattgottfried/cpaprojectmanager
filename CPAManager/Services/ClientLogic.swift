@@ -29,6 +29,13 @@ enum TagSet {
         return result
     }
 
+    /// `raw` with `tag` added (normalized, no duplicates); unchanged if the tag is blank.
+    static func adding(_ tag: String, to raw: String) -> String {
+        let clean = normalize(tag)
+        guard !clean.isEmpty else { return raw }
+        return encode(parse(raw) + [clean])
+    }
+
     static func encode(_ tags: [String]) -> String {
         parse(tags.joined(separator: ",")).joined(separator: ", ")
     }

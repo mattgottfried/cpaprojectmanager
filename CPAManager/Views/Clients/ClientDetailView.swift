@@ -10,11 +10,57 @@ struct ClientDetailView: View {
     @State private var showingFollowUpPicker = false
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @State private var toast: UndoToastState?
+    @AppStorage(SettingsKeys.quietThresholdDays) private var quietDays = 14
 
     private var sortedProjects: [Project] {
         client.projectList.sorted {
             if $0.status.order != $1.status.order { return $0.status.order < $1.status.order }
             return ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture)
+        }
+    }
+
+    /// One glance at where this client stands: contact, open work, money, next deadline.
+    @ViewBuilder
+    private var healthSection: some View {
+        let result = ClientHealthService.assess(client, quietDays: quietDays)
+        let health = result.health
+        let input = result.input
+        Section {
+            HStack {
+                CapsuleBadge(text: health.headline, systemImage: healthIcon(health.level), state: healthState(health.level))
+                Spacer()
+            }
+            if !health.reasons.isEmpty {
+                Text(health.reasons.joined(separator: " · "))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            LabeledContent("Last contact", value: ClientActivity.lastContactLabel(input.lastContactedAt))
+            LabeledContent("Open work", value: "\(input.openJobCount) job\(input.openJobCount == 1 ? "" : "s") · \(input.openTaskCount) task\(input.openTaskCount == 1 ? "" : "s")")
+            if input.balanceOwedCents > 0 {
+                LabeledContent("Owes", value: Format.currency(Double(input.balanceOwedCents) / 100)
+                    + (input.overdueBalanceCents > 0 ? " (\(Format.currency(Double(input.overdueBalanceCents) / 100)) overdue)" : ""))
+            }
+            if let title = input.nextDeadlineTitle, let date = input.nextDeadlineDate {
+                LabeledContent("Next deadline", value: "\(title) · \(Format.relativeDay(date))")
+            }
+        } header: {
+            Text("Health")
+        }
+    }
+
+    private func healthState(_ level: ClientHealth.Level) -> SemanticState {
+        switch level {
+        case .good:   return .good
+        case .watch:  return .caution
+        case .atRisk: return .bad
+        }
+    }
+
+    private func healthIcon(_ level: ClientHealth.Level) -> String {
+        switch level {
+        case .good:   return "checkmark.circle.fill"
+        case .watch:  return "eye.fill"
+        case .atRisk: return "exclamationmark.triangle.fill"
         }
     }
 
@@ -35,6 +81,8 @@ struct ClientDetailView: View {
                 .padding(.vertical, 4)
                 ContactButtons(client: client)
             }
+
+            healthSection
 
             if !client.email.isEmpty || !client.phone.isEmpty {
                 Section("Contact") {
@@ -110,6 +158,7 @@ struct ClientDetailView: View {
 
             DocumentRequestsSection(client: client)
 
+            DriveFolderSection(folderID: $client.driveFolderID, folderName: $client.driveFolderName, subject: "client")
             DocumentsSectionView(client: client)
         }
         .navigationTitle(client.displayName)

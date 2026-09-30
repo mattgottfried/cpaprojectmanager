@@ -36,6 +36,10 @@ enum SettingsKeys {
     /// Set once the first-run walkthrough has been finished or skipped.
     static let hasOnboarded = "hasOnboarded"
 
+    // Automatic backups (per device; deliberately not synced).
+    static let autoBackupEnabled = "autoBackupEnabled"
+    static let lastAutoBackup = "lastAutoBackup"
+
     // Google integrations (non-secret preferences; tokens live in the Keychain).
     static let googleGmailEnabled = "googleGmailEnabled"
     static let googleGmailQuery = "googleGmailQuery"

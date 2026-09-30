@@ -78,14 +78,15 @@ skips duplicates) and **Add Task** (Siri: "Add a task in CPA Manager"). In-app,
 that reads the note your Siri-digested texts land in, and a share-sheet Shortcut for
 email. Run the unit tests (`CPAManagerTests`) with ⌘U.
 
-### Google Workspace (Gmail, Calendar)
+### Google Workspace (Gmail, Calendar, Drive)
 
 Everything talks directly to Google with **your own** OAuth client — no middleman server.
 
 1. In [Google Cloud Console](https://console.cloud.google.com) create (or pick) a project.
-2. **APIs & Services → Library:** enable the **Gmail API** and the **Google Calendar API**.
+2. **APIs & Services → Library:** enable the **Gmail API**, the **Google Calendar API** and the **Google Drive API**.
 3. **OAuth consent screen:** choose **Internal** (available on Google Workspace — no
-   Google review needed). Add the scopes `gmail.readonly`, `calendar.readonly`, `calendar.events`.
+   Google review needed). Add the scopes `gmail.readonly`, `calendar.readonly`, `calendar.events`, `drive.readonly`.
+   (If you connected Google before Drive was added, tap **Reconnect to Google** once so Google asks about Drive.)
 4. **Credentials → Create credentials → OAuth client ID → iOS.** Set the **Bundle ID** to
    `com.gottfriedcpa.ProjectManager` (the same one works for the Mac app).
 5. Copy the client ID (`…apps.googleusercontent.com`), then in the app:
@@ -97,6 +98,10 @@ Everything talks directly to Google with **your own** OAuth client — no middle
    - **Put due dates on my calendar** — open tasks, project deadlines, unpaid invoices
      and follow-ups from the next 90 days become all-day, non-blocking events. The app
      only ever edits or deletes events it created itself.
+   - **Google Drive** — read-only. On a client's (or job's) screen choose the Drive folder
+     where their documents live; the newest files show right there and open in Drive. In the
+     Documents section, **Link from Google Drive…** attaches individual files (signature
+     tracking works on them). Nothing is uploaded, copied or moved.
 
 Pull down on Today to sync immediately.
 

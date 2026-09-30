@@ -15,6 +15,8 @@ struct NewTaxReturnView: View {
     @State private var newClientName = ""
     @State private var returnType: EntityType = .individual1040
     @State private var receivedDate = Date.now
+    @State private var copyNotes = true
+    @State private var copyTasks = true
 
     private let returnTypes = EntityType.allCases.filter { $0 != .other }
 
@@ -24,6 +26,18 @@ struct NewTaxReturnView: View {
     }
     private var computedDueDate: Date {
         DateMath.addingDaysWeekendAdjusted(9, to: receivedDate)
+    }
+
+    // MARK: Year-over-year carryover
+
+    private var taxYear: Int { Calendar.current.component(.year, from: receivedDate) - 1 }
+    private var selectedClient: Client? { clients.first { $0.id == selectedClientID } }
+    private var routingSheet: WorkflowTemplate? { templates.first { $0.name == "Tax Return Routing Sheet" } }
+    private var prior: Project? {
+        selectedClient.flatMap { CarryoverService.priorJob(for: $0, serviceType: .taxReturn, taxYear: taxYear) }
+    }
+    private var extraTasks: [String] {
+        prior.map { CarryoverService.extraTasks(from: $0, newTemplate: routingSheet, newYear: taxYear) } ?? []
     }
 
     var body: some View {
@@ -46,6 +60,27 @@ struct NewTaxReturnView: View {
                         ForEach(returnTypes) { Text($0.code).tag($0) }
                     }
                     DatePicker("Date received", selection: $receivedDate, displayedComponents: .date)
+                }
+
+                if let prior {
+                    Section {
+                        if let cents = CarryoverService.priorFeeCents(prior) {
+                            LabeledContent("Last year's fee", value: Format.currency(Double(cents) / 100))
+                        }
+                        if !prior.detail.isEmpty {
+                            Toggle("Copy last year's notes", isOn: $copyNotes)
+                        }
+                        if !extraTasks.isEmpty {
+                            Toggle("Repeat \(extraTasks.count) extra task\(extraTasks.count == 1 ? "" : "s")", isOn: $copyTasks)
+                            ForEach(extraTasks.prefix(6), id: \.self) { title in
+                                Text(title).font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    } header: {
+                        Text("From \(prior.taxYear)")
+                    } footer: {
+                        Text("Extra tasks are steps last year's return had that the routing sheet doesn't create.")
+                    }
                 }
 
                 Section {
@@ -88,8 +123,20 @@ struct NewTaxReturnView: View {
         context.insert(project)
         PipelineEngine.applyDefault(to: project, context: context)
 
-        if let routingSheet = templates.first(where: { $0.name == "Tax Return Routing Sheet" }) {
+        if let routingSheet {
             WorkflowEngine.applyTemplate(routingSheet, to: project, startDate: receivedDate, into: context)
+        }
+
+        if let prior {
+            if copyNotes, project.detail.isEmpty { project.detail = prior.detail }
+            if copyTasks {
+                let have = Set(project.taskList.map { $0.title.lowercased() })
+                var index = (project.taskList.map(\.sortIndex).max() ?? -1) + 1
+                for title in extraTasks where !have.contains(title.lowercased()) {
+                    context.insert(TaskItem(title: title, sortIndex: index, project: project))
+                    index += 1
+                }
+            }
         }
 
         try? context.save()

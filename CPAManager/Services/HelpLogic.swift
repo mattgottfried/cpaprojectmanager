@@ -200,6 +200,64 @@ enum HelpCatalog {
             """,
             keywords: "lock screen complication watch control center"
         ),
+        HelpTopic(
+            id: "stagetasks", title: "Tasks for each stage", systemImage: "list.bullet.rectangle",
+            summary: "Give every stage of a service its own tasks.",
+            body: """
+            More ▸ Pipelines lists each service with its built-in stages. Tap "Set up stage tasks…" under a service and add the tasks each stage should create — "Awaiting Signature" can have its own, "Ready to File" its own, and so on. Your built-in statuses stay exactly as they are.
+
+            • The tasks appear when a job enters the stage: Advance, the status picker, dragging on the board, or completing the job. New jobs get the first stage's tasks.
+            • Only the first task gets a due date; each next one is dated when the one before it is completed ("due in N days" counts from that day).
+            • A stage can also reset the job's due date.
+            """,
+            keywords: "stage tasks automatic built-in status checklist each step"
+        ),
+        HelpTopic(
+            id: "drive", title: "Google Drive", systemImage: "externaldrive.fill",
+            summary: "Keep documents in Drive and link them here.",
+            body: """
+            Connect Google in Settings ▸ Google (tap Reconnect once if you connected before Drive was added). Then on a client or job choose "Choose Drive folder…": the newest files in that folder show right on the screen and open in Drive.
+
+            In Documents, "Link from Google Drive…" attaches individual files. They stay in Drive; signature tracking still works on them. The app only reads Drive — it never uploads, copies, moves or deletes.
+            """,
+            keywords: "google drive folder documents link files storage"
+        ),
+        HelpTopic(
+            id: "selecting", title: "Select several, undo, and keyboard", systemImage: "checkmark.circle",
+            summary: "Bulk actions on jobs and clients, and quick undo.",
+            body: """
+            In Work and Clients, tap Select (or the + menu ▸ Select Jobs) to tick several rows, then use the bar at the bottom: advance, complete or set a due date for jobs; add a tag or change the status for clients; or delete.
+
+            Deletes and bulk changes show an Undo at the bottom for a few seconds. On a Mac: ↑/↓ move a highlight, Return opens, Space ticks, Delete removes; right-click any row for Delete.
+            """,
+            keywords: "bulk multiple select undo delete keyboard shortcuts mac"
+        ),
+        HelpTopic(
+            id: "extensions", title: "Extensions", systemImage: "calendar.badge.clock",
+            summary: "Decide, file and track extensions for a tax year.",
+            body: """
+            Extensions (More, or the sidebar's Tools) lists your clients for a tax year: those who still need a decision, those extended, and those finished. "Mark extended" moves the client's open return to the extended due date and logs it; you can undo it. An extension gives more time to file, not to pay.
+            """,
+            keywords: "extension 4868 7004 extended due date october september"
+        ),
+        HelpTopic(
+            id: "billjob", title: "Billing a finished job", systemImage: "doc.badge.plus",
+            summary: "Turn a finished job into an invoice and catch what was missed.",
+            body: """
+            On a job, "Create invoice…" bills its unbilled time plus any fee-schedule items. Reports ▸ "Finished, not billed" lists finished jobs that never went on an invoice — bill them, or mark them Not billable or Billed elsewhere. Reports also shows what each client really pays per hour.
+
+            Overdue invoices have "Email a payment reminder" (firmer the later it is); it's logged on the client.
+            """,
+            keywords: "invoice unbilled profitability hourly rate reminder overdue"
+        ),
+        HelpTopic(
+            id: "backups", title: "Backups and sync health", systemImage: "externaldrive.fill.badge.timemachine",
+            summary: "Automatic daily backups and a plain-English sync check.",
+            body: """
+            Settings ▸ Automatic Backups keeps a full backup on this device every day (the last 7). Restoring adds back anything missing and never deletes. Settings ▸ Sync Health explains how cloud sync is doing, compares record counts between devices, and merges duplicate clients (with undo).
+            """,
+            keywords: "backup restore sync health duplicates merge safety"
+        ),
     ]
 
     static func topic(id: String) -> HelpTopic? { topics.first { $0.id == id } }
@@ -231,6 +289,10 @@ enum Tips {
         "Turn an accepted quote into a draft invoice with one tap.",
         "Paste your secure upload link in Settings and it goes into every document-request email.",
         "Long-press a letter in a client's documents to mark it signed.",
+        "Give each stage of a service its own tasks under More ▸ Pipelines ▸ Set up stage tasks.",
+        "Pick a client's Google Drive folder and its newest files show on their screen.",
+        "Deleted the wrong thing? Undo appears at the bottom for a few seconds.",
+        "Extensions lists who still needs a decision for the tax year.",
     ]
 
     /// One tip per calendar day, rotating through the list.

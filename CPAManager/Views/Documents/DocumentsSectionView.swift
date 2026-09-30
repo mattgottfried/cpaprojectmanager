@@ -17,6 +17,8 @@ struct DocumentsSectionView: View {
     @State private var showingFileImporter = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var previewDocument: Document?
+    @State private var showingDriveBrowser = false
+    @Environment(\.openURL) private var openURL
 
     private var documents: [Document] {
         allDocuments
@@ -47,7 +49,11 @@ struct DocumentsSectionView: View {
             }
             ForEach(documents) { document in
                 Button {
-                    previewDocument = document
+                    if document.isDriveLink, let url = URL(string: document.driveURL) {
+                        openURL(url)
+                    } else {
+                        previewDocument = document
+                    }
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: icon(for: document))
@@ -56,7 +62,8 @@ struct DocumentsSectionView: View {
                             Text(document.displayName)
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
-                            Text(Format.mediumDate.string(from: document.createdAt))
+                            Text(document.isDriveLink ? "Google Drive · \(Format.mediumDate.string(from: document.createdAt))"
+                                                      : Format.mediumDate.string(from: document.createdAt))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if document.signatureStatus != .none {
@@ -100,6 +107,9 @@ struct DocumentsSectionView: View {
                 Button { showingFileImporter = true } label: {
                     Label("Choose File", systemImage: "folder")
                 }
+                Button { showingDriveBrowser = true } label: {
+                    Label("Link from Google Drive…", systemImage: "externaldrive.badge.plus")
+                }
             } label: {
                 Label("Add Document", systemImage: "plus")
             }
@@ -132,9 +142,22 @@ struct DocumentsSectionView: View {
         .sheet(item: $previewDocument) { document in
             DocumentPreviewView(document: document)
         }
+        .sheet(isPresented: $showingDriveBrowser) {
+            DriveBrowserView(mode: .files, startFolder: startFolder, onPickFiles: { picked in
+                DriveLinker.link(picked, client: client, project: project, context: context)
+            })
+        }
+    }
+
+    /// Opens the browser inside the job's or client's chosen Drive folder, if there is one.
+    private var startFolder: DrivePath.Crumb? {
+        if let project, !project.driveFolderID.isEmpty { return DrivePath.Crumb(id: project.driveFolderID, name: project.driveFolderName) }
+        if let client, !client.driveFolderID.isEmpty { return DrivePath.Crumb(id: client.driveFolderID, name: client.driveFolderName) }
+        return nil
     }
 
     private func icon(for document: Document) -> String {
+        if document.isDriveLink { return "externaldrive.fill" }
         switch document.fileExtension.lowercased() {
         case "pdf": return "doc.text.fill"
         case "jpg", "jpeg", "png", "heic": return "photo.fill"

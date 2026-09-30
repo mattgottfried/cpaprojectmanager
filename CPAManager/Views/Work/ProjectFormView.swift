@@ -133,7 +133,11 @@ struct ProjectFormView: View {
         if let project {
             project.title = title
             project.detail = detail
-            project.status = status
+            if project.pipelineID == nil {
+                PipelineEngine.setBuiltInStatus(project, to: status, context: context)
+            } else {
+                project.status = status
+            }
             project.serviceType = serviceType
             project.priority = priority
             project.client = client
@@ -151,7 +155,7 @@ struct ProjectFormView: View {
             )
             created.detail = detail
             // A custom pipeline (from the template or the service's default) owns the status.
-            if created.pipelineID == nil { created.status = status }
+            if created.pipelineID == nil { PipelineEngine.setBuiltInStatus(created, to: status, context: context) }
             created.priority = priority
             if hasDueDate { created.dueDate = dueDate }
             created.nextAction = trimmedNextAction

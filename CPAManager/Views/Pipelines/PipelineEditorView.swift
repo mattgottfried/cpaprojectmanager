@@ -111,29 +111,7 @@ struct PipelineEditorView: View {
 
     @ViewBuilder
     private func automationEditor(_ automation: Binding<StageAutomation>) -> some View {
-        Toggle("Reset due date on entry", isOn: Binding(
-            get: { automation.wrappedValue.setDueInDays != nil },
-            set: { automation.wrappedValue.setDueInDays = $0 ? 14 : nil }
-        ))
-        if let days = automation.wrappedValue.setDueInDays {
-            Stepper("Due in \(days) days", value: Binding(
-                get: { days },
-                set: { automation.wrappedValue.setDueInDays = $0 }
-            ), in: 0...365)
-        }
-        ForEach(automation.tasks) { $task in
-            VStack(alignment: .leading, spacing: 4) {
-                TextField("Task to create", text: $task.title)
-                Stepper("Due \(task.dueInDays) days after entering", value: $task.dueInDays, in: 0...365)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        }
-        .onDelete { automation.wrappedValue.tasks.remove(atOffsets: $0) }
-        Button {
-            automation.wrappedValue.tasks.append(StageTask(title: "", dueInDays: 1))
-        } label: {
-            Label("Add task on entry", systemImage: "plus.circle")
-        }
+        StageAutomationEditor(automation: automation)
     }
 
     private func loadOnce() {

@@ -4,17 +4,23 @@ import SwiftData
 /// Moves jobs between pipeline stages and runs each stage's entry automation. All the
 /// *rules* are in `PipelineLogic.swift`; this only touches the store.
 enum PipelineEngine {
-    /// Puts `project` into `stage`: updates its stage key and coarse status, resets the
-    /// due date if the stage says so, and creates the stage's tasks.
+    /// Puts `project` into `stage`: updates its stage key and coarse status, resets the due
+    /// date if the stage says so, and creates the stage's tasks.
     static func enter(_ project: Project, stage: PipelineStage, context: ModelContext, now: Date = .now) {
         let plan = PipelineMove.plan(entering: stage, now: now)
         project.stageKey = stage.id
         project.status = plan.status          // also stamps/clears completedAt
+        runAutomation(stage.automation, for: project, context: context, now: now)
+    }
+
+    /// A stage's entry automation: reset the job's due date and create the stage's tasks.
+    /// Only the first task gets a due date; each later one waits on the one before it and is
+    /// dated when that one is completed (`TaskCompletion.complete`).
+    static func runAutomation(_ automation: StageAutomation, for project: Project, context: ModelContext, now: Date = .now) {
+        let plan = PipelineMove.plan(entering: PipelineStage(name: "", automation: automation), now: now)
         if let due = plan.dueDate { project.dueDate = due }
 
         var index = (project.tasks ?? []).map(\.sortIndex).max().map { $0 + 1 } ?? 0
-        // Only the first task gets a due date. Each later one waits for the task before it
-        // and is dated when that one is completed (`TaskCompletion.complete`).
         var previous: TaskItem?
         for task in plan.tasks {
             // A job that re-enters a stage shouldn't grow duplicate automation tasks.
@@ -31,6 +37,29 @@ enum PipelineEngine {
             previous = item
             index += 1
         }
+    }
+
+    // MARK: Built-in pipelines
+
+    /// The tasks set up for the stage a built-in-pipeline job is in.
+    static func builtInAutomation(for project: Project, context: ModelContext) -> StageAutomation {
+        let stage = project.statusFlow.normalize(project.status).rawValue
+        return BuiltInSetupService.automation(for: project.serviceType, stageKey: stage, context: context)
+    }
+
+    /// Runs the current stage's setup for a job in its service's built-in pipeline (no-op
+    /// for custom-pipeline jobs, which run their own stage automation).
+    static func runBuiltInAutomation(_ project: Project, context: ModelContext, now: Date = .now) {
+        guard project.pipelineID == nil else { return }
+        runAutomation(builtInAutomation(for: project, context: context), for: project, context: context, now: now)
+    }
+
+    /// Moves a built-in-pipeline job to `status` and runs that stage's setup. Setting the
+    /// stage a job is already in does nothing.
+    static func setBuiltInStatus(_ project: Project, to status: ProjectStatus, context: ModelContext, now: Date = .now) {
+        guard project.status != status else { return }
+        project.status = status
+        runBuiltInAutomation(project, context: context, now: now)
     }
 
     /// Assigns a job to a pipeline (nil = the built-in one) and enters the given stage
@@ -51,11 +80,16 @@ enum PipelineEngine {
     /// Puts new work in the custom pipeline chosen for its service type (More ▸ Pipelines),
     /// if one is set. Built-in pipelines need nothing.
     static func applyDefault(to project: Project, context: ModelContext, defaults: UserDefaults = .standard) {
-        guard project.pipelineID == nil,
-              let id = PipelineDefaults.pipelineID(for: project.serviceType, defaults: defaults) else { return }
-        let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
-        guard let pipeline = pipelines.first(where: { $0.id == id }) else { return }
-        assign(project, to: pipeline, context: context)
+        guard project.pipelineID == nil else { return }
+        if let id = PipelineDefaults.pipelineID(for: project.serviceType, defaults: defaults) {
+            let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
+            if let pipeline = pipelines.first(where: { $0.id == id }) {
+                assign(project, to: pipeline, context: context)
+                return
+            }
+        }
+        // Still in the service's built-in pipeline: start it with its first stage's tasks.
+        runBuiltInAutomation(project, context: context)
     }
 
     /// Moves a custom-pipeline job to the next stage (never into a waiting stage).
@@ -90,12 +124,22 @@ enum PipelineEngine {
         return project.nextStatusPreview.map { project.statusFlow.label($0) }
     }
 
+    /// Finishes a job: the built-in "complete" status, or a custom pipeline's last done stage.
+    static func complete(_ project: Project, pipelines: [Pipeline], context: ModelContext) {
+        if let custom = pipeline(for: project, in: pipelines),
+           let done = custom.definition.stages.last(where: { $0.kind.isDone }) {
+            enter(project, stage: done, context: context)
+        } else {
+            setBuiltInStatus(project, to: .complete, context: context)
+        }
+    }
+
     /// One-tap advance for either kind of pipeline.
     static func advanceAny(_ project: Project, pipelines: [Pipeline], context: ModelContext) {
         if let custom = pipeline(for: project, in: pipelines) {
             advance(project, in: custom, context: context)
-        } else {
-            project.advance()
+        } else if project.advance() {
+            runBuiltInAutomation(project, context: context)
         }
     }
 }
