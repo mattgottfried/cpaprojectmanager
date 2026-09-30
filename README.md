@@ -47,6 +47,13 @@ It includes the Apple-native touches that make an iPhone app feel great:
 | **Time tracking upgrades** | Round billed time up to 6/15/30/60 minutes, get warned when a timer runs long, and start a timer from a task's menu on Today. |
 | **Apple Watch** | Today's tasks on your wrist: tick tasks off and start/stop the timer. |
 | **Help & first run** | A short welcome walkthrough for new installs, searchable Help & Tips (More tab), and a tip of the day on Today. |
+| **Quotes & fee schedule** | Standard prices, quotes with a PDF (signature block), one-tap conversion of an accepted quote into a draft invoice; per-client hourly rate and flat-fee flag. |
+| **Subtasks & waiting** | Checklists inside tasks, a "waiting on" note, and "can't start until" links that keep blocked tasks off Today. |
+| **Uploads & signatures** | Your secure upload page link goes into document-request emails; letters sent for signature are tracked and nudged on Today. |
+| **CSV import** | Bring clients (including a QuickBooks customer export) and time entries in from spreadsheets, with a preview. |
+| **Tax-season card** | Days to the deadline, open returns by stage, extensions and documents owed on Today, in season. |
+| **Multiple windows** | Extra windows on Mac (⌥⌘N) and iPad, each navigating independently. |
+| **Data health** | Finds and fixes duplicate invoice numbers and templates after syncing between devices. |
 | **Dashboard** *(now More → Firm Overview)* | Overdue / due-today / open-work counts, an active-timer banner, quick "New Tax Return" intake, "coming up" and "in progress" lists. |
 | **Clients** | Searchable CRM with entity type (1040, 1120-S, 1065, 1120, 1041, 990), status, notes, tap-to-call/text/email, and one-tap **import from your iPhone Contacts**. |
 | **Work** | Projects broken into checkable tasks, with a **9-stage pipeline** (Not Started → Awaiting Docs → In Progress → On Hold → In Review → Awaiting Signature → Ready to File → Filed → Complete) matching a real CPA workflow. One-tap **Advance** steps a project forward and pushes its due date out; **Put on Hold** records a reason and remembers which stage to resume at. Switch between a list and a drag-and-drop **kanban board** (great on iPad). |
@@ -307,6 +314,10 @@ docs/qbo-redirect/  Static HTTPS redirect page for QuickBooks OAuth (see below)
 ```
 
 ### Data model
+Batch 6 added `FeeItem`, `Quote`, and fields on `Client` (rate override, flat fee),
+`TaskItem` (checklist, blockedByID, waitingOn) and `Document` (signature status) —
+another CloudKit schema redeploy is needed.
+
 Batch 5 added `Pipeline` (custom stages as JSON), `LetterTemplate`, `EmailTemplate`,
 and fields on `Client` (birthday, anniversary), `Project` (`pipelineID`, `stageKey`),
 `WorkflowTemplate` (`pipelineID`, `startStageKey`) and `RecurringEngagement`
