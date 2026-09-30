@@ -47,6 +47,11 @@ struct MoreView: View {
                         Label("Fee Schedule", systemImage: "tag")
                     }
                     NavigationLink {
+                        ImportView()
+                    } label: {
+                        Label("Import from CSV", systemImage: "square.and.arrow.down")
+                    }
+                    NavigationLink {
                         HelpView()
                     } label: {
                         Label("Help & Tips", systemImage: "questionmark.circle.fill")
