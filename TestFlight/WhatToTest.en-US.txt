@@ -1,9 +1,6 @@
-Build 11 - what's new (please test):
+Build 12 - what's new (please test):
 
-- STAGE TASKS: More > Pipelines > "Set up stage tasks..." under any service. Each stage (e.g. Awaiting Signature) gets its own tasks, created when a job enters it; one at a time.
-- GOOGLE DRIVE: Settings > Google > Reconnect (once), then pick a client's Drive folder on their screen; Documents > Link from Google Drive.
-- Select several jobs/clients (bulk actions), undo for deletes, Mac keyboard.
-- Bill a finished job, unbilled report, payment reminders, extensions, client health, carryover.
-- Sync Health + duplicate merge, daily backups (Settings).
+- IMPORT YOUR FEES: More > Import from CSV > "Fee schedule". Choose the Gottfried_Fee_Schedule.csv (49 items), check the preview, import; then see them in More > Fee Schedule and pick them on a quote or "Create invoice" for a job.
+- Build 11: stage tasks (More > Pipelines > Set up stage tasks), Google Drive links, bulk select + undo, billing/extension tools, Sync Health, daily backups.
 
-Mac: re-check the new look; report any screen still off.
+Report anything that doesn't compile-launch or looks wrong on Mac.

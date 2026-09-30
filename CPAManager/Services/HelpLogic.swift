@@ -145,10 +145,12 @@ enum HelpCatalog {
             keywords: "checklist dependency blocked waiting on client"
         ),
         HelpTopic(
-            id: "import", title: "Importing from a spreadsheet or QuickBooks", systemImage: "square.and.arrow.down",
+            id: "import", title: "Importing from a spreadsheet", systemImage: "square.and.arrow.down",
             summary: "Bring in clients or time entries from a CSV file.",
             body: """
             More ▸ Import from CSV reads a spreadsheet saved as CSV. Columns are matched by name (Name or Customer, Company, Email, Phone, Entity type, Tags, Notes; or Date, Hours, Client, Project, Rate). A QuickBooks customer list exported to CSV works. You see a preview and the reasons any rows would be skipped before anything is imported. Clients whose email or name already exist are skipped.
+
+            Choose "Fee schedule" to import your prices: Name and Price columns (optionally Description and Hourly). They land in More ▸ Fee Schedule, ready for quotes and invoices.
             """,
             keywords: "csv excel spreadsheet quickbooks customers bulk time"
         ),

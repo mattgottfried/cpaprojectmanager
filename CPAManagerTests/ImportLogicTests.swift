@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import CPAManager
 
 final class CSVParserTests: XCTestCase {
@@ -105,5 +106,66 @@ final class TimeImportTests: XCTestCase {
     func testMissingRequiredColumns() {
         XCTAssertNotNil(TimeImport.plan(rows: CSVParser.parse("Client,Hours\nA,1")).missingRequiredColumn)
         XCTAssertNotNil(TimeImport.plan(rows: CSVParser.parse("Date,Client\n2026-01-01,A")).missingRequiredColumn)
+    }
+}
+
+final class FeeImportTests: XCTestCase {
+    func testPricesAreReadFromDollarText() {
+        XCTAssertEqual(FeeImport.price(from: "$2,000"), 2000)
+        XCTAssertEqual(FeeImport.price(from: "$900+"), 900)
+        XCTAssertEqual(FeeImport.price(from: "1,400.50"), 1400.5)
+        XCTAssertEqual(FeeImport.price(from: "$300/hr"), 300)
+        XCTAssertNil(FeeImport.price(from: "Quote"))
+        XCTAssertNil(FeeImport.price(from: "$0"))
+        XCTAssertNil(FeeImport.price(from: ""))
+    }
+
+    func testPlanReadsQuotedFieldsHourlyAndSkipsBadOrDuplicateRows() {
+        let csv = """
+        Name,Description,Price,Hourly
+        "Tax Essentials — Individual (monthly)","1040 + one state, year-round Q&A",$200,no
+        IRS Representation,Needs Form 2848,$300/hr,
+        Catch-up,Cleanup after diagnostic,125,yes
+        Custom bookkeeping,Priced after review,Quote,no
+        ,,,
+        tax essentials — individual (monthly),again,$1,no
+        Existing Item,Already there,$50,no
+        """
+        let rows = CSVParser.parse(csv)
+        let plan = FeeImport.plan(rows: rows, existingNames: ["existing item"])
+        XCTAssertNil(plan.missingRequiredColumn)
+        XCTAssertEqual(plan.records.map(\.name), ["Tax Essentials — Individual (monthly)", "IRS Representation", "Catch-up"])
+        XCTAssertEqual(plan.records[0].detail, "1040 + one state, year-round Q&A", "commas inside quotes stay in one field")
+        XCTAssertEqual(plan.records[0].unitPrice, 200)
+        XCTAssertFalse(plan.records[0].isHourly)
+        XCTAssertTrue(plan.records[1].isHourly, "'/hr' in the price means hourly")
+        XCTAssertTrue(plan.records[2].isHourly, "Hourly column says yes")
+        XCTAssertEqual(plan.skipped.count, 3)
+        XCTAssertTrue(plan.skipped[0].reason.contains("No price"))
+        XCTAssertTrue(plan.skipped.contains { $0.reason.contains("already in the fee schedule") })
+    }
+
+    func testAliasesAndMissingColumns() {
+        let aliased = FeeImport.plan(rows: CSVParser.parse("Service,Fee amount,What's included\nPayroll,$99,Owner only"), existingNames: [])
+        XCTAssertEqual(aliased.records.first?.unitPrice, 99)
+        XCTAssertEqual(aliased.records.first?.detail, "Owner only")
+        XCTAssertEqual(FeeImport.plan(rows: CSVParser.parse("Service,Notes\nA,b"), existingNames: []).missingRequiredColumn, "a Price column")
+        XCTAssertEqual(FeeImport.plan(rows: CSVParser.parse("Price\n5"), existingNames: []).missingRequiredColumn, "a Name column")
+        XCTAssertEqual(FeeImport.plan(rows: [], existingNames: []).missingRequiredColumn, "the header row")
+    }
+}
+
+@MainActor
+final class FeeImportServiceTests: XCTestCase {
+    func testImportedItemsAppendAfterExistingOnes() throws {
+        let config = ModelConfiguration(schema: Persistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let context = try ModelContainer(for: Persistence.schema, configurations: config).mainContext
+        context.insert(FeeItem(name: "Old", unitPrice: 10, sortIndex: 4))
+        let plan = FeeImport.plan(rows: CSVParser.parse("Name,Price\nA,$1\nB,$2/hr"), existingNames: ImportService.existingFeeNames(context: context))
+        XCTAssertEqual(ImportService.importFees(plan, context: context), 2)
+        let items = try context.fetch(FetchDescriptor<FeeItem>()).sorted { $0.sortIndex < $1.sortIndex }
+        XCTAssertEqual(items.map(\.name), ["Old", "A", "B"])
+        XCTAssertEqual(items.map(\.sortIndex), [4, 5, 6])
+        XCTAssertTrue(items[2].isHourly)
     }
 }
