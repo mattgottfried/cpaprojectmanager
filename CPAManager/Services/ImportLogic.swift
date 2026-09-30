@@ -282,3 +282,68 @@ enum TimeImport {
         return plan
     }
 }
+
+// MARK: - Fee schedule
+
+struct FeeImportRecord: Equatable {
+    var name: String
+    var detail: String
+    var unitPrice: Double
+    var isHourly: Bool
+}
+
+struct FeeImportPlan: Equatable {
+    var records: [FeeImportRecord] = []
+    var skipped: [ImportSkip] = []
+    var missingRequiredColumn: String? = nil
+}
+
+enum FeeImport {
+    static let aliases: [String: [String]] = [
+        "name": ["name", "service", "plan", "item", "fee name", "service name"],
+        "detail": ["description", "detail", "details", "included", "what's included", "notes", "note"],
+        "price": ["price", "amount", "unit price", "rate", "cost", "fee amount"],
+        "hourly": ["hourly", "per hour", "is hourly", "billed hourly"],
+    ]
+
+    /// "$2,000", "1,400.00", "$900+", "$300/hr" → the number. Nil if there isn't a positive one.
+    static func price(from text: String) -> Double? {
+        let cleaned = text.filter { $0.isNumber || $0 == "." }
+        guard let value = Double(cleaned), value > 0 else { return nil }
+        return value
+    }
+
+    /// A price written "$300/hr" or "per hour" counts as hourly even without an Hourly column.
+    static func looksHourly(_ priceText: String) -> Bool {
+        let t = priceText.lowercased()
+        return t.contains("/hr") || t.contains("per hour") || t.contains("/hour") || t.contains("hourly")
+    }
+
+    static func plan(rows: [[String]], existingNames: Set<String>) -> FeeImportPlan {
+        var plan = FeeImportPlan()
+        guard let headers = rows.first else { plan.missingRequiredColumn = "the header row"; return plan }
+        let columns = ImportColumns(headers: headers, aliases: aliases)
+        guard columns.has("name") else { plan.missingRequiredColumn = "a Name column"; return plan }
+        guard columns.has("price") else { plan.missingRequiredColumn = "a Price column"; return plan }
+
+        var seen = existingNames
+        for (offset, row) in rows.dropFirst().enumerated() {
+            let rowNumber = offset + 2
+            let name = columns.value("name", in: row)
+            if name.isEmpty { continue }   // blank spacer row
+            let priceText = columns.value("price", in: row)
+            guard let price = price(from: priceText) else {
+                plan.skipped.append(ImportSkip(row: rowNumber, reason: "No price for “\(name)”"))
+                continue
+            }
+            guard seen.insert(name.lowercased()).inserted else {
+                plan.skipped.append(ImportSkip(row: rowNumber, reason: "“\(name)” is already in the fee schedule"))
+                continue
+            }
+            let hourlyText = columns.value("hourly", in: row).lowercased()
+            let hourly = ["yes", "y", "true", "1", "hourly"].contains(hourlyText) || looksHourly(priceText)
+            plan.records.append(FeeImportRecord(name: name, detail: columns.value("detail", in: row), unitPrice: price, isHourly: hourly))
+        }
+        return plan
+    }
+}

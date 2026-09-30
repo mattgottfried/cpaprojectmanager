@@ -32,6 +32,24 @@ enum ImportService {
         return plan.records.count
     }
 
+    static func existingFeeNames(context: ModelContext) -> Set<String> {
+        Set(((try? context.fetch(FetchDescriptor<FeeItem>())) ?? []).map { $0.name.lowercased() })
+    }
+
+    /// Adds the fee-schedule items after the ones already there, in file order.
+    @discardableResult
+    static func importFees(_ plan: FeeImportPlan, context: ModelContext) -> Int {
+        let existing = (try? context.fetch(FetchDescriptor<FeeItem>())) ?? []
+        var index = (existing.map(\.sortIndex).max() ?? -1) + 1
+        for record in plan.records {
+            context.insert(FeeItem(name: record.name, detail: record.detail, unitPrice: record.unitPrice,
+                                   isHourly: record.isHourly, sortIndex: index))
+            index += 1
+        }
+        try? context.save()
+        return plan.records.count
+    }
+
     struct TimeResult: Equatable {
         var imported = 0
         var unmatchedClients = 0

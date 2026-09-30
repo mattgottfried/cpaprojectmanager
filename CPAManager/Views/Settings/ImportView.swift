@@ -2,13 +2,13 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-/// Import clients or time from a CSV (a spreadsheet, or a QuickBooks customer list export).
+/// Import clients, time or your fee schedule from a CSV (a spreadsheet, or a QuickBooks customer list export).
 struct ImportView: View {
     @Environment(\.modelContext) private var context
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
 
     enum Kind: String, CaseIterable, Identifiable {
-        case clients = "Clients", time = "Time entries"
+        case clients = "Clients", time = "Time entries", fees = "Fee schedule"
         var id: String { rawValue }
     }
 
@@ -24,6 +24,7 @@ struct ImportView: View {
         return ClientImport.plan(rows: rows, existingEmails: keys.emails, existingNames: keys.names)
     }
     private var timePlan: TimeImportPlan { TimeImport.plan(rows: rows) }
+    private var feePlan: FeeImportPlan { FeeImport.plan(rows: rows, existingNames: ImportService.existingFeeNames(context: context)) }
 
     var body: some View {
         Form {
@@ -36,9 +37,14 @@ struct ImportView: View {
                 Button { showingImporter = true } label: { Label("Choose a CSV file…", systemImage: "doc.badge.plus") }
                 if !fileName.isEmpty { LabeledContent("File", value: fileName) }
             } footer: {
-                Text(kind == .clients
-                     ? "Columns are matched by name: Name (or Customer), Company, Email, Phone, Entity type, Tags, Notes. A QuickBooks customer list exported to CSV works. Clients whose email or name already exist are skipped."
-                     : "Columns: Date, Hours, and optionally Client, Project, Rate, Notes, Billable. Hours can be 1.5, 1:30 or 1h 30m.")
+                switch kind {
+                case .clients:
+                    Text("Columns are matched by name: Name (or Customer), Company, Email, Phone, Entity type, Tags, Notes. A QuickBooks customer list exported to CSV works. Clients whose email or name already exist are skipped.")
+                case .time:
+                    Text("Columns: Date, Hours, and optionally Client, Project, Rate, Notes, Billable. Hours can be 1.5, 1:30 or 1h 30m.")
+                case .fees:
+                    Text("Columns: Name and Price, and optionally Description and Hourly (yes/no; a price like \"$300/hr\" also counts as hourly). Items whose name is already in your fee schedule are skipped. Imported items show up in More ▸ Fee Schedule and in quotes and invoices.")
+                }
             }
 
             if let message {
@@ -78,6 +84,34 @@ struct ImportView: View {
                     Button("Import \(plan.records.count) client\(plan.records.count == 1 ? "" : "s")") {
                         let n = ImportService.importClients(plan, context: context)
                         done = "Imported \(n) client\(n == 1 ? "" : "s")."
+                        rows = []; fileName = ""
+                    }
+                    .disabled(plan.records.isEmpty)
+                }
+            }
+        } else if kind == .fees {
+            let plan = feePlan
+            if let missing = plan.missingRequiredColumn {
+                Section { Text("Couldn't find \(missing).").foregroundStyle(.secondary) }
+            } else {
+                Section("Ready to import") {
+                    LabeledContent("New fee items", value: "\(plan.records.count)")
+                    LabeledContent("Skipped", value: "\(plan.skipped.count)")
+                    ForEach(Array(plan.records.prefix(8).enumerated()), id: \.offset) { _, record in
+                        HStack {
+                            Text(record.name).lineLimit(1)
+                            Spacer()
+                            Text(record.isHourly ? "\(Format.currency(record.unitPrice))/hr" : Format.currency(record.unitPrice))
+                                .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                        }
+                    }
+                    if plan.records.count > 8 {
+                        Text("…and \(plan.records.count - 8) more").font(.caption).foregroundStyle(.secondary)
+                    }
+                    skippedList(plan.skipped)
+                    Button("Import \(plan.records.count) fee item\(plan.records.count == 1 ? "" : "s")") {
+                        let n = ImportService.importFees(plan, context: context)
+                        done = "Imported \(n) fee item\(n == 1 ? "" : "s"). Find them in More ▸ Fee Schedule."
                         rows = []; fileName = ""
                     }
                     .disabled(plan.records.isEmpty)
