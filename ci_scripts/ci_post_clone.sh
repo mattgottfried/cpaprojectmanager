@@ -2,6 +2,7 @@
 # Xcode Cloud runs this right after cloning. The .xcodeproj is git-ignored (it is
 # generated from project.yml), so build it here before Xcode Cloud looks for it.
 set -e
+set -o pipefail 2>/dev/null || true
 
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
@@ -22,8 +23,19 @@ fi
 
 xcodegen generate
 
-# Xcode Cloud builds with automatic package resolution turned off and needs a
-# Package.resolved inside the generated project. Resolve the Swift packages (Firebase) now so
-# the file exists at CPAManager.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/.
-xcodebuild -resolvePackageDependencies -project CPAManager.xcodeproj
-ls CPAManager.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/ || true
+# Xcode Cloud turns automatic Swift package resolution off (and pins to a resolved file), and
+# the generated project has none yet. Turn resolution back on for this machine, resolve the
+# packages (Firebase) so Package.resolved is written into the generated project, and show
+# what happened in the log.
+defaults write com.apple.dt.Xcode IDEDisableAutomaticPackageResolution -bool NO
+defaults write com.apple.dt.Xcode IDEPackageOnlyUseVersionsFromResolvedFile -bool NO
+
+echo "Resolving Swift packages..."
+xcodebuild -resolvePackageDependencies -project CPAManager.xcodeproj 2>&1 | tail -40
+RESOLVED="CPAManager.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+if [ ! -f "$RESOLVED" ]; then
+    echo "error: Package.resolved was not created at $RESOLVED"
+    exit 1
+fi
+echo "Package.resolved created:"
+grep -c '"identity"' "$RESOLVED" || true
