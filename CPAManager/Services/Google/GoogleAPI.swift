@@ -107,7 +107,7 @@ struct GoogleAPI {
         }
     }
 
-    // MARK: Drive (read-only)
+    // MARK: Drive
 
     /// One page of files matching a Drive query, in Drive's order. Works across My Drive and
     /// shared drives.
@@ -129,6 +129,32 @@ struct GoogleAPI {
         }
         guard let response = DriveParsing.decode(result.0) else { throw GoogleError.decoding }
         return response
+    }
+
+    /// Creates a new file in Drive (inside `parentID` when given). Only ever creates — it never
+    /// overwrites, moves or deletes anything.
+    func driveUpload(name: String, mimeType: String, data: Data, parentID: String?) async throws -> DriveFile {
+        let boundary = "cpa-" + UUID().uuidString
+        let target = try url("https://www.googleapis.com/upload/drive/v3/files", [
+            URLQueryItem(name: "uploadType", value: "multipart"),
+            URLQueryItem(name: "supportsAllDrives", value: "true"),
+            URLQueryItem(name: "fields", value: DriveQuery.fileFields),
+        ])
+        let token = try await auth.validAccessToken()
+        var request = URLRequest(url: target)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 120
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(DriveUpload.contentType(boundary: boundary), forHTTPHeaderField: "Content-Type")
+        request.httpBody = DriveUpload.multipartBody(name: name, mimeType: mimeType, parentID: parentID, data: data, boundary: boundary)
+        let (body, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw GoogleError.decoding }
+        guard (200..<300).contains(http.statusCode) else {
+            throw GoogleError.http(http.statusCode, String(data: body.prefix(300), encoding: .utf8) ?? "")
+        }
+        guard let file = DriveParsing.decodeFile(body) else { throw GoogleError.decoding }
+        return file
     }
 
     /// One file or folder's details (used to name a folder the user pasted or picked).

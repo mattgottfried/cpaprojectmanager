@@ -8,6 +8,7 @@ struct InboxTriageSheet: View {
     /// Reports an undoable outcome up to the presenter's toast.
     let onOutcome: (_ message: String, _ undo: (() -> Void)?) -> Void
 
+    @Environment(GoogleAuthService.self) private var google
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
@@ -163,6 +164,10 @@ struct InboxTriageSheet: View {
         guard let document = CaptureQueue.fileAttachment(of: item, client: client, project: project, context: context) else { return }
         dismiss()
         onOutcome("Filed \(document.displayName)", nil)
+        // Drive is the holding place: send it on in the background (it stays in the app if Drive can't take it).
+        let auth = google
+        let store = context
+        Task { await DriveFiling.move(document, auth: auth, context: store) }
     }
 
     private func logToClient(_ client: Client) {

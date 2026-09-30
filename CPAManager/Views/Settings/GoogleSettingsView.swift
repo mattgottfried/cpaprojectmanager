@@ -14,6 +14,7 @@ struct GoogleSettingsView: View {
     @AppStorage(SettingsKeys.googlePushEnabled) private var pushEnabled = false
     @AppStorage(SettingsKeys.googleCalendarID) private var calendarID = "primary"
     @AppStorage(SettingsKeys.googleLastGmailSync) private var lastGmailSync: Double = 0
+    @AppStorage(SettingsKeys.saveToDrive) private var saveToDrive = true
 
     @State private var clientIDText = ""
     @State private var isConnecting = false
@@ -148,6 +149,7 @@ struct GoogleSettingsView: View {
 
     private var driveSection: some View {
         Section {
+            Toggle("File new documents in Drive", isOn: $saveToDrive)
             Button {
                 Task { await testDrive() }
             } label: {
@@ -157,7 +159,7 @@ struct GoogleSettingsView: View {
         } header: {
             Text("Google Drive")
         } footer: {
-            Text("Read-only: pick each client's (and job's) Drive folder on their screen, and link files as documents. If Drive shows a permission error, tap Reconnect to Google above so Google can ask about Drive, and check that the Drive API is enabled in your Google Cloud project.")
+            Text("Drive is where documents live. Pick each client's (and job's) Drive folder on their screen; scans, photos, letters and PDFs you add are filed there and the app keeps a link. The app only ever creates files — it never changes or deletes anything in Drive. If Drive shows a permission error, tap Reconnect to Google above (saving to Drive needs one fresh approval), and check that the Drive API is enabled in your Google Cloud project.")
         }
     }
 

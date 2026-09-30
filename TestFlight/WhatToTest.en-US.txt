@@ -1,7 +1,8 @@
-Build 13 - what's new (please test):
+Build 14 - what's new (please test):
 
-- TODAY IS NOW THREE SCREENS (switcher at the top): Focus (as before), TASKS (table of every task: tabs, presets, filters, group, sort, status/priority pills, bulk actions, board, calendar, export) and INSIGHTS (tasks to do by priority, job counters, jobs by stage, planned vs done, money/time; Edit widgets).
-- AUTOMOVE: stage task setup > "Automove" moves the job on when the stage's tasks are all done.
-- Settings > Default for new tax returns (checklist template).
+- GOOGLE DRIVE IS NOW WHERE DOCUMENTS LIVE. First: Settings > Google > Reconnect to Google and approve Drive access.
+- Pick a client's (or job's) Drive folder, then add a scan, photo, file, letter PDF, quote PDF or invoice PDF: it is filed into that folder and the app keeps a link. No folder yet? It stays in the app with a note.
+- "Move to Google Drive" (long-press a document, or Add Document > Move in-app files) sends existing files to Drive.
+- Settings > Google > "File new documents in Drive" turns it off.
 
-Mac: check the Tasks table widths and column chooser.
+Check: file opens from the link; the file shows in Drive; nothing in Drive was changed or deleted.

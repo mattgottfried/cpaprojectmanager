@@ -40,6 +40,8 @@ struct ClientLetterSheet: View {
     @State private var showingShare = false
     @State private var savedNotice = false
     @State private var trackSignature = true
+    @State private var driveNotice = ""
+    @Environment(GoogleAuthService.self) private var google
 
     private var selected: LetterTemplate? { templates.first { $0.id == selectedID } }
 
@@ -85,7 +87,7 @@ struct ClientLetterSheet: View {
                     Button("Save PDF", action: savePDF).disabled(selected == nil || text.isEmpty)
                 }
             }
-            .alert("Saved to \(client.displayName)'s documents", isPresented: $savedNotice) {
+            .alert(driveNotice.isEmpty ? "Saved to \(client.displayName)'s documents" : driveNotice, isPresented: $savedNotice) {
                 Button("Share…") { showingShare = true }
                 Button("Done") { dismiss() }
             }
@@ -127,18 +129,24 @@ struct ClientLetterSheet: View {
         guard !data.isEmpty else { return }
         let stamp = Format.shortDate.string(from: .now).replacingOccurrences(of: "/", with: "-")
         let filename = "\(selected.name) - \(client.displayName) \(stamp)"
-        let document = Document(filename: filename, fileExtension: "pdf", data: data, client: client)
-        if trackSignature && selected.kind.hasSignatureBlock {
-            document.signatureStatus = .sent
-            document.signatureSentAt = .now
-        }
-        context.insert(document)
-        try? context.save()
-
+        let track = trackSignature && selected.kind.hasSignatureBlock
         let safe = filename.replacingOccurrences(of: "/", with: "-")
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(safe).pdf")
         if (try? data.write(to: url)) != nil { shareURL = url }
-        savedNotice = true
+        Task {
+            let result = await DriveFiling.add(
+                data: data, filename: filename, fileExtension: "pdf", client: client, project: nil,
+                auth: google, context: context
+            ) { document in
+                if track {
+                    document.signatureStatus = .sent
+                    document.signatureSentAt = .now
+                }
+            }
+            driveNotice = result.outcome.reason.map { DriveFilingPlan.notice(for: $0, clientName: client.displayName) }
+                ?? "Saved to Google Drive in \(client.displayName)'s folder"
+            savedNotice = true
+        }
     }
 }
 

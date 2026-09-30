@@ -8,6 +8,8 @@ struct InvoiceDetailView: View {
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
 
     @State private var pdfURL: URL?
+    @State private var filingNotice: String?
+    @Environment(GoogleAuthService.self) private var google
     @State private var showingShare = false
     @State private var isSyncing = false
     @State private var showingPayment = false
@@ -68,6 +70,13 @@ struct InvoiceDetailView: View {
                 } label: {
                     Label("Share PDF", systemImage: "square.and.arrow.up")
                 }
+                if let client = invoice.client {
+                    Button {
+                        saveToDocuments(client: client)
+                    } label: {
+                        Label("Save PDF to \(client.displayName)'s documents", systemImage: "externaldrive.badge.plus")
+                    }
+                }
             }
 
             Section {
@@ -118,6 +127,9 @@ struct InvoiceDetailView: View {
             if let pdfURL {
                 ShareSheet(items: [pdfURL])
             }
+        }
+        .alert(filingNotice ?? "", isPresented: Binding(get: { filingNotice != nil }, set: { if !$0 { filingNotice = nil } })) {
+            Button("OK", role: .cancel) {}
         }
     }
 
@@ -231,6 +243,20 @@ struct InvoiceDetailView: View {
         let url = InvoicePDF.generate(invoice: invoice, firmName: firmName.isEmpty ? "My Firm" : firmName)
         pdfURL = url
         showingShare = url != nil
+    }
+
+    private func saveToDocuments(client: Client) {
+        guard let url = InvoicePDF.generate(invoice: invoice, firmName: firmName.isEmpty ? "My Firm" : firmName),
+              let data = try? Data(contentsOf: url) else { filingNotice = "Couldn't create the PDF."; return }
+        let name = "Invoice \(invoice.displayNumber) - \(client.displayName)"
+        Task {
+            let result = await DriveFiling.add(
+                data: data, filename: name, fileExtension: "pdf", client: client, project: nil,
+                auth: google, context: context
+            )
+            filingNotice = result.outcome.reason.map { DriveFilingPlan.notice(for: $0, clientName: client.displayName) }
+                ?? "Saved to Google Drive in \(client.displayName)'s folder."
+        }
     }
 
     private func sendToQuickBooks() async {

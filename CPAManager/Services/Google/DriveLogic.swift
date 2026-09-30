@@ -2,8 +2,8 @@ import Foundation
 
 // Pure logic for the Google Drive integration: response models, query building, links,
 // error wording, folder navigation, and de-duplicated linking. No networking, no SwiftData.
-// Unit-tested with canned API responses. The app only *reads* Drive (drive.readonly): files
-// stay where they are and are linked, never copied or moved.
+// Unit-tested with canned API responses. The app reads Drive and links files, and (see
+// DriveFilingLogic.swift) files new documents there. It only ever creates files.
 
 enum DriveMime {
     static let folder = "application/vnd.google-apps.folder"
