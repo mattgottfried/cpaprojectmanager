@@ -28,6 +28,7 @@ struct ClientLetterSheet: View {
     @Query(sort: \LetterTemplate.name) private var templates: [LetterTemplate]
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
+    @AppStorage(SettingsKeys.uploadPageURL) private var uploadPageURL = ""
 
     let client: Client
 
@@ -38,6 +39,7 @@ struct ClientLetterSheet: View {
     @State private var shareURL: URL?
     @State private var showingShare = false
     @State private var savedNotice = false
+    @State private var trackSignature = true
 
     private var selected: LetterTemplate? { templates.first { $0.id == selectedID } }
 
@@ -57,6 +59,9 @@ struct ClientLetterSheet: View {
                         }
                         TextField("Fee (e.g. $450)", text: feeBinding)
                         TextField("Service (e.g. monthly bookkeeping)", text: serviceBinding)
+                        if selected?.kind.hasSignatureBlock == true {
+                            Toggle("Track it as sent for signature", isOn: $trackSignature)
+                        }
                     }
                     if selected != nil {
                         Section {
@@ -105,7 +110,7 @@ struct ClientLetterSheet: View {
         guard let selected else { text = ""; return }
         text = MergeFields.render(selected.body, values: MergeFields.values(
             clientName: client.displayName, company: client.company, email: client.email,
-            firmName: firmName, fee: fee, service: service
+            firmName: firmName, fee: fee, service: service, uploadLink: UploadLink.normalized(uploadPageURL)
         ))
     }
 
@@ -121,7 +126,12 @@ struct ClientLetterSheet: View {
         guard !data.isEmpty else { return }
         let stamp = Format.shortDate.string(from: .now).replacingOccurrences(of: "/", with: "-")
         let filename = "\(selected.name) - \(client.displayName) \(stamp)"
-        context.insert(Document(filename: filename, fileExtension: "pdf", data: data, client: client))
+        let document = Document(filename: filename, fileExtension: "pdf", data: data, client: client)
+        if trackSignature && selected.kind.hasSignatureBlock {
+            document.signatureStatus = .sent
+            document.signatureSentAt = .now
+        }
+        context.insert(document)
         try? context.save()
 
         let safe = filename.replacingOccurrences(of: "/", with: "-")
@@ -138,6 +148,7 @@ struct ClientEmailSheet: View {
     @Environment(\.openURL) private var openURL
     @Query(sort: \EmailTemplate.name) private var templates: [EmailTemplate]
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
+    @AppStorage(SettingsKeys.uploadPageURL) private var uploadPageURL = ""
 
     let client: Client
 
@@ -185,7 +196,8 @@ struct ClientEmailSheet: View {
             selectedID = id
             guard let template = templates.first(where: { $0.id == id }) else { subject = ""; text = ""; return }
             let values = MergeFields.values(
-                clientName: client.displayName, company: client.company, email: client.email, firmName: firmName
+                clientName: client.displayName, company: client.company, email: client.email, firmName: firmName,
+                uploadLink: UploadLink.normalized(uploadPageURL)
             )
             subject = MergeFields.render(template.subject, values: values)
             text = MergeFields.render(template.body, values: values)

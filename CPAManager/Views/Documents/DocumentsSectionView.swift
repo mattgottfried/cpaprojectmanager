@@ -28,6 +28,16 @@ struct DocumentsSectionView: View {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    private func setSignature(_ document: Document, _ status: SignatureStatus) {
+        document.signatureStatus = status
+        switch status {
+        case .none:   document.signatureSentAt = nil; document.signedAt = nil
+        case .sent:   document.signatureSentAt = .now; document.signedAt = nil
+        case .signed: document.signedAt = .now
+        }
+        try? context.save()
+    }
+
     var body: some View {
         Section("Documents") {
             if documents.isEmpty {
@@ -49,7 +59,25 @@ struct DocumentsSectionView: View {
                             Text(Format.mediumDate.string(from: document.createdAt))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            if document.signatureStatus != .none {
+                                CapsuleBadge(
+                                    text: document.signatureStatus.label,
+                                    systemImage: document.signatureStatus == .signed ? "checkmark.seal.fill" : "signature",
+                                    state: document.signatureStatus == .signed ? .good : .caution
+                                )
+                            }
                         }
+                    }
+                }
+                .contextMenu {
+                    if document.signatureStatus != .sent {
+                        Button { setSignature(document, .sent) } label: { Label("Mark sent for signature", systemImage: "paperplane") }
+                    }
+                    if document.signatureStatus != .signed {
+                        Button { setSignature(document, .signed) } label: { Label("Mark signed", systemImage: "checkmark.seal") }
+                    }
+                    if document.signatureStatus != .none {
+                        Button { setSignature(document, .none) } label: { Label("Clear signature status", systemImage: "xmark.circle") }
                     }
                 }
             }

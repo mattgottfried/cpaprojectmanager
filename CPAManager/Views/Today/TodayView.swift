@@ -243,6 +243,8 @@ struct TodayView: View {
 
                     TodayOccasionsSection(clients: clients)
 
+                    TodaySignaturesSection()
+
                     ForEach(TodaySection.allCases) { section in
                         let ids = currentPlan.ids(section)
                         if !ids.isEmpty {

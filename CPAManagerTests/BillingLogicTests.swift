@@ -153,3 +153,50 @@ final class TaskDependencyTests: XCTestCase {
         XCTAssertEqual(plan.snoozedCount, 0)
     }
 }
+
+final class SignatureAndUploadLinkTests: XCTestCase {
+    private var calendar: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }()
+
+    private func day(_ d: Int) -> Date { calendar.date(from: DateComponents(year: 2026, month: 3, day: d, hour: 10))! }
+
+    func testAwaitingRespectsChaseDaysStatusAndOrder() {
+        let docs = [
+            SignatureCandidate(id: UUID(), title: "New", clientID: nil, clientName: "A", statusRaw: "sent", sentAt: day(9)),
+            SignatureCandidate(id: UUID(), title: "Old", clientID: nil, clientName: "B", statusRaw: "sent", sentAt: day(1)),
+            SignatureCandidate(id: UUID(), title: "Signed", clientID: nil, clientName: "C", statusRaw: "signed", sentAt: day(1)),
+            SignatureCandidate(id: UUID(), title: "Untracked", clientID: nil, clientName: "D", statusRaw: "", sentAt: nil),
+            SignatureCandidate(id: UUID(), title: "Missing date", clientID: nil, clientName: "E", statusRaw: "sent", sentAt: nil),
+        ]
+        let result = SignatureTracking.awaiting(docs, chaseDays: 3, now: day(10), calendar: calendar)
+        XCTAssertEqual(result.map(\.title), ["Old"], "New has waited 1 day, under the 3-day nudge")
+        XCTAssertEqual(result.first?.daysWaiting, 9)
+        let sooner = SignatureTracking.awaiting(docs, chaseDays: 1, now: day(10), calendar: calendar)
+        XCTAssertEqual(sooner.map(\.title), ["Old", "New"])
+    }
+
+    func testUploadLinkNormalization() {
+        XCTAssertEqual(UploadLink.normalized("https://www.encyro.com/mrgcpa"), "https://www.encyro.com/mrgcpa")
+        XCTAssertEqual(UploadLink.normalized("  www.encyro.com/mrgcpa \n"), "https://www.encyro.com/mrgcpa")
+        XCTAssertEqual(UploadLink.normalized(""), "")
+        XCTAssertEqual(UploadLink.normalized("not a link"), "")
+        XCTAssertEqual(UploadLink.normalized("ftp://files.example.com"), "")
+        XCTAssertEqual(UploadLink.normalized("localhost"), "")
+    }
+
+    func testMergeFieldAndChaseEmailUseTheLink() {
+        let values = MergeFields.values(clientName: "Dana Reyes", company: "", email: "", firmName: "GP", uploadLink: "https://x.com/u")
+        XCTAssertEqual(MergeFields.render("Upload: {uploadlink}", values: values), "Upload: https://x.com/u")
+        let blank = MergeFields.values(clientName: "Dana", company: "", email: "", firmName: "GP")
+        XCTAssertTrue(MergeFields.render("{uploadlink}", values: blank).contains("Settings"))
+
+        let with = DocumentChecklist.requestEmailBody(clientName: "Dana", items: ["W-2"], dueDate: nil, firm: "GP", uploadLink: "https://x.com/u")
+        XCTAssertTrue(with.contains("https://x.com/u"))
+        XCTAssertFalse(with.contains("reply to this email"))
+        let without = DocumentChecklist.requestEmailBody(clientName: "Dana", items: ["W-2"], dueDate: nil, firm: "GP")
+        XCTAssertTrue(without.contains("reply to this email"))
+    }
+}

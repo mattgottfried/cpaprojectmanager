@@ -10,6 +10,7 @@ extension SettingsKeys {
         focusEnabled, focusStartHour, focusEndHour, focusWeekends,
         lastWeeklyReview, quietThresholdDays,
         timeRoundingMinutes, timerReminderHours, hasOnboarded,
+        uploadPageURL, signatureChaseDays,
         googleGmailEnabled, googleGmailQuery, googleScheduleEnabled, googlePushEnabled,
         googleCalendarID,
         // Which calendar events this app has pushed — shared so any device can clean up

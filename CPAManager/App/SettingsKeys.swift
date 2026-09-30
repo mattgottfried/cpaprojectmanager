@@ -27,6 +27,10 @@ enum SettingsKeys {
     static let timeRoundingMinutes = "timeRoundingMinutes"
     /// Notify if a timer is still running after this many hours (0 = never).
     static let timerReminderHours = "timerReminderHours"
+    /// Your secure client-upload page (e.g. an Encyro page); inserted into requests and emails.
+    static let uploadPageURL = "uploadPageURL"
+    /// Days after sending for signature before Today nudges you.
+    static let signatureChaseDays = "signatureChaseDays"
     /// Set once the first-run walkthrough has been finished or skipped.
     static let hasOnboarded = "hasOnboarded"
 

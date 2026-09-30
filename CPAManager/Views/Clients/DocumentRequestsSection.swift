@@ -9,6 +9,7 @@ struct DocumentRequestsSection: View {
     @Environment(\.modelContext) private var context
     @Environment(\.openURL) private var openURL
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
+    @AppStorage(SettingsKeys.uploadPageURL) private var uploadPageURL = ""
     @AppStorage(SettingsKeys.reminderHour) private var reminderHour = 8
     @State private var newTitle = ""
 
@@ -158,7 +159,8 @@ struct DocumentRequestsSection: View {
     private func emailClient() {
         let earliest = outstanding.compactMap(\.dueDate).min()
         let body = DocumentChecklist.requestEmailBody(
-            clientName: client.displayName, items: outstanding.map(\.title), dueDate: earliest, firm: firmName
+            clientName: client.displayName, items: outstanding.map(\.title), dueDate: earliest, firm: firmName,
+            uploadLink: UploadLink.normalized(uploadPageURL)
         )
         if let url = InvoiceMath.reminderURL(to: client.email, subject: "Documents I still need", body: body) {
             openURL(url)
