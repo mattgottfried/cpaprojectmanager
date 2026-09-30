@@ -219,7 +219,12 @@ struct ProjectDetailView: View {
                 }
             } else {
                 Button {
-                    timer.start(project: project, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+                    timer.start(
+                        project: project,
+                        hourlyRate: RateResolver.rate(clientOverride: project.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+                        isBillable: !(project.client?.isFlatFee ?? false),
+                        context: context
+                    )
                 } label: {
                     Label("Start timer", systemImage: "play.circle.fill")
                 }

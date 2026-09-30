@@ -34,6 +34,10 @@ final class Client {
     var anniversary: Date? = nil
     var birthdayAckYear: Int = 0
     var anniversaryAckYear: Int = 0
+    /// Per-client hourly rate; 0 means "use the firm default".
+    var hourlyRateOverride: Double = 0
+    /// Flat-fee clients' timers default to non-billable (the fee goes on a quote/invoice).
+    var isFlatFee: Bool = false
 
     @Relationship(deleteRule: .cascade, inverse: \Project.client)
     var projects: [Project]? = []
@@ -60,6 +64,9 @@ final class Client {
 
     @Relationship(deleteRule: .cascade, inverse: \RecurringInvoice.client)
     var recurringInvoices: [RecurringInvoice]? = []
+
+    @Relationship(deleteRule: .cascade, inverse: \Quote.client)
+    var quotes: [Quote]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \Expense.client)
     var expenses: [Expense]? = []

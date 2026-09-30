@@ -25,6 +25,8 @@ enum Persistence {
         Pipeline.self,
         LetterTemplate.self,
         EmailTemplate.self,
+        FeeItem.self,
+        Quote.self,
         SavedClientFilter.self,
     ])
 

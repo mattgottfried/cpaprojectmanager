@@ -16,6 +16,8 @@ struct ClientFormView: View {
     @State private var email = ""
     @State private var phone = ""
     @State private var notes = ""
+    @State private var rateOverride = 0.0
+    @State private var isFlatFee = false
     @State private var hasBirthday = false
     @State private var birthday = Date.now
     @State private var hasAnniversary = false
@@ -48,6 +50,18 @@ struct ClientFormView: View {
                     Picker("Status", selection: $status) {
                         ForEach(ClientStatus.allCases) { Text($0.label).tag($0) }
                     }
+                }
+                Section {
+                    LabeledContent("Hourly rate") {
+                        TextField("Firm default", value: $rateOverride, format: .currency(code: "USD"))
+                            .multilineTextAlignment(.trailing)
+                            .decimalKeyboard()
+                    }
+                    Toggle("Flat-fee client", isOn: $isFlatFee)
+                } header: {
+                    Text("Billing")
+                } footer: {
+                    Text("Leave the rate at $0 to use your default. Timers for flat-fee clients start as non-billable.")
                 }
                 Section("Contact") {
                     TextField("Email", text: $email)
@@ -152,6 +166,8 @@ struct ClientFormView: View {
         phone = client.phone
         notes = client.notes
         tagsText = client.tagsRaw
+        rateOverride = client.hourlyRateOverride
+        isFlatFee = client.isFlatFee
         hasBirthday = client.birthday != nil
         birthday = client.birthday ?? birthday
         hasAnniversary = client.anniversary != nil
@@ -170,6 +186,8 @@ struct ClientFormView: View {
             client.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
             client.birthday = hasBirthday ? birthday : nil
             client.anniversary = hasAnniversary ? anniversary : nil
+            client.hourlyRateOverride = max(0, rateOverride)
+            client.isFlatFee = isFlatFee
         } else {
             let newClient = Client(
                 name: name,
@@ -181,6 +199,8 @@ struct ClientFormView: View {
                 notes: notes
             )
             newClient.tagsRaw = TagSet.encode(TagSet.parse(tagsText))
+            newClient.hourlyRateOverride = max(0, rateOverride)
+            newClient.isFlatFee = isFlatFee
             newClient.birthday = hasBirthday ? birthday : nil
             newClient.anniversary = hasAnniversary ? anniversary : nil
             context.insert(newClient)

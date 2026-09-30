@@ -636,7 +636,12 @@ struct TodayView: View {
     private func taskMenu(_ task: TaskItem) -> some View {
         Button { complete(task) } label: { Label("Mark done", systemImage: "checkmark.circle") }
         Button {
-            timer.start(project: task.project, hourlyRate: defaultHourlyRate, isBillable: true, context: context)
+            timer.start(
+                project: task.project,
+                hourlyRate: RateResolver.rate(clientOverride: task.project?.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+                isBillable: !(task.project?.client?.isFlatFee ?? false),
+                context: context
+            )
             toast = UndoToastState(message: "Timer started", systemImage: "timer")
         } label: { Label("Start timer", systemImage: "timer") }
         Menu {
