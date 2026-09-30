@@ -3,7 +3,6 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
-    @Environment(SyncStatus.self) private var syncStatus
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
     @AppStorage(SettingsKeys.firmContact) private var firmContact = ""
@@ -175,57 +174,7 @@ struct SettingsView: View {
                 Text("Adds the built-in engagement templates back. Your existing templates are kept.")
             }
 
-            Section {
-                if syncStatus.isCloudKitActive {
-                    Label("Active — syncing via iCloud", systemImage: "checkmark.icloud.fill")
-                        .foregroundStyle(.green)
-                } else {
-                    Label("Local Only — not syncing", systemImage: "exclamationmark.icloud.fill")
-                        .foregroundStyle(.red)
-                    if let error = syncStatus.containerError {
-                        Text(error)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
-                        Button {
-                            Clipboard.string = error
-                        } label: {
-                            Label("Copy error", systemImage: "doc.on.doc")
-                        }
-                        .font(.caption)
-                    }
-                }
-                LabeledContent("iCloud account", value: syncStatus.accountStatusDescription)
-                LabeledContent("Settings sync", value: SettingsSync.isAvailable ? "On" : "Sign into iCloud")
-                    .font(.caption)
-                LabeledContent("Container", value: SyncStatus.containerIdentifier)
-                    .font(.caption)
-
-                if syncStatus.isCloudKitActive {
-                    Button {
-                        syncStatus.syncNow(context: context)
-                    } label: {
-                        if syncStatus.isSyncing {
-                            Label("Syncing…", systemImage: "arrow.triangle.2.circlepath")
-                        } else {
-                            Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
-                        }
-                    }
-                    .disabled(syncStatus.isSyncing)
-
-                    LabeledContent("Last sent to iCloud") {
-                        syncEventValue(date: syncStatus.lastExportDate, error: syncStatus.lastExportError)
-                    }
-                    LabeledContent("Last received from iCloud") {
-                        syncEventValue(date: syncStatus.lastImportDate, error: syncStatus.lastImportError)
-                    }
-                }
-            } header: {
-                Text("iCloud Sync")
-            } footer: {
-                Text("Sign into the same iCloud account on each device to sync. If this shows \"Local Only\" on any device, that device's data stays on-device until it's resolved — see the README's sync troubleshooting section. Your settings sync through iCloud too, and Google / QuickBooks connections sync through iCloud Keychain (System Settings → Apple ID → iCloud → Passwords & Keychain) — connect once and the other devices pick it up. iOS syncs with iCloud automatically in the background; \"Sync Now\" just saves any pending changes and checks your account status right away rather than waiting.")
-            }
+            CloudSyncSection()
 
             Section {
                 LabeledContent("Version", value: appVersion)
@@ -250,19 +199,4 @@ struct SettingsView: View {
         .sheet(isPresented: $showingRemindersImport) { RemindersImportView() }
     }
 
-    @ViewBuilder
-    private func syncEventValue(date: Date?, error: String?) -> some View {
-        if let error {
-            Text(error)
-                .font(.caption)
-                .foregroundStyle(.red)
-                .textSelection(.enabled)
-        } else if let date {
-            Text(date.formatted(date: .abbreviated, time: .shortened))
-                .foregroundStyle(.secondary)
-        } else {
-            Text("Not yet")
-                .foregroundStyle(.secondary)
-        }
-    }
 }

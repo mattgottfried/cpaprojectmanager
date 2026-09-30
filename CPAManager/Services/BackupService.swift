@@ -354,11 +354,13 @@ enum BackupService {
     struct RestoreResult: Equatable {
         var inserted = 0
         var skippedExisting = 0
+        /// Existing records rewritten from the file (only with `overwrite: true`).
+        var updated = 0
     }
 
     @MainActor
     @discardableResult
-    static func restore(_ file: BackupFile, into context: ModelContext) -> RestoreResult {
+    static func restore(_ file: BackupFile, into context: ModelContext, overwrite: Bool = false) -> RestoreResult {
         var result = RestoreResult()
 
         func existing<T: PersistentModel>(_ type: T.Type, id: KeyPath<T, UUID>) -> [UUID: T] {
@@ -367,19 +369,27 @@ enum BackupService {
         }
 
         /// Inserts records that aren't present yet and returns the full id → model map
-        /// (existing + new) so later records can link to either.
+        /// (existing + new) so later records can link to either. With `overwrite`, records
+        /// that already exist are rewritten from the file instead of skipped (used by sync).
         func merge<T: PersistentModel, R>(
             _ type: T.Type, id: KeyPath<T, UUID>, records: [R], recordID: (R) -> UUID,
-            make: (R) -> T, link: (R, T) -> Void
+            make: () -> T, fill: (R, T) -> Void, link: (R, T) -> Void
         ) -> [UUID: T] {
             var map = existing(type, id: id)
             for record in records {
-                if map[recordID(record)] != nil {
-                    result.skippedExisting += 1
+                if let model = map[recordID(record)] {
+                    if overwrite {
+                        fill(record, model)
+                        link(record, model)
+                        result.updated += 1
+                    } else {
+                        result.skippedExisting += 1
+                    }
                     continue
                 }
-                let model = make(record)
+                let model = make()
                 context.insert(model)
+                fill(record, model)
                 link(record, model)
                 map[recordID(record)] = model
                 result.inserted += 1
@@ -387,175 +397,155 @@ enum BackupService {
             return map
         }
 
-        let clients = merge(Client.self, id: \.id, records: file.clients, recordID: { $0.id }, make: { r in
-            let c = Client(name: r.name, company: r.company, notes: r.notes)
-            c.id = r.id; c.entityTypeRaw = r.entityTypeRaw; c.statusRaw = r.statusRaw; c.email = r.email; c.phone = r.phone
+        let clients = merge(Client.self, id: \.id, records: file.clients, recordID: { $0.id }, make: { Client() }, fill: { r, c in
+            c.id = r.id; c.name = r.name; c.company = r.company; c.notes = r.notes
+            c.entityTypeRaw = r.entityTypeRaw; c.statusRaw = r.statusRaw; c.email = r.email; c.phone = r.phone
             c.createdAt = r.createdAt; c.qboCustomerId = r.qboCustomerId; c.tagsRaw = r.tagsRaw
             c.followUpDate = r.followUpDate; c.leadStageRaw = r.leadStageRaw; c.leadValue = r.leadValue
             c.extensionYearsRaw = r.extensionYearsRaw
             c.birthday = r.birthday; c.anniversary = r.anniversary
             c.birthdayAckYear = r.birthdayAckYear ?? 0; c.anniversaryAckYear = r.anniversaryAckYear ?? 0
             c.hourlyRateOverride = r.hourlyRateOverride ?? 0; c.isFlatFee = r.isFlatFee ?? false
-            return c
         }, link: { _, _ in })
 
-        let projects = merge(Project.self, id: \.id, records: file.projects, recordID: { $0.id }, make: { r in
-            let p = Project(title: r.title, detail: r.detail)
-            p.id = r.id; p.statusRaw = r.statusRaw; p.serviceTypeRaw = r.serviceTypeRaw; p.priorityRaw = r.priorityRaw
+        let projects = merge(Project.self, id: \.id, records: file.projects, recordID: { $0.id }, make: { Project() }, fill: { r, p in
+            p.id = r.id; p.title = r.title; p.detail = r.detail
+            p.statusRaw = r.statusRaw; p.serviceTypeRaw = r.serviceTypeRaw; p.priorityRaw = r.priorityRaw
             p.startDate = r.startDate; p.dueDate = r.dueDate; p.completedAt = r.completedAt; p.taxYear = r.taxYear
             p.templateName = r.templateName; p.createdAt = r.createdAt; p.receivedDate = r.receivedDate
             p.nextAction = r.nextAction; p.holdReasonRaw = r.holdReasonRaw; p.holdDetail = r.holdDetail
             p.holdResumeStatusRaw = r.holdResumeStatusRaw
             p.pipelineID = r.pipelineID; p.stageKey = r.stageKey ?? ""
-            return p
         }, link: { r, p in p.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(TaskItem.self, id: \.id, records: file.tasks, recordID: { $0.id }, make: { r in
-            let t = TaskItem(title: r.title, notes: r.notes)
-            t.id = r.id; t.isDone = r.isDone; t.dueDate = r.dueDate; t.sortIndex = r.sortIndex
+        _ = merge(TaskItem.self, id: \.id, records: file.tasks, recordID: { $0.id }, make: { TaskItem() }, fill: { r, t in
+            t.id = r.id; t.title = r.title; t.notes = r.notes
+            t.isDone = r.isDone; t.dueDate = r.dueDate; t.sortIndex = r.sortIndex
             t.completedAt = r.completedAt; t.createdAt = r.createdAt; t.isNextAction = r.isNextAction
             t.snoozedUntil = r.snoozedUntil; t.repeatRuleRaw = r.repeatRuleRaw
             t.checklist = r.checklist ?? ""; t.blockedByID = r.blockedByID; t.waitingOn = r.waitingOn ?? ""
-            return t
         }, link: { r, t in
             t.project = r.projectID.flatMap { projects[$0] }
             t.client = r.clientID.flatMap { clients[$0] }
         })
 
-        let times = merge(TimeEntry.self, id: \.id, records: file.timeEntries, recordID: { $0.id }, make: { r in
-            let t = TimeEntry(startedAt: r.startedAt, endedAt: r.endedAt, notes: r.notes, isBillable: r.isBillable, hourlyRate: r.hourlyRate)
-            t.id = r.id; t.projectTitle = r.projectTitle; t.clientName = r.clientName
+        _ = merge(TimeEntry.self, id: \.id, records: file.timeEntries, recordID: { $0.id }, make: { TimeEntry() }, fill: { r, t in
+            t.id = r.id; t.startedAt = r.startedAt; t.endedAt = r.endedAt; t.notes = r.notes
+            t.isBillable = r.isBillable; t.hourlyRate = r.hourlyRate
+            t.projectTitle = r.projectTitle; t.clientName = r.clientName
             t.createdAt = r.createdAt; t.invoiceID = r.invoiceID
-            return t
         }, link: { r, t in t.project = r.projectID.flatMap { projects[$0] } })
-        _ = times
 
-        _ = merge(Document.self, id: \.id, records: file.documents, recordID: { $0.id }, make: { r in
-            let d = Document(filename: r.filename, fileExtension: r.fileExtension, data: r.data ?? Data())
-            d.id = r.id; d.createdAt = r.createdAt
+        _ = merge(Document.self, id: \.id, records: file.documents, recordID: { $0.id }, make: { Document() }, fill: { r, d in
+            d.id = r.id; d.filename = r.filename; d.fileExtension = r.fileExtension
+            // A record without the file (backup without files, or too large to sync) never
+            // wipes a copy this device already has.
+            if let data = r.data { d.data = data }
+            d.createdAt = r.createdAt
             d.signatureStatusRaw = r.signatureStatusRaw ?? ""; d.signatureSentAt = r.signatureSentAt; d.signedAt = r.signedAt
-            return d
         }, link: { r, d in
             d.client = r.clientID.flatMap { clients[$0] }
             d.project = r.projectID.flatMap { projects[$0] }
         })
 
-        let templates = merge(WorkflowTemplate.self, id: \.id, records: file.templates, recordID: { $0.id }, make: { r in
-            let t = WorkflowTemplate(name: r.name, detail: r.detail)
-            t.id = r.id; t.serviceTypeRaw = r.serviceTypeRaw; t.defaultDurationDays = r.defaultDurationDays
+        let templates = merge(WorkflowTemplate.self, id: \.id, records: file.templates, recordID: { $0.id }, make: { WorkflowTemplate() }, fill: { r, t in
+            t.id = r.id; t.name = r.name; t.detail = r.detail
+            t.serviceTypeRaw = r.serviceTypeRaw; t.defaultDurationDays = r.defaultDurationDays
             t.createdAt = r.createdAt
             t.pipelineID = r.pipelineID; t.startStageKey = r.startStageKey ?? ""
-            return t
         }, link: { _, _ in })
 
-        _ = merge(TemplateTask.self, id: \.id, records: file.templateTasks, recordID: { $0.id }, make: { r in
-            let t = TemplateTask(title: r.title, sortIndex: r.sortIndex, dayOffset: r.dayOffset)
-            t.id = r.id
-            return t
+        _ = merge(TemplateTask.self, id: \.id, records: file.templateTasks, recordID: { $0.id }, make: { TemplateTask() }, fill: { r, t in
+            t.id = r.id; t.title = r.title; t.sortIndex = r.sortIndex; t.dayOffset = r.dayOffset
         }, link: { r, t in t.template = r.templateID.flatMap { templates[$0] } })
 
-        _ = merge(RecurringEngagement.self, id: \.id, records: file.engagements, recordID: { $0.id }, make: { r in
-            let e = RecurringEngagement(name: r.name, isActive: r.isActive, nextDueDate: r.nextDueDate, leadTimeDays: r.leadTimeDays, adjustForWeekends: r.adjustForWeekends)
-            e.id = r.id; e.frequencyRaw = r.frequencyRaw; e.serviceTypeRaw = r.serviceTypeRaw
+        _ = merge(RecurringEngagement.self, id: \.id, records: file.engagements, recordID: { $0.id }, make: { RecurringEngagement() }, fill: { r, e in
+            e.id = r.id; e.name = r.name; e.isActive = r.isActive; e.nextDueDate = r.nextDueDate
+            e.leadTimeDays = r.leadTimeDays; e.adjustForWeekends = r.adjustForWeekends
+            e.frequencyRaw = r.frequencyRaw; e.serviceTypeRaw = r.serviceTypeRaw
             e.lastGeneratedDueDate = r.lastGeneratedDueDate; e.createdAt = r.createdAt
             e.endDate = r.endDate; e.namingPattern = r.namingPattern ?? ""
-            return e
         }, link: { r, e in
             e.client = r.clientID.flatMap { clients[$0] }
             e.template = r.templateID.flatMap { templates[$0] }
         })
 
-        let invoices = merge(Invoice.self, id: \.id, records: file.invoices, recordID: { $0.id }, make: { r in
-            let i = Invoice(number: r.number, issueDate: r.issueDate, dueDate: r.dueDate, notes: r.notes)
-            i.id = r.id; i.statusRaw = r.statusRaw; i.qboId = r.qboId; i.qboSyncStateRaw = r.qboSyncStateRaw
+        let invoices = merge(Invoice.self, id: \.id, records: file.invoices, recordID: { $0.id }, make: { Invoice() }, fill: { r, i in
+            i.id = r.id; i.number = r.number; i.issueDate = r.issueDate; i.dueDate = r.dueDate; i.notes = r.notes
+            i.statusRaw = r.statusRaw; i.qboId = r.qboId; i.qboSyncStateRaw = r.qboSyncStateRaw
             i.qboSyncError = r.qboSyncError; i.createdAt = r.createdAt
-            return i
         }, link: { r, i in i.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(InvoiceLine.self, id: \.id, records: file.invoiceLines, recordID: { $0.id }, make: { r in
-            let l = InvoiceLine(detail: r.detail, quantity: r.quantity, rate: r.rate, sortIndex: r.sortIndex, timeEntryID: r.timeEntryID)
-            l.id = r.id
-            return l
+        _ = merge(InvoiceLine.self, id: \.id, records: file.invoiceLines, recordID: { $0.id }, make: { InvoiceLine() }, fill: { r, l in
+            l.id = r.id; l.detail = r.detail; l.quantity = r.quantity; l.rate = r.rate
+            l.sortIndex = r.sortIndex; l.timeEntryID = r.timeEntryID
         }, link: { r, l in l.invoice = r.invoiceID.flatMap { invoices[$0] } })
 
-        _ = merge(Payment.self, id: \.id, records: file.payments, recordID: { $0.id }, make: { r in
-            let p = Payment(amount: r.amount, date: r.date, note: r.note)
-            p.id = r.id; p.methodRaw = r.methodRaw; p.createdAt = r.createdAt
-            return p
+        _ = merge(Payment.self, id: \.id, records: file.payments, recordID: { $0.id }, make: { Payment() }, fill: { r, p in
+            p.id = r.id; p.amount = r.amount; p.date = r.date; p.note = r.note
+            p.methodRaw = r.methodRaw; p.createdAt = r.createdAt
         }, link: { r, p in p.invoice = r.invoiceID.flatMap { invoices[$0] } })
 
-        _ = merge(InboxItem.self, id: \.id, records: file.inbox, recordID: { $0.id }, make: { r in
-            let i = InboxItem(text: r.text)
-            i.id = r.id; i.sourceRaw = r.sourceRaw; i.createdAt = r.createdAt; i.isProcessed = r.isProcessed
+        _ = merge(InboxItem.self, id: \.id, records: file.inbox, recordID: { $0.id }, make: { InboxItem() }, fill: { r, i in
+            i.id = r.id; i.text = r.text
+            i.sourceRaw = r.sourceRaw; i.createdAt = r.createdAt; i.isProcessed = r.isProcessed
             i.processedAt = r.processedAt; i.dedupeKey = r.dedupeKey; i.externalID = r.externalID; i.link = r.link
-            return i
         }, link: { r, i in i.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(Interaction.self, id: \.id, records: file.interactions, recordID: { $0.id }, make: { r in
-            let i = Interaction(summary: r.summary, occurredAt: r.occurredAt)
-            i.id = r.id; i.kindRaw = r.kindRaw; i.createdAt = r.createdAt
-            return i
+        _ = merge(Interaction.self, id: \.id, records: file.interactions, recordID: { $0.id }, make: { Interaction() }, fill: { r, i in
+            i.id = r.id; i.summary = r.summary; i.occurredAt = r.occurredAt
+            i.kindRaw = r.kindRaw; i.createdAt = r.createdAt
         }, link: { r, i in i.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(SavedClientFilter.self, id: \.id, records: file.savedFilters, recordID: { $0.id }, make: { r in
-            let f = SavedClientFilter(name: r.name)
-            f.id = r.id; f.statusRaw = r.statusRaw; f.entityTypeRaw = r.entityTypeRaw; f.tag = r.tag
+        _ = merge(SavedClientFilter.self, id: \.id, records: file.savedFilters, recordID: { $0.id }, make: { SavedClientFilter() }, fill: { r, f in
+            f.id = r.id; f.name = r.name
+            f.statusRaw = r.statusRaw; f.entityTypeRaw = r.entityTypeRaw; f.tag = r.tag
             f.onlyWithOpenWork = r.onlyWithOpenWork; f.createdAt = r.createdAt
-            return f
         }, link: { _, _ in })
 
-        _ = merge(DocumentRequest.self, id: \.id, records: file.documentRequests, recordID: { $0.id }, make: { r in
-            let d = DocumentRequest(title: r.title, notes: r.notes, dueDate: r.dueDate)
-            d.id = r.id; d.requestedAt = r.requestedAt; d.receivedAt = r.receivedAt; d.createdAt = r.createdAt
-            return d
+        _ = merge(DocumentRequest.self, id: \.id, records: file.documentRequests, recordID: { $0.id }, make: { DocumentRequest() }, fill: { r, d in
+            d.id = r.id; d.title = r.title; d.notes = r.notes; d.dueDate = r.dueDate
+            d.requestedAt = r.requestedAt; d.receivedAt = r.receivedAt; d.createdAt = r.createdAt
         }, link: { r, d in
             d.client = r.clientID.flatMap { clients[$0] }
             d.project = r.projectID.flatMap { projects[$0] }
         })
 
-        _ = merge(RecurringInvoice.self, id: \.id, records: file.recurringInvoices, recordID: { $0.id }, make: { r in
-            let t = RecurringInvoice(name: r.name, nextIssueDate: r.nextIssueDate, termsDays: r.termsDays)
-            t.id = r.id; t.frequencyRaw = r.frequencyRaw; t.isActive = r.isActive; t.notes = r.notes
+        _ = merge(RecurringInvoice.self, id: \.id, records: file.recurringInvoices, recordID: { $0.id }, make: { RecurringInvoice() }, fill: { r, t in
+            t.id = r.id; t.name = r.name; t.nextIssueDate = r.nextIssueDate; t.termsDays = r.termsDays
+            t.frequencyRaw = r.frequencyRaw; t.isActive = r.isActive; t.notes = r.notes
             t.linesData = r.linesData; t.lastGeneratedAt = r.lastGeneratedAt; t.createdAt = r.createdAt
-            return t
         }, link: { r, t in t.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(Expense.self, id: \.id, records: file.expenses, recordID: { $0.id }, make: { r in
-            let e = Expense(amount: r.amount, date: r.date, vendor: r.vendor, note: r.note)
-            e.id = r.id; e.categoryRaw = r.categoryRaw; e.deductiblePercent = r.deductiblePercent
-            e.receiptData = r.receiptData ?? Data(); e.receiptExtension = r.receiptExtension; e.createdAt = r.createdAt
-            return e
+        _ = merge(Expense.self, id: \.id, records: file.expenses, recordID: { $0.id }, make: { Expense() }, fill: { r, e in
+            e.id = r.id; e.amount = r.amount; e.date = r.date; e.vendor = r.vendor; e.note = r.note
+            e.categoryRaw = r.categoryRaw; e.deductiblePercent = r.deductiblePercent
+            if let receipt = r.receiptData { e.receiptData = receipt }
+            e.receiptExtension = r.receiptExtension; e.createdAt = r.createdAt
         }, link: { r, e in e.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(FeeItem.self, id: \.id, records: file.feeItems ?? [], recordID: { $0.id }, make: { r in
-            let f = FeeItem(name: r.name, detail: r.detail, unitPrice: r.unitPrice, isHourly: r.isHourly, sortIndex: r.sortIndex)
-            f.id = r.id; f.createdAt = r.createdAt
-            return f
+        _ = merge(FeeItem.self, id: \.id, records: file.feeItems ?? [], recordID: { $0.id }, make: { FeeItem() }, fill: { r, f in
+            f.id = r.id; f.name = r.name; f.detail = r.detail; f.unitPrice = r.unitPrice; f.isHourly = r.isHourly
+            f.sortIndex = r.sortIndex; f.createdAt = r.createdAt
         }, link: { _, _ in })
 
-        _ = merge(Quote.self, id: \.id, records: file.quotes ?? [], recordID: { $0.id }, make: { r in
-            let q = Quote(number: r.number, validUntil: r.validUntil, notes: r.notes)
-            q.id = r.id; q.statusRaw = r.statusRaw; q.issueDate = r.issueDate; q.linesData = r.linesData
+        _ = merge(Quote.self, id: \.id, records: file.quotes ?? [], recordID: { $0.id }, make: { Quote() }, fill: { r, q in
+            q.id = r.id; q.number = r.number; q.validUntil = r.validUntil; q.notes = r.notes
+            q.statusRaw = r.statusRaw; q.issueDate = r.issueDate; q.linesData = r.linesData
             q.invoiceID = r.invoiceID; q.createdAt = r.createdAt
-            return q
         }, link: { r, q in q.client = r.clientID.flatMap { clients[$0] } })
 
-        _ = merge(Pipeline.self, id: \.id, records: file.pipelines ?? [], recordID: { $0.id }, make: { r in
-            let p = Pipeline(name: r.name, systemImage: r.systemImage, sortIndex: r.sortIndex)
-            p.id = r.id; p.stagesData = r.stagesData; p.createdAt = r.createdAt
-            return p
+        _ = merge(Pipeline.self, id: \.id, records: file.pipelines ?? [], recordID: { $0.id }, make: { Pipeline() }, fill: { r, p in
+            p.id = r.id; p.name = r.name; p.systemImage = r.systemImage; p.sortIndex = r.sortIndex
+            p.stagesData = r.stagesData; p.createdAt = r.createdAt
         }, link: { _, _ in })
 
-        _ = merge(LetterTemplate.self, id: \.id, records: file.letterTemplates ?? [], recordID: { $0.id }, make: { r in
-            let l = LetterTemplate(name: r.name, body: r.body)
-            l.id = r.id; l.kindRaw = r.kindRaw; l.createdAt = r.createdAt
-            return l
+        _ = merge(LetterTemplate.self, id: \.id, records: file.letterTemplates ?? [], recordID: { $0.id }, make: { LetterTemplate() }, fill: { r, l in
+            l.id = r.id; l.name = r.name; l.body = r.body; l.kindRaw = r.kindRaw; l.createdAt = r.createdAt
         }, link: { _, _ in })
 
-        _ = merge(EmailTemplate.self, id: \.id, records: file.emailTemplates ?? [], recordID: { $0.id }, make: { r in
-            let e = EmailTemplate(name: r.name, subject: r.subject, body: r.body)
-            e.id = r.id; e.createdAt = r.createdAt
-            return e
+        _ = merge(EmailTemplate.self, id: \.id, records: file.emailTemplates ?? [], recordID: { $0.id }, make: { EmailTemplate() }, fill: { r, e in
+            e.id = r.id; e.name = r.name; e.subject = r.subject; e.body = r.body; e.createdAt = r.createdAt
         }, link: { _, _ in })
 
         try? context.save()

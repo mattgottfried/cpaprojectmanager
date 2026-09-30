@@ -3,7 +3,7 @@ import SwiftData
 
 /// One shared `ModelContainer` for the whole process. App Intents (Siri, Shortcuts,
 /// the share sheet) run inside the app process and must write to the *same* store
-/// the UI reads — a second container would fight over CloudKit mirroring.
+/// the UI reads — a second container would see stale data.
 enum Persistence {
     static let schema = Schema([
         Client.self,
@@ -32,42 +32,18 @@ enum Persistence {
 
     struct Bootstrap {
         let container: ModelContainer
-        let syncStatus: SyncStatus
     }
 
     static let shared: Bootstrap = make()
 
+    /// The store is purely local (no CloudKit mirroring). Sync between devices is done by
+    /// `SyncEngine` (Cloud Firestore) on top of this store — see Services/Sync.
     private static func make() -> Bootstrap {
-        // Primary configuration syncs through the user's private iCloud (CloudKit).
-        let cloudConfig = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .automatic
-        )
-
-        let status = SyncStatus()
-
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
         do {
-            let container = try ModelContainer(for: schema, configurations: cloudConfig)
-            status.recordContainerResult(isCloudKitActive: true, error: nil)
-            return Bootstrap(container: container, syncStatus: status)
+            return Bootstrap(container: try ModelContainer(for: schema, configurations: config))
         } catch {
-            // If CloudKit isn't set up yet (e.g. no iCloud account / capability),
-            // fall back to a local store so the app still runs. Recorded on
-            // `status` (surfaced in Settings) instead of silently discarded, since
-            // this failure otherwise looks identical to "sync just isn't working."
-            let localConfig = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                cloudKitDatabase: .none
-            )
-            do {
-                let container = try ModelContainer(for: schema, configurations: localConfig)
-                status.recordContainerResult(isCloudKitActive: false, error: error)
-                return Bootstrap(container: container, syncStatus: status)
-            } catch {
-                fatalError("Unable to create ModelContainer: \(error)")
-            }
+            fatalError("Unable to create ModelContainer: \(error)")
         }
     }
 }

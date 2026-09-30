@@ -13,4 +13,11 @@ if ! command -v xcodegen >/dev/null 2>&1; then
     brew install xcodegen
 fi
 
+# Firebase config: kept out of git, supplied to Xcode Cloud as a secret environment variable
+# (base64 of GoogleService-Info.plist). Without it the app still builds and runs, local-only.
+if [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+    mkdir -p CPAManager/Resources
+    echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > CPAManager/Resources/GoogleService-Info.plist
+fi
+
 xcodegen generate

@@ -23,3 +23,7 @@ fastlane/report.xml
 *.ipa
 *.dSYM.zip
 *.dSYM
+
+# Firebase project configuration (created in the Firebase console; Xcode Cloud recreates it
+# from a secret — see docs/FIRESTORE_SETUP.md)
+GoogleService-Info.plist

@@ -3,7 +3,7 @@
 A native **iOS + iPadOS** practice-management app for a solo CPA firm — in the
 spirit of TaxDome / Karbon / Canopy, but lean and pleasant to use on iPhone and
 iPad. Built with **SwiftUI + SwiftData**, it syncs across your devices **for free
-through your own iCloud** (CloudKit) — no server, no login, no monthly cost.
+through your own Firebase project** (Cloud Firestore) — see [docs/FIRESTORE_SETUP.md](docs/FIRESTORE_SETUP.md).
 
 It includes the Apple-native touches that make an iPhone app feel great:
 - a **billable-hours timer** that runs as a **Live Activity** on the lock screen
@@ -191,21 +191,24 @@ Then re-run `xcodegen generate`.
 
 ## How sync works
 
-Data is stored with **SwiftData** and mirrored to your **private CloudKit
-database** automatically (`cloudKitDatabase: .automatic`). Sign into the **same
-iCloud account** on each device and your clients, projects, tasks, templates, and
-time entries appear everywhere. Nothing leaves your iCloud; there is no third-party
-backend.
+Data is stored locally with **SwiftData** on each device and synced through **Cloud
+Firestore** in a Firebase project you own (`Services/Sync/`). One-time setup, the
+sign-in, and the free-tier notes are in **[docs/FIRESTORE_SETUP.md](docs/FIRESTORE_SETUP.md)**.
 
-If CloudKit isn't configured yet (e.g. no iCloud account on the simulator), the app
-**falls back to a local store** so it still runs — see `CPAManagerApp.swift`. That
-fallback used to be silent; **Settings → iCloud Sync** now shows whether each device
-is actually "Active" or stuck on "Local Only" (and why), so you don't have to guess.
+- Every record is stored as one JSON document at `users/{uid}/records/{collection}~{id}`.
+  Security rules (`firestore.rules`) let each account touch only its own data.
+- Each device remembers what it last synced (a "ledger"), so it sends only what changed,
+  including deletions, and never pushes before it knows the cloud's current state.
+- If the same record is edited on two devices, the edit that hadn't been synced yet wins
+  on that device and then propagates — nothing typed is silently replaced.
+- A sudden loss of many records on one device (e.g. a reset) pauses sync and asks whether
+  to restore from the cloud or delete everywhere.
+- Files (documents, receipts) up to about 0.8 MB sync; larger ones stay on the device that
+  added them. Firebase Storage (pay-as-you-go) would be needed for more.
+- Without the Firebase config file the app builds and runs, local-only.
 
-> **First-run note:** seeding runs when the local store is empty. If you install on
-> a second device before the first device's data has finished syncing down, both may
-> seed the default templates and you'll see duplicates. Just delete the extras (or
-> use *Settings → Restore default templates* as needed).
+CloudKit is **no longer used for your data**. Settings still sync through iCloud
+key-value storage and Google/QuickBooks connections through iCloud Keychain.
 
 ### Tax deadline dates
 
@@ -233,62 +236,27 @@ state deadlines are **not** covered — always confirm against the IRS calendar.
 
 | What | How |
 |---|---|
-| Clients, work, tasks, invoices, inbox, everything you create | SwiftData → your private CloudKit database |
+| Clients, work, tasks, invoices, inbox, everything you create | Local SwiftData ⇄ Cloud Firestore (your Firebase project) |
 | Settings (firm info, hourly rate, reminder time, side-business hours, check-in threshold, Google preferences) | iCloud key-value storage (`SettingsSync`). Changes appear on the other devices within moments and re-time your reminders. |
 | Google and QuickBooks connections (tokens, client IDs) | iCloud Keychain — connect once, the other devices pick it up. Needs **Passwords & Keychain** turned on under Apple ID → iCloud. |
 | Per-device only | Which Work view you last used, quick-capture mode, last Gmail sync time, widget snapshot. |
 
-Settings → iCloud Sync shows whether settings sync is on. After the first launch of this
-version, run Debug once so Xcode registers the new *iCloud key-value storage* capability
-for your App ID (automatic signing does this for you).
+Settings → Cloud Sync shows the data sync status. Settings themselves sync through iCloud
+key-value storage (needs the iCloud capability on your App ID; automatic signing sets it up).
 
 ### Sync not working?
 
-Check **Settings → iCloud Sync on each device first** — it tells you exactly what's
-going on instead of guessing:
+Open **Settings → Cloud Sync** on each device:
 
-1. **If any device shows "Local Only — not syncing"** with an error message: tap
-   **Copy error** (or select/copy the text directly — it's selectable) and check
-   what it says. Two different failure modes look the same at a glance but need
-   different fixes:
-   - **If the error mentions `SwiftDataError`** (e.g. "SwiftDataError error 1"):
-     this happens locally, before any network call, so it's not a
-     schema-deployment or provisioning issue — it means the local Core Data/
-     CloudKit store failed to load. The generic error hides the real reason;
-     to see it, run the app directly from Xcode (▶, Debug scheme, device or
-     **My Mac**) with the console open and look for a line like:
-     `CloudKit integration requires that all relationships have an inverse,
-     the following do not: ...`. **Every `@Relationship` needs both sides
-     declared** — a collection property with `@Relationship(inverse:)` on one
-     model, and a plain optional property (no macro) on the other. If you add
-     a new relationship later and forget the inverse side, this is the error
-     you'll get; add the missing `@Relationship(inverse:)` array property to
-     the referenced model (see `Client.swift`'s `projects`/`documents`/
-     `invoices`/`recurringEngagements` for the pattern) and rebuild.
-   - **Otherwise** (a CloudKit-specific error, e.g. mentioning "zone" or "record
-     type"): the single most common cause on TestFlight is that **the CloudKit
-     schema was never deployed to Production** (record types only exist in the
-     Development environment until you manually promote them). Fix: run the app
-     once from Xcode in **Debug** (creates the schema in Development), then go to
-     [icloud.developer.apple.com](https://icloud.developer.apple.com) → your
-     `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema** → **Deploy
-     Schema to Production**. Re-upload/reinstall after.
-2. **If both devices show "Active"** but data still isn't appearing on the other:
-   - Confirm the **iCloud account** shown matches on both (Settings shows the raw
-     account status too — "No iCloud account," "Restricted," etc. means the account
-     itself is the problem, not the app).
-   - On each device, go to **Settings (system) → [your name] → iCloud → Apps Using
-     iCloud** (or "See All") and make sure this app is toggled **on**. A TestFlight
-     install can end up with this off without ever prompting you.
-   - Give it a minute and **relaunch** the app on both ends — SwiftData does an
-     import pass on launch/foreground; it isn't always instant, especially for the
-     very first sync between two devices.
-3. Still stuck? Check **Settings → iCloud Sync → Container** matches
-   `iCloud.com.gottfriedcpa.ProjectManager` on both devices — a mismatched bundle ID
-   or container (e.g. one device on an older build before a rename) would put them
-   in two different CloudKit containers that can never sync with each other.
-
----
+- **"Cloud sync isn't set up"** — this build has no `GoogleService-Info.plist`. Follow
+  docs/FIRESTORE_SETUP.md (for TestFlight builds, also add the Xcode Cloud secret).
+- **Signed out** — sign in with the same email and password on every device.
+- **"Sync problem" + a message** — copy the message. `Missing or insufficient permissions`
+  means the security rules weren't published (or you're signed into a different account);
+  `Failed to get document because the client is offline` just means no connection yet.
+- **"Needs your attention"** — sync paused because many records disappeared from this
+  device. Choose **Restore from cloud** unless you really deleted them.
+- **Last sent / last received** should update within seconds of an edit. **Sync Now** forces it.
 
 ## Project layout
 
@@ -315,21 +283,19 @@ docs/qbo-redirect/  Static HTTPS redirect page for QuickBooks OAuth (see below)
 
 ### Data model
 Batch 6 added `FeeItem`, `Quote`, and fields on `Client` (rate override, flat fee),
-`TaskItem` (checklist, blockedByID, waitingOn) and `Document` (signature status) —
-another CloudKit schema redeploy is needed.
+`TaskItem` (checklist, blockedByID, waitingOn) and `Document` (signature status).
 
 Batch 5 added `Pipeline` (custom stages as JSON), `LetterTemplate`, `EmailTemplate`,
 and fields on `Client` (birthday, anniversary), `Project` (`pipelineID`, `stageKey`),
 `WorkflowTemplate` (`pipelineID`, `startStageKey`) and `RecurringEngagement`
-(`endDate`, `namingPattern`) — **redeploy the CloudKit schema** before the next
-TestFlight build.
+(`endDate`, `namingPattern`). Syncing sends each record as JSON through the backup record
+types, so **adding a model or field means updating `BackupFile`** (see CLAUDE.md).
 
 `Client 1—* Project 1—* TaskItem`, `Client 1—* Document` and `Project 1—* Document`,
 `WorkflowTemplate 1—* TemplateTask`, `RecurringEngagement` (links a client +
 template on a schedule), `TimeEntry` (owned by a project; `invoiceID` marks it
 billed), and `Invoice 1—* InvoiceLine` (owned by a client). All attributes have
-defaults and all relationships are optional — the requirements for SwiftData +
-CloudKit.
+defaults and all relationships are optional (keeps records easy to sync and to back up).
 
 ### Permissions the app asks for
 
@@ -433,11 +399,8 @@ Run through this on your Mac to confirm everything works end-to-end:
 TestFlight distribution requires a few things beyond just running on your own
 device in Xcode. Do these **in order**.
 
-> **Already on TestFlight from before?** This update added new SwiftData models
-> (Document, Invoice, InvoiceLine) and fields. Before your next upload, run the app
-> once in Debug so the new schema is created in Development, then **deploy it to
-> Production** again — see step 4 below. Skipping this makes the next Release build
-> fail to sync those new pieces.
+> **Cloud sync:** TestFlight builds need the Firebase config file (Xcode Cloud secret) to
+> sync — see step 4 and docs/FIRESTORE_SETUP.md.
 
 ### 0. Prerequisite: a paid Apple Developer Program account
 
@@ -473,20 +436,12 @@ iCloud/CloudKit + App Group capabilities enabled) if you haven't already. With
 **Automatically manage signing** checked, Xcode registers the bundle IDs and the
 iCloud container/App Group with your developer account the first time you build.
 
-### 4. Deploy the CloudKit schema to Production
+### 4. Set up cloud sync (Firebase)
 
-CloudKit has two environments: **Development** (what Debug/simulator runs use)
-and **Production** (what Release/Archive/TestFlight builds use). Your schema
-only exists in Development until you promote it — an Archive build will fail to
-sync (or throw CloudKit errors) against Production until you do this:
-
-1. Run the app once from Xcode (Debug) so the schema is created in Development.
-2. Open **[icloud.developer.apple.com](https://icloud.developer.apple.com)** →
-   your `iCloud.com.gottfriedcpa.ProjectManager` container → **Schema**.
-3. Click **Deploy Schema to Production** and confirm.
-
-Repeat this any time you add/change a SwiftData model before your next TestFlight
-build.
+Sync no longer uses CloudKit, so there is no schema to deploy. Instead, create your
+Firebase project and give Xcode Cloud the config file as a secret — see
+**[docs/FIRESTORE_SETUP.md](docs/FIRESTORE_SETUP.md)**. Without it the build still works but
+the app is local-only.
 
 ### 5. Create the app record in App Store Connect
 
@@ -537,10 +492,6 @@ repeat step 6. Internal testers on the same group auto-see new builds.
 
 ## Notes & next steps
 
-- **New models to deploy to CloudKit Production before TestFlight:** `Interaction`,
-  `SavedClientFilter`, `Payment`, `DocumentRequest`, `RecurringInvoice`, `Expense`, plus new
-  fields on `Client` (tags, follow-up, lead stage/value, extension years), `TaskItem` (repeat
-  rule, next action, snooze, client), and `InboxItem` (external ID, link, attachment).
 - **Notifications** are local only (no push server needed). iOS caps pending local
   notifications at 64; the scheduler keeps to the soonest ~60.
 - **Document scanning** requires a real device — VisionKit's document camera isn't

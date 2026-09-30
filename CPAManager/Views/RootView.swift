@@ -10,6 +10,7 @@ struct RootView: View {
     @Environment(AppRouter.self) private var router
     @Environment(QBOAuthService.self) private var qboAuth
     @Environment(GoogleAuthService.self) private var googleAuth
+    @Environment(CloudSync.self) private var cloud
     @Environment(\.scenePhase) private var scenePhase
     #if !os(macOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -263,5 +264,6 @@ struct RootView: View {
         RecurrenceService.run(context: context)
         RecurringInvoiceService.run(context: context)
         SnapshotBuilder.rebuild(context: context)
+        cloud.syncNow()
     }
 }

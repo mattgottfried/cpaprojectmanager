@@ -182,13 +182,15 @@ enum HelpCatalog {
         ),
         HelpTopic(
             id: "sync", title: "Sync and backup", systemImage: "icloud.fill",
-            summary: "Your data lives in your own iCloud.",
+            summary: "Keep your iPhone, iPad and Mac in step.",
             body: """
-            Data syncs between your iPhone, iPad and Mac through your iCloud account — there's no separate server. Settings and saved logins sync too.
+            Data syncs through Cloud Firestore in your own Firebase project. Set it up once (docs/FIRESTORE_SETUP.md), then Settings ▸ Cloud Sync ▸ Create account, and sign in with the same account on every device. Edits sync within a couple of seconds; Settings ▸ Cloud Sync shows the status and last sync time.
 
-            Settings ▸ Backup exports one file with everything; restoring merges it in and never deletes anything. Export CSVs for spreadsheets.
+            If a device suddenly looks like it lost many records, sync pauses and asks whether to restore them from the cloud or delete them everywhere. Files over about 0.8 MB stay on the device that added them.
+
+            Settings ▸ Backup exports one file with everything, independent of any cloud; restoring merges it in and never deletes anything. Export CSVs for spreadsheets.
             """,
-            keywords: "icloud cloudkit export restore csv"
+            keywords: "firebase firestore cloud sync account sign in export restore csv backup icloud"
         ),
         HelpTopic(
             id: "widgets", title: "Widgets, Siri and Apple Watch", systemImage: "applewatch",
