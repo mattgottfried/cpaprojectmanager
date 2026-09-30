@@ -647,7 +647,7 @@ struct TodayView: View {
         Button { markPaid(invoice) } label: { Label("Mark paid in full", systemImage: "banknote") }
         Button { paymentInvoice = invoice } label: { Label("Record payment…", systemImage: "plus.circle") }
         if let email = invoice.client?.email, !email.isEmpty {
-            Button { remind(invoice, email: email) } label: { Label("Email a reminder", systemImage: "envelope.badge") }
+            Button { remind(invoice) } label: { Label("Email a reminder", systemImage: "envelope.badge") }
         }
     }
 
@@ -792,17 +792,11 @@ struct TodayView: View {
         }
     }
 
-    private func remind(_ invoice: Invoice, email: String) {
-        let body = InvoiceMath.reminderBody(
-            clientName: invoice.client?.displayName ?? "there",
-            number: invoice.displayNumber,
-            balance: invoice.balance,
-            dueDate: invoice.dueDate,
-            firm: firmName
-        )
-        if let url = InvoiceMath.reminderURL(to: email, subject: "Reminder: invoice \(invoice.displayNumber)", body: body) {
-            openURL(url)
-        }
+    private func remind(_ invoice: Invoice) {
+        guard let reminder = ReminderService.compose(for: invoice, firm: firmName) else { return }
+        openURL(reminder.url)
+        ReminderService.logSent(for: invoice, context: context)
+        toast = UndoToastState(message: "Reminder drafted and logged", systemImage: "envelope.fill")
     }
 
     private func persist() {

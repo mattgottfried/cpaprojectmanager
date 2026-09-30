@@ -163,8 +163,12 @@ struct InvoiceDetailView: View {
                     Label("Record payment", systemImage: "banknote")
                 }
                 if let email = invoice.client?.email, !email.isEmpty, invoice.status == .sent {
-                    Button { sendReminder(to: email) } label: {
-                        Label("Email a reminder", systemImage: "envelope.badge")
+                    Button { sendReminder() } label: {
+                        Label(invoice.isOverdue ? "Email a payment reminder" : "Email a reminder", systemImage: "envelope.badge")
+                    }
+                    if let last = ReminderService.lastReminded(invoice) {
+                        Text("Last reminded \(Format.relativeDay(last).lowercased())")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -186,18 +190,12 @@ struct InvoiceDetailView: View {
         }
     }
 
-    private func sendReminder(to email: String) {
-        let firm = firmName.isEmpty ? "" : firmName
-        let body = InvoiceMath.reminderBody(
-            clientName: invoice.client?.displayName ?? "there",
-            number: invoice.displayNumber,
-            balance: invoice.balance,
-            dueDate: invoice.dueDate,
-            firm: firm
-        )
-        if let url = InvoiceMath.reminderURL(to: email, subject: "Reminder: invoice \(invoice.displayNumber)", body: body) {
-            openURL(url)
-        }
+    /// Opens a drafted email (firmer the later the invoice is) and logs it on the client's timeline.
+    private func sendReminder() {
+        guard let reminder = ReminderService.compose(for: invoice, firm: firmName) else { return }
+        openURL(reminder.url)
+        ReminderService.logSent(for: invoice, context: context)
+        toast = UndoToastState(message: "Reminder drafted and logged", systemImage: "envelope.fill")
     }
 
     private var statusBinding: Binding<InvoiceStatus> {

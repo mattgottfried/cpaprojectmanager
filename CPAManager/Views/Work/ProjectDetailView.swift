@@ -6,6 +6,7 @@ struct ProjectDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(TimerController.self) private var timer
     @Query(sort: \Pipeline.sortIndex) private var pipelines: [Pipeline]
+    @Query private var invoices: [Invoice]
     @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @AppStorage(SettingsKeys.firmTagline) private var firmTagline = ""
@@ -14,6 +15,7 @@ struct ProjectDetailView: View {
     @State private var newTaskTitle = ""
     @State private var showingEdit = false
     @State private var confirmingDelete = false
+    @State private var showingBill = false
     @State private var toast: UndoToastState?
     @Environment(\.dismiss) private var dismiss
     @State private var showingTemplatePicker = false
@@ -31,6 +33,7 @@ struct ProjectDetailView: View {
         GroupedList {
             headerSection
             workflowSection
+            billingSection
             statusSection
             tasksSection
             if !project.detail.isEmpty {
@@ -67,6 +70,7 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showingHoldSheet) { HoldSheetView(project: project) }
+        .sheet(isPresented: $showingBill) { BillJobSheet(project: project) }
         .sheet(item: $detailTask) { TaskDetailSheet(task: $0) }
         .sheet(item: $calendarRequest) { CalendarEventView(request: $0) }
         .sheet(isPresented: $showingRoutingSheetShare) {
@@ -146,6 +150,44 @@ struct ProjectDetailView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var billingSection: some View {
+        if project.client != nil {
+            Section("Billing") {
+                if let invoice = invoices.first(where: { $0.id == project.invoiceID }) {
+                    NavigationLink {
+                        InvoiceDetailView(invoice: invoice)
+                    } label: {
+                        LabeledContent("Invoice", value: "\(invoice.displayNumber) · \(invoice.status.label)")
+                    }
+                } else if let state = BillingState(rawValue: project.billingStateRaw) {
+                    LabeledContent("Billing", value: state.label)
+                    Button("Undo this") {
+                        BillingService.markSettled(project, as: nil)
+                        persist()
+                    }
+                } else {
+                    Button { showingBill = true } label: {
+                        Label("Create invoice…", systemImage: "doc.badge.plus")
+                    }
+                    if project.status.isComplete {
+                        Menu {
+                            Button("Not billable") { settle(.notBillable) }
+                            Button("Billed elsewhere") { settle(.billedElsewhere) }
+                        } label: {
+                            Label("Mark as settled", systemImage: "checkmark.circle")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func settle(_ state: BillingState) {
+        BillingService.markSettled(project, as: state)
+        persist()
     }
 
     private var statusSection: some View {

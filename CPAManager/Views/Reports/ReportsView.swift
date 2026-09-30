@@ -156,6 +156,9 @@ struct ReportsView: View {
                     }
                 }
 
+                UnbilledWorkCard()
+                ProfitabilityCard()
+
                 if !statusCounts.isEmpty {
                     SectionCard(title: "Open Work by Stage", systemImage: "checklist", state: .info) {
                         ForEach(statusCounts) { entry in

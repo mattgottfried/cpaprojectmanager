@@ -141,6 +141,11 @@ struct RootView: View {
                         sidebarRow(section)
                     }
                 }
+                Section("Tools") {
+                    ForEach(AppSection.tools) { section in
+                        sidebarRow(section)
+                    }
+                }
                 Section {
                     sidebarRow(.settings)
                 }
@@ -184,6 +189,14 @@ struct RootView: View {
         case .reports:   NavigationStack { ReportsView() }
         case .templates: NavigationStack { TemplatesListView() }
         case .recurring: NavigationStack { RecurringListView() }
+        case .extensions: NavigationStack { ExtensionTrackerView() }
+        case .quotes:    NavigationStack { QuotesListView() }
+        case .feeSchedule: NavigationStack { FeeScheduleView() }
+        case .pipelines: NavigationStack { PipelinesListView(embedded: true) }
+        case .letters:   NavigationStack { TemplateLibraryView() }
+        case .importData: NavigationStack { ImportView() }
+        case .dataHealth: NavigationStack { DataHealthView() }
+        case .help:      NavigationStack { HelpView() }
         case .settings:  NavigationStack { SettingsView() }
         }
     }

@@ -33,6 +33,12 @@ final class Project {
     var pipelineID: UUID? = nil
     var stageKey: String = ""
 
+    /// The invoice made from this job (`BillingService.createInvoice`).
+    var invoiceID: UUID? = nil
+    /// How a finished job was settled when not by its own invoice: "" (undecided),
+    /// "invoiced", "notBillable" or "billedElsewhere" (see `BillingState`).
+    var billingStateRaw: String = ""
+
     var client: Client? = nil
 
     @Relationship(deleteRule: .cascade, inverse: \TaskItem.project)

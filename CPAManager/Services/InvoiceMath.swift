@@ -77,14 +77,9 @@ enum InvoiceMath {
 
     /// `mailto:` URL for the reminder (works on iPhone, iPad and Mac).
     static func reminderURL(to email: String, subject: String, body: String) -> URL? {
-        var components = URLComponents()
-        components.scheme = "mailto"
-        components.path = email
-        components.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body),
-        ]
-        return components.url
+        // MailtoBuilder percent-encodes "&", "=" and "+", which URLComponents leaves alone
+        // (a firm name like "Smith & Co" would cut the body short).
+        MailtoBuilder.url(to: email, subject: subject, body: body)
     }
 }
 

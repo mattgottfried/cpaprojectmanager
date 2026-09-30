@@ -27,6 +27,11 @@ struct MoreView: View {
                         Label("Deadlines", systemImage: "calendar")
                     }
                     NavigationLink {
+                        ExtensionTrackerView()
+                    } label: {
+                        Label("Extensions", systemImage: "calendar.badge.clock")
+                    }
+                    NavigationLink {
                         DashboardView(embedded: true)
                     } label: {
                         Label("Firm Overview", systemImage: "house.fill")

@@ -9,6 +9,8 @@ struct InvoicesListView: View {
     @State private var refreshing = false
     @State private var linkedInvoice: Invoice?
     @State private var toast: UndoToastState?
+    @Environment(\.openURL) private var openURL
+    @AppStorage(SettingsKeys.firmName) private var firmName = ""
     @Environment(AppRouter.self) private var router
 
     private var sent: [Invoice] { invoices.filter { $0.status == .sent } }
@@ -60,7 +62,19 @@ struct InvoicesListView: View {
                         row(invoice)
                     }
                     .cardListRow()
-                    .deleteMenu(of: invoice, in: invoices, title: "Delete Invoice", perform: delete)
+                    .contextMenu {
+                        if invoice.isOverdue, let reminder = ReminderService.compose(for: invoice, firm: firmName) {
+                            Button {
+                                openURL(reminder.url)
+                                ReminderService.logSent(for: invoice, context: context)
+                                toast = UndoToastState(message: "Reminder drafted and logged", systemImage: "envelope.fill")
+                            } label: { Label("Email a payment reminder", systemImage: "envelope.badge") }
+                            Divider()
+                        }
+                        Button(role: .destructive) {
+                            if let index = invoices.firstIndex(where: { $0.id == invoice.id }) { delete(IndexSet(integer: index)) }
+                        } label: { Label("Delete Invoice", systemImage: "trash") }
+                    }
                 }
                 .onDelete(perform: delete)
             }

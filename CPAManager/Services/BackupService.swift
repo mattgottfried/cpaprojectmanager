@@ -54,6 +54,8 @@ struct BackupFile: Codable {
         var templateName: String?; var createdAt: Date; var receivedDate: Date?; var nextAction: String
         var holdReasonRaw: String; var holdDetail: String; var holdResumeStatusRaw: String; var clientID: UUID?
         var pipelineID: UUID? = nil; var stageKey: String? = nil
+        // Batch 7.
+        var invoiceID: UUID? = nil; var billingStateRaw: String? = nil
     }
     struct TaskRecord: Codable {
         var id: UUID; var title: String; var notes: String; var isDone: Bool; var dueDate: Date?; var sortIndex: Int
@@ -238,7 +240,8 @@ enum BackupService {
                   taxYear: p.taxYear, templateName: p.templateName, createdAt: p.createdAt, receivedDate: p.receivedDate,
                   nextAction: p.nextAction, holdReasonRaw: p.holdReasonRaw, holdDetail: p.holdDetail,
                   holdResumeStatusRaw: p.holdResumeStatusRaw, clientID: p.client?.id,
-                  pipelineID: p.pipelineID, stageKey: p.stageKey)
+                  pipelineID: p.pipelineID, stageKey: p.stageKey,
+                  invoiceID: p.invoiceID, billingStateRaw: p.billingStateRaw)
         }
         file.tasks = all(TaskItem.self).map { t in
             BackupFile.TaskRecord(id: t.id, title: t.title, notes: t.notes, isDone: t.isDone, dueDate: t.dueDate, sortIndex: t.sortIndex,
@@ -418,6 +421,7 @@ enum BackupService {
             p.nextAction = r.nextAction; p.holdReasonRaw = r.holdReasonRaw; p.holdDetail = r.holdDetail
             p.holdResumeStatusRaw = r.holdResumeStatusRaw
             p.pipelineID = r.pipelineID; p.stageKey = r.stageKey ?? ""
+            p.invoiceID = r.invoiceID; p.billingStateRaw = r.billingStateRaw ?? ""
         }, link: { r, p in p.client = r.clientID.flatMap { clients[$0] } })
 
         _ = merge(TaskItem.self, id: \.id, records: file.tasks, recordID: { $0.id }, make: { TaskItem() }, fill: { r, t in
