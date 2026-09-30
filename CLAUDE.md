@@ -242,6 +242,26 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Navigation**: `AppSection.tools` (Extensions, Pipelines, Fee Schedule, Letters, Import, Data
   Health, Sync Health, Backups, Help) are sidebar items on iPad/Mac; iPhone reaches them via More.
 
+### Batch 8: Today revamp, Tasks page, Insights, Automove
+
+- **Today is three screens** behind `TodayHubView` (`TodayMode` focus/tasks/insights, segmented
+  `TodayModePicker` in each screen's toolbar, stored in `@AppStorage("todayMode")`). Focus is the old
+  `TodayView` unchanged; new tasks/⌘N focus switches back to it.
+- **Tasks page** (`TaskTableLogic.swift` pure: `TaskTableRow`, `TaskFilter`, `TaskSort`,
+  `TaskGrouping`, `TaskTable.apply`, `TaskPresets`, `TaskBoard`, `TaskCalendar`;
+  `TasksInsightsService` store-facing; `Views/Tasks/`). `TaskItem` gained `priorityRaw`, `statusRaw`
+  (`TaskStatus`), `startDate`, `stageKey` (all in `BackupFile`). Saved views live in the synced
+  `SettingsKeys.taskPresets`. Table on iPad/Mac, card rows on iPhone.
+- **Insights** (`InsightsLogic.swift` pure; `InsightsService`; `Views/Insights/`): counters,
+  by-stage bars, planned-vs-done, money/time; widget visibility/order via `InsightsLayout`
+  (`@AppStorage("insightsWidgets")`).
+- **Automove**: `StageAutomation.autoMove`; `TaskCompletion.complete` calls
+  `PipelineEngine.autoMoveIfReady`, which advances the job when the completed task's `stageKey` is
+  the job's current stage, that stage has automove, and all tasks with that `stageKey` are done
+  (`StageAutoMove.shouldMove`, pure). `StageAutomation` decodes older JSON without the key.
+- **Default return template**: `SettingsKeys.defaultReturnTemplate` (synced); New Tax Return
+  starts from it (falls back to the "Tax Return Routing Sheet" template) and lets you change it.
+
 ### Cloud sync (Firestore) — replaced CloudKit mirroring
 
 - `Persistence` opens a **purely local** store (`cloudKitDatabase: .none`). `Services/Sync/`

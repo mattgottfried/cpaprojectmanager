@@ -33,8 +33,8 @@ struct InsightsView: View {
     private var jobs: [InsightsJob] { InsightsService.jobs(projects: projects, pipelines: pipelines) }
 
     var body: some View {
-        let jobs = jobs
-        let rows = rows
+        let currentJobs = self.jobs
+        let currentRows = self.rows
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -44,7 +44,7 @@ struct InsightsView: View {
                         Spacer()
                     }
                     ForEach(InsightsLayout.visible(from: widgetsRaw)) { widget in
-                        widgetView(widget, jobs: jobs, rows: rows)
+                        widgetView(widget, jobs: currentJobs, rows: currentRows)
                     }
                     if InsightsLayout.visible(from: widgetsRaw).isEmpty {
                         ContentUnavailableView("No widgets", systemImage: "square.grid.2x2",
