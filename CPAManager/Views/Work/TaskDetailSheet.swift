@@ -81,6 +81,7 @@ struct TaskDetailSheet: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { finish() } }
             }
         }
+        .macSheetFrame()
     }
 
     private var hasDue: Binding<Bool> {

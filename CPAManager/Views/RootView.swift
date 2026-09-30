@@ -146,6 +146,7 @@ struct RootView: View {
                 }
             }
             .navigationTitle("CPA Manager")
+            .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
         } detail: {
             detail(for: router.section)
                 .id(router.section)

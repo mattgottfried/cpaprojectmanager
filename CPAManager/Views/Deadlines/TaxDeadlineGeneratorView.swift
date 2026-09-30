@@ -69,5 +69,6 @@ struct TaxDeadlineGeneratorView: View {
             .navigationTitle("Tax Deadlines")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+        .macSheetFrame()
     }
 }

@@ -135,6 +135,7 @@ struct ExportBackupView: View {
                 }
             }
         }
+        .macSheetFrame()
         .presentationDetents([.medium, .large])
     }
 }

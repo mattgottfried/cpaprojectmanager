@@ -13,7 +13,7 @@ struct TemplateLibraryView: View {
     @State private var newEmail = false
 
     var body: some View {
-        List {
+        GroupedList {
             Section {
                 ForEach(letters) { letter in
                     Button { editingLetter = letter } label: {
@@ -22,6 +22,7 @@ struct TemplateLibraryView: View {
                             Text(letter.kind.label).font(.caption).foregroundStyle(.secondary)
                         }
                     }
+                    .deleteMenu { context.delete(letter); try? context.save() }
                 }
                 .onDelete { offsets in
                     for index in offsets { context.delete(letters[index]) }
@@ -42,6 +43,7 @@ struct TemplateLibraryView: View {
                             Text(email.subject).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
+                    .deleteMenu { context.delete(email); try? context.save() }
                 }
                 .onDelete { offsets in
                     for index in offsets { context.delete(emails[index]) }
@@ -139,6 +141,7 @@ struct LetterTemplateEditor: View {
                 body_ = template.body
             }
         }
+        .macSheetFrame()
     }
 
     private func save() {
@@ -197,6 +200,7 @@ struct EmailTemplateEditor: View {
                 body_ = template.body
             }
         }
+        .macSheetFrame()
     }
 
     private func save() {

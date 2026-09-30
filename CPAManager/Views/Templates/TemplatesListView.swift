@@ -45,12 +45,14 @@ struct TemplatesListView: View {
                 }
                 .buttonStyle(.plain)
                 .cardListRow()
+                .deleteMenu(of: template, in: templates, title: "Delete Template", perform: delete)
             }
             .onDelete(perform: delete)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Templates")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -102,5 +104,6 @@ struct TemplatePickerSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
             }
         }
+        .macSheetFrame()
     }
 }

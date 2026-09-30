@@ -61,6 +61,7 @@ struct NewTaxReturnView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Create", action: save).disabled(!canSave) }
             }
         }
+        .macSheetFrame()
     }
 
     private func save() {

@@ -47,6 +47,7 @@ struct ClientsListView: View {
                                     ClientRow(client: client)
                                 }
                                 .cardListRow()
+                                .deleteMenu(of: client, in: filtered, title: "Delete Client", perform: delete)
                             }
                             .onDelete(perform: delete)
                         }
@@ -59,6 +60,7 @@ struct ClientsListView: View {
                         }
                     }
                     .background(Color.appGroupedBackground)
+                    .macReadableWidth()
                 }
             }
             .navigationTitle("Clients")

@@ -22,6 +22,7 @@ struct QuotesListView: View {
                 Button { editing = quote } label: { row(quote) }
                     .buttonStyle(.plain)
                     .cardListRow()
+                    .deleteMenu("Delete Quote") { context.delete(quote); try? context.save() }
             }
             .onDelete { offsets in
                 for index in offsets { context.delete(quotes[index]) }
@@ -31,6 +32,7 @@ struct QuotesListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Quotes")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

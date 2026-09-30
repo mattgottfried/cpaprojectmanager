@@ -67,6 +67,7 @@ struct InboxView: View {
             }
         }
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Inbox")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

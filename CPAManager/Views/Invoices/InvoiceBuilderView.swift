@@ -74,6 +74,7 @@ struct InvoiceBuilderView: View {
                 }
             }
         }
+        .macSheetFrame()
     }
 
     private func entryRow(_ entry: TimeEntry) -> some View {

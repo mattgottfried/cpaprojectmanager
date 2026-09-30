@@ -59,6 +59,7 @@ struct InvoicesListView: View {
                         row(invoice)
                     }
                     .cardListRow()
+                    .deleteMenu(of: invoice, in: invoices, title: "Delete Invoice", perform: delete)
                 }
                 .onDelete(perform: delete)
             }
@@ -66,6 +67,7 @@ struct InvoicesListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Invoices")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

@@ -49,6 +49,7 @@ struct RecordPaymentSheet: View {
             }
             .onAppear { amount = invoice.balance }
         }
+        .macSheetFrame()
         .presentationDetents([.medium, .large])
     }
 

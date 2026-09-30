@@ -1,7 +1,7 @@
-Build 8 - what's new (please test):
+Build 9 - what's new (please test):
 
-- JOB STEPS GO ONE AT A TIME. Tasks that come from a template (e.g. a tax return's steps) now behave like pipeline-stage tasks: only the first has a due date; each next one stays off Today until you complete the one before it, then gets dated (the gap between the two steps in the template, counted from that day). Only NEW jobs are affected.
-- More > Pipelines: tap "Customize stages..." on any service to copy its built-in stages into your own pipeline (rename, reorder, add stage tasks).
-- Templates (More > Templates) were already editable; steps can be renamed, reordered, re-dated.
+- MAC LOOK OVERHAUL: forms and Settings are now grouped cards with labels on the left; sheets open at a proper size; long lists stay a readable width and centered; wider sidebar; window has a minimum size.
+- Mac: right-click Delete on projects, tasks, clients, invoices, templates, time entries, quotes, recurring items, pipelines, documents, fee items, payments.
+- Job steps from templates go one at a time (build 8); More > Pipelines > Customize stages.
 
-Still worth checking: Cloud Sync across devices.
+iPhone/iPad should look unchanged - report anything that moved. Mac: tell me which screens still look off.

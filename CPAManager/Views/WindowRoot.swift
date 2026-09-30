@@ -8,6 +8,8 @@ struct WindowRoot: View {
 
     var body: some View {
         RootView()
+            .appChrome()
+            .macWindowMinSize()
             .environment(router)
             .focusedSceneValue(\.appRouter, router)
     }

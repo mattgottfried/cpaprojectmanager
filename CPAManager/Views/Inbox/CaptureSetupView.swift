@@ -7,7 +7,7 @@ struct CaptureSetupView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            GroupedList {
                 Section {
                     Text("Apple doesn't let any app read your Messages, Notes, or Mail directly. Instead, a Shortcut hands the text to CPA Manager. You set it up once; after that it runs on its own.")
                         .font(.subheadline)
@@ -52,6 +52,7 @@ struct CaptureSetupView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
         }
+        .macSheetFrame()
     }
 
     private func step(_ number: Int, _ text: String) -> some View {

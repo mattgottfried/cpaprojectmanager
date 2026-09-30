@@ -29,6 +29,7 @@ struct RemindersImportView: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
                 }
         }
+        .macSheetFrame()
     }
 
     @ViewBuilder
@@ -102,7 +103,7 @@ struct RemindersImportView: View {
     private var includedRecurringCount: Int { preview.recurring.filter(\.isIncluded).count }
 
     private var previewList: some View {
-        List {
+        GroupedList {
             Section {
                 Text("\(includedProjectCount) project\(includedProjectCount == 1 ? "" : "s") and \(includedRecurringCount) recurring item\(includedRecurringCount == 1 ? "" : "s") selected, across \(preview.newClientNames.count) new client\(preview.newClientNames.count == 1 ? "" : "s"). Likely duplicates are pre-unchecked — review before importing.")
                     .font(.footnote)

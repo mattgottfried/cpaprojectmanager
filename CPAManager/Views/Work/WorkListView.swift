@@ -94,6 +94,7 @@ struct WorkListView: View {
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .background(Color.appGroupedBackground)
+                    .macReadableWidth()
                 }
             }
             .navigationTitle("Work")

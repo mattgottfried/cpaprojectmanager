@@ -37,9 +37,9 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                TextField("Firm name", text: $firmName)
-                TextField("Tagline (e.g. \"Certified Public Accountants  •  Ocoee, FL\")", text: $firmTagline)
-                TextField("Contact (e.g. \"you@example.com  •  555-555-0100\")", text: $firmContact)
+                SettingsField("Firm name", prompt: "Your firm", text: $firmName)
+                SettingsField("Tagline", prompt: "Certified Public Accountants  •  Ocoee, FL", text: $firmTagline)
+                SettingsField("Contact", prompt: "you@example.com  •  555-555-0100", text: $firmContact)
             } header: {
                 Text("Firm")
             } footer: {
@@ -55,7 +55,7 @@ struct SettingsView: View {
             }
 
             Section {
-                TextField("Upload page (e.g. https://www.encyro.com/yourfirm)", text: $uploadPageURL)
+                SettingsField("Upload page", prompt: "https://www.encyro.com/yourfirm", text: $uploadPageURL)
                     .urlKeyboard()
                     .noAutocapitalization()
                 if !uploadPageURL.isEmpty && UploadLink.normalized(uploadPageURL).isEmpty {
@@ -74,6 +74,7 @@ struct SettingsView: View {
                 LabeledContent("Default hourly rate") {
                     TextField("Rate", value: $defaultHourlyRate, format: .currency(code: "USD"))
                         .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: 160)
                         .decimalKeyboard()
                 }
                 Picker("Round billed time up to", selection: $roundingMinutes) {
@@ -180,6 +181,7 @@ struct SettingsView: View {
                 LabeledContent("Version", value: appVersion)
             }
         }
+        .macReadableWidth(760)
         .navigationTitle("Settings")
         .inlineNavigationTitle()
         .onChange(of: focusSignature) { _, _ in
@@ -199,4 +201,26 @@ struct SettingsView: View {
         .sheet(isPresented: $showingRemindersImport) { RemindersImportView() }
     }
 
+}
+
+/// A labelled text field that reads the same in Mac's grouped form and on iPhone: the label
+/// on the left, the value on the right, an example as the placeholder.
+private struct SettingsField: View {
+    let label: String
+    let prompt: String
+    @Binding var text: String
+
+    init(_ label: String, prompt: String, text: Binding<String>) {
+        self.label = label
+        self.prompt = prompt
+        _text = text
+    }
+
+    var body: some View {
+        LabeledContent(label) {
+            TextField(label, text: $text, prompt: Text(prompt))
+                .labelsHidden()
+                .multilineTextAlignment(.trailing)
+        }
+    }
 }

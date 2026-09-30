@@ -102,6 +102,7 @@ struct PipelineEditorView: View {
             }
             .onAppear(perform: loadOnce)
         }
+        .macSheetFrame()
     }
 
     private func expansion(for id: String) -> Binding<Bool> {

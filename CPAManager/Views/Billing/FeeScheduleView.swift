@@ -9,7 +9,7 @@ struct FeeScheduleView: View {
     @State private var showingNew = false
 
     var body: some View {
-        List {
+        GroupedList {
             if items.isEmpty {
                 ContentUnavailableView {
                     Label("No fees yet", systemImage: "tag")
@@ -34,6 +34,7 @@ struct FeeScheduleView: View {
                     }
                 }
                 .accessibilityElement(children: .combine)
+                .deleteMenu("Delete Fee") { context.delete(item); try? context.save() }
             }
             .onDelete { offsets in
                 for index in offsets { context.delete(items[index]) }
@@ -98,6 +99,7 @@ struct FeeItemEditor: View {
                 name = item.name; detail = item.detail; price = item.unitPrice; isHourly = item.isHourly
             }
         }
+        .macSheetFrame()
     }
 
     private func save() {

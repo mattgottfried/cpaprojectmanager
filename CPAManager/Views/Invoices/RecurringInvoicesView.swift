@@ -24,6 +24,7 @@ struct RecurringInvoicesView: View {
                 Button { editing = template } label: { row(template) }
                     .buttonStyle(.plain)
                     .cardListRow()
+                    .deleteMenu { context.delete(template); try? context.save() }
             }
             .onDelete { offsets in
                 for index in offsets { context.delete(templates[index]) }
@@ -33,6 +34,7 @@ struct RecurringInvoicesView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.appGroupedBackground)
+        .macReadableWidth()
         .navigationTitle("Recurring Invoices")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -150,6 +152,7 @@ struct RecurringInvoiceFormView: View {
             }
             .onAppear(perform: load)
         }
+        .macSheetFrame()
     }
 
     private func load() {

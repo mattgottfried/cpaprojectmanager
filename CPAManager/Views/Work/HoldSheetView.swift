@@ -35,5 +35,6 @@ struct HoldSheetView: View {
                 }
             }
         }
+        .macSheetFrame()
     }
 }

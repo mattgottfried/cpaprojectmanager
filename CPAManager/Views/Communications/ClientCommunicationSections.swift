@@ -93,6 +93,7 @@ struct ClientLetterSheet: View {
                 if let shareURL { ShareSheet(items: [shareURL]) }
             }
         }
+        .macSheetFrame()
     }
 
     // Changing template / fee / service re-merges from the template (edits so far are replaced).
@@ -189,6 +190,7 @@ struct ClientEmailSheet: View {
                 }
             }
         }
+        .macSheetFrame()
     }
 
     private var templateBinding: Binding<UUID?> {

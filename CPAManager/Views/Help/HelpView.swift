@@ -11,7 +11,7 @@ struct HelpView: View {
     }
 
     var body: some View {
-        List {
+        GroupedList {
             if query.isEmpty {
                 Section {
                     Label(Tips.tip(forDay: .now), systemImage: "lightbulb.fill")

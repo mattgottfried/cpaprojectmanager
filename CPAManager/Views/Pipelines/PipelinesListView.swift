@@ -13,7 +13,7 @@ struct PipelinesListView: View {
     @State private var showingNew = false
 
     var body: some View {
-        List {
+        GroupedList {
             Section {
                 ForEach(ServiceType.allCases) { service in
                     ServicePipelineRow(service: service, pipelines: pipelines) { pipeline in
@@ -44,6 +44,7 @@ struct PipelinesListView: View {
                                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         }
                     }
+                    .deleteMenu(of: pipeline, in: pipelines, title: "Delete Pipeline", perform: delete)
                 }
                 .onDelete(perform: delete)
 

@@ -108,6 +108,7 @@ struct ExpenseFormView: View {
                 ))
             }
         }
+        .macSheetFrame()
     }
 
     private func load() {

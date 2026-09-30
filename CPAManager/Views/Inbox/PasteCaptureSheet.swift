@@ -76,6 +76,7 @@ struct PasteCaptureSheet: View {
                 }
             }
         }
+        .macSheetFrame()
         .presentationDetents([.large])
     }
 }

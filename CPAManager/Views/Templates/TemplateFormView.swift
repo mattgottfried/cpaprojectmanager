@@ -92,6 +92,7 @@ struct TemplateFormView: View {
             }
             .onAppear(perform: loadOnce)
         }
+        .macSheetFrame()
     }
 
     private func nextOffset() -> Int {
