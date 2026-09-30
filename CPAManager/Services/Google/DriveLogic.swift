@@ -96,6 +96,11 @@ enum DriveQuery {
         return "'\(folderID)' in parents and trashed = false"
     }
 
+    /// Narrows a query to folders only (the folder picker).
+    static func foldersOnly(_ query: String) -> String {
+        "\(query) and mimeType = '\(DriveMime.folder)'"
+    }
+
     /// Files and folders whose name contains `text`; nil for blank input.
     static func search(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

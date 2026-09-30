@@ -158,6 +158,7 @@ struct ClientDetailView: View {
 
             DocumentRequestsSection(client: client)
 
+            DriveFolderSection(folderID: $client.driveFolderID, folderName: $client.driveFolderName, subject: "client")
             DocumentsSectionView(client: client)
         }
         .navigationTitle(client.displayName)
