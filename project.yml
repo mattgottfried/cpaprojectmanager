@@ -33,6 +33,9 @@ targets:
     info:
       path: CPAManager/Info.plist
       properties:
+        # XcodeGen would otherwise write literal 1.0 / 1 here, ignoring MARKETING_VERSION.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: CPA Manager
         LSApplicationCategoryType: public.app-category.business
         NSSupportsLiveActivities: true
@@ -89,6 +92,9 @@ targets:
     info:
       path: CPAWidgets/Info.plist
       properties:
+        # XcodeGen would otherwise write literal 1.0 / 1 here, ignoring MARKETING_VERSION.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: CPA Widgets
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -143,6 +149,9 @@ targets:
     info:
       path: CPAShare/Info.plist
       properties:
+        # XcodeGen would otherwise write literal 1.0 / 1 here, ignoring MARKETING_VERSION.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Add to CPA Inbox
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
@@ -180,6 +189,9 @@ targets:
     info:
       path: CPAManagerMac/Info.plist
       properties:
+        # XcodeGen would otherwise write literal 1.0 / 1 here, ignoring MARKETING_VERSION.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: CPA Manager
         LSApplicationCategoryType: public.app-category.business
         ITSAppUsesNonExemptEncryption: false
