@@ -196,6 +196,8 @@ struct RootView: View {
         case .letters:   NavigationStack { TemplateLibraryView() }
         case .importData: NavigationStack { ImportView() }
         case .dataHealth: NavigationStack { DataHealthView() }
+        case .syncHealth: NavigationStack { SyncHealthView() }
+        case .backups:   NavigationStack { AutoBackupsView() }
         case .help:      NavigationStack { HelpView() }
         case .settings:  NavigationStack { SettingsView() }
         }
@@ -227,6 +229,7 @@ struct RootView: View {
         timer.restore(context: context)
         SnapshotBuilder.rebuild(context: context)
         NotificationScheduler.rescheduleAll(context: context, morningHour: reminderHour)
+        AutoBackupService.runIfDue(context: context)
         Task { _ = await NotificationScheduler.requestAuthorization() }
         syncIntegrations()
     }
@@ -278,6 +281,7 @@ struct RootView: View {
         RecurrenceService.run(context: context)
         RecurringInvoiceService.run(context: context)
         SnapshotBuilder.rebuild(context: context)
+        AutoBackupService.runIfDue(context: context)
         cloud.syncNow()
     }
 }

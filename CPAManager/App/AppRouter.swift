@@ -7,7 +7,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case today, inbox, clients, leads, work, deadlines, review
     case time, invoices, recurringInvoices, expenses, reports, templates, recurring, overview
     case activity
-    case extensions, quotes, feeSchedule, pipelines, letters, importData, dataHealth, help
+    case extensions, quotes, feeSchedule, pipelines, letters, importData, dataHealth, syncHealth, backups, help
     case settings
 
     var id: String { rawValue }
@@ -37,6 +37,8 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .letters:   return "Letters & Emails"
         case .importData: return "Import from CSV"
         case .dataHealth: return "Data Health"
+        case .syncHealth: return "Sync Health"
+        case .backups:   return "Automatic Backups"
         case .help:      return "Help & Tips"
         case .settings:  return "Settings"
         }
@@ -67,6 +69,8 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case .letters:   return "doc.richtext"
         case .importData: return "square.and.arrow.down"
         case .dataHealth: return "stethoscope"
+        case .syncHealth: return "arrow.triangle.2.circlepath.icloud"
+        case .backups:   return "externaldrive.fill.badge.timemachine"
         case .help:      return "questionmark.circle.fill"
         case .settings:  return "gearshape.fill"
         }
@@ -76,7 +80,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     static let daily: [AppSection] = [.today, .inbox, .clients, .leads, .work, .deadlines, .review, .activity]
     static let practice: [AppSection] = [.time, .invoices, .quotes, .recurringInvoices, .expenses, .reports, .templates, .recurring, .overview]
     /// Setup and upkeep screens that iPhone reaches through More.
-    static let tools: [AppSection] = [.extensions, .pipelines, .feeSchedule, .letters, .importData, .dataHealth, .help]
+    static let tools: [AppSection] = [.extensions, .pipelines, .feeSchedule, .letters, .importData, .dataHealth, .syncHealth, .backups, .help]
 }
 
 /// Which text field a keyboard shortcut / widget link wants focused once its screen

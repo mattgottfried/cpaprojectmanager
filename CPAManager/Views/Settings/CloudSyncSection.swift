@@ -88,7 +88,7 @@ struct CloudSyncSection: View {
                     .font(.caption)
             }
             if engine.oversizedFileCount > 0 {
-                Label("\(engine.oversizedFileCount) file\(engine.oversizedFileCount == 1 ? " is" : "s are") too large to sync (over about 0.8 MB). The record syncs, the file stays on the device that added it.", systemImage: "doc.badge.ellipsis")
+                Label("\(engine.oversizedFileCount) file\(engine.oversizedFileCount == 1 ? " is" : "s are") too large to sync (over about 0.8 MB). The record syncs, the file stays on the device that added it. Keep big files in Google Drive and link them.", systemImage: "doc.badge.ellipsis")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -100,6 +100,11 @@ struct CloudSyncSection: View {
             cloud.syncNow()
         } label: {
             Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
+        }
+        NavigationLink {
+            SyncHealthView()
+        } label: {
+            Label("Sync health & duplicates", systemImage: "stethoscope")
         }
 
         Button("Sign out", role: .destructive) { cloud.signOut() }

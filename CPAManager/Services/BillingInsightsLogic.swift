@@ -201,7 +201,7 @@ enum InvoiceReminder {
     static func lastReminder(number: String, in interactions: [(summary: String, date: Date)]) -> Date? {
         interactions
             .filter { $0.summary == logSummary(number: number) }
-            .map(\.date)
+            .map { $0.date }
             .max()
     }
 }

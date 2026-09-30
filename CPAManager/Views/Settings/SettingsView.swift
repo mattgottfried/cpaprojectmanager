@@ -139,6 +139,16 @@ struct SettingsView: View {
                 } label: {
                     Label("Export & Backup", systemImage: "square.and.arrow.up.on.square")
                 }
+                NavigationLink {
+                    AutoBackupsView()
+                } label: {
+                    Label("Automatic Backups", systemImage: "externaldrive.fill.badge.timemachine")
+                }
+                NavigationLink {
+                    SyncHealthView()
+                } label: {
+                    Label("Sync Health", systemImage: "arrow.triangle.2.circlepath.icloud")
+                }
             } header: {
                 Text("Your Data")
             } footer: {
