@@ -11,9 +11,16 @@ this list is the safety net.
 - [ ] Create a client, a project and a task; kill and relaunch — all still there.
 - [ ] Settings → Data Health reports "consistent".
 
-## Sync (two devices signed in to the same iCloud)
-- [ ] Add a client on device A → appears on B within a minute.
-- [ ] Change a setting (e.g. firm name) on A → appears on B.
+## Sync (two devices signed in to the same cloud account)
+- [ ] Settings → Cloud Sync shows "Up to date" after signing in on each device.
+- [ ] Add a client, a project and a task on A → they appear on B within a few seconds, linked.
+- [ ] Edit and delete on A → B follows. Toggle airplane mode on A, edit, reconnect → B follows.
+- [ ] Edit the same record on both while offline → the device that reconnects first pushes;
+      the other keeps its own unsynced edit and then overwrites (no silent loss on that device).
+- [ ] Delete many records on one device (simulate by restoring an empty backup?) → sync pauses
+      with "Needs your attention" instead of deleting everywhere.
+- [ ] A scanned document under ~0.8 MB appears on the other device; a huge one shows the note.
+- [ ] Change a setting (e.g. firm name) on A → appears on B (iCloud settings sync).
 - [ ] Create an invoice on each device while offline, reconnect → Data Health flags the
       duplicate number and "Renumber" fixes it.
 - [ ] Install on a brand-new device: default templates are not duplicated (or Data Health

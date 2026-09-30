@@ -2,7 +2,8 @@
 
 Native SwiftUI + SwiftData practice-management app (CRM + projects + daily task
 capture) for a solo CPA's side business. iOS/iPadOS plus native
-macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
+macOS (no Catalyst). Local SwiftData store per device, synced through the owner's own
+Firebase project (Cloud Firestore + email/password Auth); see "Cloud sync" below.
 
 **Read these first and follow them without being reminded:**
 - `docs/PREFERENCES.md` — how to work with the owner (batching, questions, git, comms).
@@ -17,8 +18,9 @@ macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
   or `CPAManagerTests/` are picked up automatically — never edit `.xcodeproj`.
 - **CI:** none. There is no compiler in the cloud session: review every diff by hand
   for Swift footguns before calling it done, and say plainly that it wasn't built.
-- **Schema changes:** any new `@Model` or stored property needs a CloudKit schema
-  redeploy to Production before the next TestFlight build (see README).
+- **Schema changes:** a new `@Model` or stored property needs a `BackupFile` record/field
+  (optional!), export and restore updates — that is what cloud sync sends. There is no
+  CloudKit schema to deploy any more.
 - **Merging PRs:** always include `[ci skip]` in the merge commit title (Xcode Cloud then
   doesn't build the merge) unless the owner says otherwise for that merge.
 - **TestFlight notes:** every build's "What to test" comes from `TestFlight/WhatToTest.en-US.txt`
@@ -207,9 +209,31 @@ CPAManagerTests/  XCTest for the pure logic above.
   duplicate seeded templates, shared client emails, forgotten timers. `docs/TESTING.md` is the
   manual device checklist.
 
+### Cloud sync (Firestore) — replaced CloudKit mirroring
+
+- `Persistence` opens a **purely local** store (`cloudKitDatabase: .none`). `Services/Sync/`
+  syncs it: `SyncLogic` (pure: keys, codec over the `BackupFile` records, hashing, `SyncLedger`,
+  `SyncPlanner`, `SyncReconciler`, `SyncRelations`), `SyncStore` (SwiftData bridge),
+  `SyncEngine` (lifecycle, push/pull, guards; talks to a `SyncBackend`), `FirestoreBackend`
+  (the only file that imports Firestore), `CloudSync` (auth + engine owner, in the environment).
+- One Firestore document per record: `users/{uid}/records/{collection}~{uuid}` with the record
+  JSON in `j`. **The synced fields are exactly the `BackupFile` records** — a model field that
+  isn't in its record silently doesn't sync. `BackupService.restore(_, overwrite: true)` is the
+  upsert used for incoming changes (`fill` closures set every field; relationships resolve in
+  `link`). Blobs (`Document.data`, `Expense.receiptData`) are sent only with new records and
+  dropped above ~0.8 MB (Firestore's 1 MiB limit); an absent blob never wipes a local one.
+- Rules of the engine: never push before the initial snapshot; local unpushed edits beat
+  incoming changes; a wipe-looking deletion batch (≥10 and >30% of the ledger) is held for
+  confirmation; a record whose parent hasn't arrived is deferred (never applied with a nil
+  link, never pushed). Ledger (per-uid JSON file) = hash of each record as last synced.
+- Firebase is optional at build time: `GoogleService-Info.plist` is git-ignored and injected in
+  Xcode Cloud from a secret (`ci_post_clone.sh`); without it `CloudSync.availability ==
+  .missingConfig` and the app is local-only. Setup for the owner: `docs/FIRESTORE_SETUP.md`;
+  rules in `firestore.rules`. Settings still sync via iCloud KVS and secrets via iCloud Keychain.
+
 ### What syncs (and what deliberately doesn't)
 
-- Data: SwiftData/CloudKit. Settings: `SettingsSync` mirrors `SettingsKeys.synced` between
+- Data: local SwiftData ⇄ Firestore (above). Settings: `SettingsSync` mirrors `SettingsKeys.synced` between
   UserDefaults and `NSUbiquitousKeyValueStore` (iCloud wins when it has a value). **Add any
   new user-facing preference key to `SettingsKeys.synced`**; leave per-device state and
   caches out. Secrets: `KeychainStore` writes *synchronizable* items (iCloud Keychain) and
@@ -235,7 +259,10 @@ CPAManagerTests/  XCTest for the pure logic above.
 
 ## Rules that already bit us
 
-- Adding a relationship without its inverse → `SwiftDataError` on launch. Declare both.
+- Adding a relationship without its inverse → `SwiftDataError` on launch. Declare both
+  (still worth doing: keeps the model consistent).
+- Adding a stored property without adding it to its `BackupFile` record + export + restore
+  `fill` → it never syncs and isn't backed up.
 - Don't nest a `NavigationStack` in something pushed from another stack — views used in
   More take `embedded: true`.
 - Semantic colors go through `Theme.color(_: SemanticState)`; never inline a color for a

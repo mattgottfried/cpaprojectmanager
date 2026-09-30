@@ -12,13 +12,13 @@ struct CPAManagerApp: App {
     @State private var timer: TimerController
     @State private var qboAuth = QBOAuthService()
     @State private var googleAuth = GoogleAuthService()
-    @State private var syncStatus: SyncStatus
+    @State private var cloud: CloudSync
 
     init() {
         // Shared with App Intents — see Persistence.swift.
         let boot = Persistence.shared
         container = boot.container
-        _syncStatus = State(initialValue: boot.syncStatus)
+        _cloud = State(initialValue: CloudSync(context: boot.container.mainContext))
         let timerController = TimerController()
         _timer = State(initialValue: timerController)
         // Must be in place before launch finishes so background notification actions arrive.
@@ -38,11 +38,10 @@ struct CPAManagerApp: App {
                 .environment(timer)
                 .environment(qboAuth)
                 .environment(googleAuth)
-                .environment(syncStatus)
+                .environment(cloud)
                 .tint(Theme.brand)
                 .task {
-                    syncStatus.refreshAccountStatus()
-                    syncStatus.startObservingCloudKitEvents()
+                    cloud.start()
                     // Lets CloudKit's remote-change notifications reach this
                     // device in the background rather than only on next launch.
                     #if canImport(UIKit)
@@ -71,7 +70,7 @@ struct CPAManagerApp: App {
             NavigationStack { SettingsView() }
                 .frame(minWidth: 520, minHeight: 620)
                 .modelContainer(container)
-                .environment(syncStatus)
+                .environment(cloud)
                 .environment(qboAuth)
                 .environment(googleAuth)
         }

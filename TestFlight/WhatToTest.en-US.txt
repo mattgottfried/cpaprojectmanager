@@ -1,9 +1,8 @@
-Build 5 - what's new (please test):
+Build 6 - what's new (please test):
 
-- Every service (Tax Return, Bookkeeping, Payroll, Advisory, IRS Notice, Other) has its own pipeline. Tax returns: Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed, Complete. Others: Not Started, In Progress, Waiting on Client, Completed.
-- On Hold / Waiting on Client is never entered by Advance - you choose it. Check Advance skips it.
-- More > Pipelines: pick a custom pipeline per service. Board has a menu to pick the pipeline.
-- Check existing jobs landed on the right status (Awaiting Docs -> Not Started, In Review -> In Progress).
-- Also new: Quotes & Fee Schedule, task details (i), upload link + signature tracking, Import from CSV, Data Health, tax-season card, extra windows.
+- CLOUD SYNC IS NEW (Firestore replaces iCloud/CloudKit for your data). Settings > Cloud Sync: create an account, then sign in with the same one on every device. Check edits/deletes show up on your other devices within seconds, and that nothing goes missing.
+- Every service has its own pipeline; On Hold / Waiting is never entered by Advance.
+- Statuses split: tax returns vs everything else.
+- Also since build 3: Quotes & Fee Schedule, task details, upload link + signature tracking, CSV import, Data Health, tax-season card, extra windows.
 
-Report crashes on launch or after updating.
+Report crashes on launch, and anything missing or duplicated after syncing.
