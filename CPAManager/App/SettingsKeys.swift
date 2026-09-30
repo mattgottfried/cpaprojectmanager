@@ -41,6 +41,9 @@ enum SettingsKeys {
     /// Saved views on the Tasks page (JSON `[TaskPreset]`).
     static let taskPresets = "taskPresets"
 
+    /// File new documents into the client's Google Drive folder (default on).
+    static let saveToDrive = "saveToDrive"
+
     // Automatic backups (per device; deliberately not synced).
     static let autoBackupEnabled = "autoBackupEnabled"
     static let lastAutoBackup = "lastAutoBackup"

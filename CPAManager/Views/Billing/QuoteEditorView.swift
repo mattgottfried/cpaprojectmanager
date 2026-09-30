@@ -23,6 +23,7 @@ struct QuoteEditorView: View {
     @State private var shareURL: URL?
     @State private var showingShare = false
     @State private var message: String?
+    @Environment(GoogleAuthService.self) private var google
 
     private var client: Client? { clientID.flatMap { id in clients.first { $0.id == id } } }
     private var cleanedLines: [QuoteLine] { QuoteMath.cleaned(lines) }
@@ -163,13 +164,20 @@ struct QuoteEditorView: View {
         let data = LetterPDF.data(body: body, firmName: firmName, firmContact: firmContact, signatureBlock: true, clientName: client.displayName)
         guard !data.isEmpty else { message = "Couldn't create the PDF."; return }
         let filename = "Quote \(saved.displayNumber) - \(client.displayName)"
-        context.insert(Document(filename: filename, fileExtension: "pdf", data: data, client: client))
-        try? context.save()
         let safe = filename.replacingOccurrences(of: "/", with: "-")
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(safe).pdf")
         if (try? data.write(to: url)) != nil {
             shareURL = url
             showingShare = true
+        }
+        Task {
+            let result = await DriveFiling.add(
+                data: data, filename: filename, fileExtension: "pdf", client: client, project: nil,
+                auth: google, context: context
+            )
+            if let reason = result.outcome.reason {
+                message = DriveFilingPlan.notice(for: reason, clientName: client.displayName)
+            }
         }
     }
 

@@ -18,6 +18,9 @@ struct DocumentsSectionView: View {
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var previewDocument: Document?
     @State private var showingDriveBrowser = false
+    @State private var filingNotice: String?
+    @State private var isFiling = false
+    @Environment(GoogleAuthService.self) private var google
     @Environment(\.openURL) private var openURL
 
     private var documents: [Document] {
@@ -46,6 +49,12 @@ struct DocumentsSectionView: View {
                 Text("No documents yet.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
+            if isFiling {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Filing in Google Drive…").font(.subheadline).foregroundStyle(.secondary)
+                }
             }
             ForEach(documents) { document in
                 Button {
@@ -86,6 +95,9 @@ struct DocumentsSectionView: View {
                     if document.signatureStatus != .none {
                         Button { setSignature(document, .none) } label: { Label("Clear signature status", systemImage: "xmark.circle") }
                     }
+                    if DriveFilingPlan.canMove(hasData: !document.data.isEmpty, isDriveLink: document.isDriveLink) {
+                        Button { moveToDrive([document]) } label: { Label("Move to Google Drive", systemImage: "externaldrive.badge.plus") }
+                    }
                     Divider()
                     Button(role: .destructive) {
                         if let index = documents.firstIndex(where: { $0.id == document.id }) { delete(IndexSet(integer: index)) }
@@ -109,6 +121,11 @@ struct DocumentsSectionView: View {
                 }
                 Button { showingDriveBrowser = true } label: {
                     Label("Link from Google Drive…", systemImage: "externaldrive.badge.plus")
+                }
+                if !localDocuments.isEmpty {
+                    Button { moveToDrive(localDocuments) } label: {
+                        Label("Move \(localDocuments.count) in-app file\(localDocuments.count == 1 ? "" : "s") to Drive", systemImage: "arrow.up.doc")
+                    }
                 }
             } label: {
                 Label("Add Document", systemImage: "plus")
@@ -139,6 +156,9 @@ struct DocumentsSectionView: View {
         ) { result in
             handleFileImport(result)
         }
+        .alert(filingNotice ?? "", isPresented: Binding(get: { filingNotice != nil }, set: { if !$0 { filingNotice = nil } })) {
+            Button("OK", role: .cancel) {}
+        }
         .sheet(item: $previewDocument) { document in
             DocumentPreviewView(document: document)
         }
@@ -165,10 +185,39 @@ struct DocumentsSectionView: View {
         }
     }
 
+    /// The client this section belongs to, for wording notices.
+    private var ownerName: String { client?.displayName ?? project?.client?.displayName ?? "" }
+
+    /// Adds the file and, when Drive can take it, files it there and keeps only the link.
     private func save(data: Data, filename: String, ext: String) {
-        let document = Document(filename: filename, fileExtension: ext, data: data, client: client, project: project)
-        context.insert(document)
-        try? context.save()
+        Task {
+            isFiling = true
+            let result = await DriveFiling.add(
+                data: data, filename: filename, fileExtension: ext,
+                client: client, project: project, auth: google, context: context
+            )
+            isFiling = false
+            if let reason = result.outcome.reason {
+                filingNotice = DriveFilingPlan.notice(for: reason, clientName: ownerName)
+            }
+        }
+    }
+
+    private var localDocuments: [Document] {
+        documents.filter { DriveFilingPlan.canMove(hasData: !$0.data.isEmpty, isDriveLink: $0.isDriveLink) }
+    }
+
+    private func moveToDrive(_ items: [Document]) {
+        Task {
+            isFiling = true
+            let result = await DriveFiling.moveAll(items, auth: google, context: context)
+            isFiling = false
+            if let reason = result.reason {
+                filingNotice = DriveFilingPlan.notice(for: reason, clientName: ownerName)
+            } else if result.moved > 0 {
+                filingNotice = result.moved == 1 ? "Moved 1 document to Google Drive." : "Moved \(result.moved) documents to Google Drive."
+            }
+        }
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {

@@ -85,8 +85,8 @@ Everything talks directly to Google with **your own** OAuth client — no middle
 1. In [Google Cloud Console](https://console.cloud.google.com) create (or pick) a project.
 2. **APIs & Services → Library:** enable the **Gmail API**, the **Google Calendar API** and the **Google Drive API**.
 3. **OAuth consent screen:** choose **Internal** (available on Google Workspace — no
-   Google review needed). Add the scopes `gmail.readonly`, `calendar.readonly`, `calendar.events`, `drive.readonly`.
-   (If you connected Google before Drive was added, tap **Reconnect to Google** once so Google asks about Drive.)
+   Google review needed). Add the scopes `gmail.readonly`, `calendar.readonly`, `calendar.events`, `drive`.
+   (If you connected Google before the app could save to Drive, tap **Reconnect to Google** once so Google asks again.)
 4. **Credentials → Create credentials → OAuth client ID → iOS.** Set the **Bundle ID** to
    `com.gottfriedcpa.ProjectManager` (the same one works for the Mac app).
 5. Copy the client ID (`…apps.googleusercontent.com`), then in the app:
@@ -98,10 +98,12 @@ Everything talks directly to Google with **your own** OAuth client — no middle
    - **Put due dates on my calendar** — open tasks, project deadlines, unpaid invoices
      and follow-ups from the next 90 days become all-day, non-blocking events. The app
      only ever edits or deletes events it created itself.
-   - **Google Drive** — read-only. On a client's (or job's) screen choose the Drive folder
-     where their documents live; the newest files show right there and open in Drive. In the
-     Documents section, **Link from Google Drive…** attaches individual files (signature
-     tracking works on them). Nothing is uploaded, copied or moved.
+   - **Google Drive** — where documents live. On a client's (or job's) screen choose the Drive
+     folder; the newest files show right there and open in Drive. Scans, photos, letters,
+     quotes and invoice PDFs you add are filed into that folder and the app keeps a link
+     (**Move to Google Drive** does the same for files already in the app). **Link from
+     Google Drive…** attaches existing files. The app only ever creates files in Drive — it
+     never edits, moves or deletes yours. Turn filing off under Settings ▸ Google.
 
 Pull down on Today to sync immediately.
 

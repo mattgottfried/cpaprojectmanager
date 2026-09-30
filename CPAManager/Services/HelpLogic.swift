@@ -236,13 +236,15 @@ enum HelpCatalog {
         ),
         HelpTopic(
             id: "drive", title: "Google Drive", systemImage: "externaldrive.fill",
-            summary: "Keep documents in Drive and link them here.",
+            summary: "Documents live in Drive; the app is a window into it.",
             body: """
-            Connect Google in Settings ▸ Google (tap Reconnect once if you connected before Drive was added). Then on a client or job choose "Choose Drive folder…": the newest files in that folder show right on the screen and open in Drive.
+            Connect Google in Settings ▸ Google (tap Reconnect once if you connected before saving to Drive was added). Then on a client or job choose "Choose Drive folder…": the newest files in that folder show right on the screen and open in Drive.
 
-            In Documents, "Link from Google Drive…" attaches individual files. They stay in Drive; signature tracking still works on them. The app only reads Drive — it never uploads, copies, moves or deletes.
+            In Documents, "Link from Google Drive…" attaches individual files. They stay in Drive; signature tracking still works on them.
+
+            Scans, photos, files, letters, quotes and invoice PDFs you add are filed into the job's (else the client's) Drive folder, and the app keeps just a link. If there's no folder yet, the file stays in the app with a note; choose a folder, then use "Move to Google Drive" on it (or "Move in-app files to Drive" in Add Document). The app only ever creates files in Drive — it never edits, moves or deletes yours. Settings ▸ Google turns filing off.
             """,
-            keywords: "google drive folder documents link files storage"
+            keywords: "google drive folder documents link files storage save upload scan move"
         ),
         HelpTopic(
             id: "selecting", title: "Select several, undo, and keyboard", systemImage: "checkmark.circle",

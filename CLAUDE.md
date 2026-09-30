@@ -233,9 +233,15 @@ CPAManagerTests/  XCTest for the pure logic above.
   tiered payment reminders (logged as an Interaction; mailto links go through `MailtoBuilder`,
   which encodes `&`), effective hourly rate, extension tracker (uses `TaxCalendar`), client health
   card, year-over-year carryover on New Tax Return.
-- **Google Drive** (`DriveLogic.swift` pure, `DriveLinker`, `Views/Drive/`): read-only
-  (`drive.readonly`). `Client/Project.driveFolderID/Name` and `Document.driveFileID/URL/MimeType`
-  (a linked document has empty `data`). Never upload, copy, move or delete Drive files.
+- **Google Drive** (`DriveLogic.swift` pure, `DriveLinker`, `Views/Drive/`): Drive is the
+  holding place for documents (scope `drive`). `Client/Project.driveFolderID/Name` and
+  `Document.driveFileID/URL/MimeType` (a linked document has empty `data`). The app only ever
+  **creates** files in Drive (`GoogleAPI.driveUpload`) — never overwrite, rename, move or delete.
+  New documents (scans, photos, files, letters, quotes, invoice PDFs, share-sheet attachments) go
+  through `DriveFiling.add/move` (`DriveFilingLogic.swift` pure: destination = job folder else
+  client folder, names, MIME, multipart body, notices). The document is saved locally first, and
+  its bytes are dropped only after Drive confirms; no folder / not connected / offline leaves it in
+  the app with a notice. Setting `SettingsKeys.saveToDrive` (synced, default on).
 - **Reliability**: `SyncHealth` (pure) explains engine state; `DuplicateClients` +
   `ClientMergeService` merge look-alike clients; `AutoBackupService` writes a daily backup
   (last 7, per device, not synced). File-carrying records always send their file on edit.
