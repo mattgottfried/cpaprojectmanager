@@ -58,6 +58,23 @@ final class BackupRoundTripTests: XCTestCase {
         engagement.namingPattern = "{client} {month}"
         context.insert(engagement)
         context.insert(LetterTemplate(name: "Engagement", kind: .engagement, body: "Dear {firstname}"))
+
+        // Batch 6
+        client.hourlyRateOverride = 225
+        client.isFlatFee = true
+        task.checklist = "- [x] a\n- [ ] b"
+        task.waitingOn = "W-2"
+        let blocker = TaskItem(title: "Blocker", project: project)
+        context.insert(blocker)
+        task.blockedByID = blocker.id
+        context.insert(FeeItem(name: "1040", unitPrice: 450))
+        let quote = Quote(number: 1001, client: client, lines: [QuoteLine(detail: "Prep", quantity: 1, rate: 450)])
+        quote.status = .sent
+        context.insert(quote)
+        let signed = Document(filename: "Letter", fileExtension: "pdf", data: Data([7]), client: client)
+        signed.signatureStatus = .sent
+        signed.signatureSentAt = Date(timeIntervalSince1970: 1_700_000_000)
+        context.insert(signed)
         context.insert(EmailTemplate(name: "Follow-up", subject: "Hi", body: "Checking in"))
         try? context.save()
     }
@@ -71,6 +88,7 @@ final class BackupRoundTripTests: XCTestCase {
             "recurring": n(RecurringInvoice.self), "inbox": n(InboxItem.self), "documents": n(Document.self),
             "pipelines": n(Pipeline.self), "letters": n(LetterTemplate.self), "emails": n(EmailTemplate.self),
             "engagements": n(RecurringEngagement.self), "templates": n(WorkflowTemplate.self),
+            "fees": n(FeeItem.self), "quotes": n(Quote.self),
         ]
     }
 
@@ -111,6 +129,18 @@ final class BackupRoundTripTests: XCTestCase {
         let restoredEngagement = try XCTUnwrap(try target.fetch(FetchDescriptor<RecurringEngagement>()).first)
         XCTAssertEqual(restoredEngagement.namingPattern, "{client} {month}")
         XCTAssertNotNil(restoredEngagement.endDate)
+        XCTAssertEqual(client.hourlyRateOverride, 225)
+        XCTAssertTrue(client.isFlatFee)
+        let restoredTask = try XCTUnwrap(try target.fetch(FetchDescriptor<TaskItem>()).first { $0.title == "Send engagement letter" })
+        XCTAssertEqual(restoredTask.checklist, "- [x] a\n- [ ] b")
+        XCTAssertEqual(restoredTask.waitingOn, "W-2")
+        XCTAssertNotNil(restoredTask.blockedByID)
+        let restoredQuote = try XCTUnwrap(try target.fetch(FetchDescriptor<Quote>()).first)
+        XCTAssertEqual(restoredQuote.total, 450)
+        XCTAssertEqual(restoredQuote.status, .sent)
+        XCTAssertEqual(restoredQuote.client?.id, client.id)
+        let restoredLetter = try XCTUnwrap(try target.fetch(FetchDescriptor<Document>()).first { $0.filename == "Letter" })
+        XCTAssertEqual(restoredLetter.signatureStatus, .sent)
         let expense = try XCTUnwrap(try target.fetch(FetchDescriptor<Expense>()).first)
         XCTAssertEqual(expense.receiptData, Data([1, 2, 3, 4]))
         let recurring = try XCTUnwrap(try target.fetch(FetchDescriptor<RecurringInvoice>()).first)
