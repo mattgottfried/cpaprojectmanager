@@ -8,6 +8,13 @@ enum TaskDependencies {
         return openTaskIDs.contains(blockedByID)
     }
 
+    /// Due date for a chained task once its blocker was completed: `daysAfter` days after
+    /// the day the blocker was finished (never in the past).
+    static func dueDateOnUnblock(daysAfter: Int, completedAt: Date, calendar: Calendar = .current) -> Date {
+        let day = calendar.startOfDay(for: completedAt)
+        return calendar.date(byAdding: .day, value: max(0, daysAfter), to: day) ?? day
+    }
+
     /// True if making `taskID` depend on `newBlockerID` would loop back on itself
     /// (A blocked by B blocked by A). `blockedBy` maps task id → the id it waits on.
     static func wouldCreateCycle(taskID: UUID, newBlockerID: UUID, blockedBy: [UUID: UUID]) -> Bool {

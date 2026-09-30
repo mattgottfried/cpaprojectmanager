@@ -1,8 +1,6 @@
-Build 6 - what's new (please test):
+Build 7 - what's new (please test):
 
-- CLOUD SYNC IS NEW (Firestore replaces iCloud/CloudKit for your data). Settings > Cloud Sync: create an account, then sign in with the same one on every device. Check edits/deletes show up on your other devices within seconds, and that nothing goes missing.
-- Every service has its own pipeline; On Hold / Waiting is never entered by Advance.
-- Statuses split: tax returns vs everything else.
-- Also since build 3: Quotes & Fee Schedule, task details, upload link + signature tracking, CSV import, Data Health, tax-season card, extra windows.
+- PIPELINE TASKS NOW GO ONE AT A TIME. When a job enters a stage with several tasks, only the first gets a due date. Each next task stays off Today, undated, until you complete the one before it; then it gets its date (its "due in N days" counted from that day). Undo brings the date back off.
+- Ticking a task inside a job now follows the same rules as Today (repeats, chains).
 
-Report crashes on launch, and anything missing or duplicated after syncing.
+Still worth checking from build 6: Cloud Sync (Settings > Cloud Sync) across devices, per-service pipelines, status split.

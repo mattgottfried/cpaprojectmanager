@@ -23,6 +23,9 @@ final class TaskItem {
     var checklist: String = ""
     /// Hidden from Today until that task is done (see `TaskDependencies`).
     var blockedByID: UUID? = nil
+    /// Set on pipeline tasks that wait for the one before them: when the blocker is
+    /// completed this task gets a due date this many days later (see `TaskDependencies`).
+    var dueInDaysAfterBlocker: Int? = nil
     /// Free-text "waiting on…" note (e.g. "client's W-2"), shown on the task.
     var waitingOn: String = ""
 

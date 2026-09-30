@@ -111,6 +111,15 @@ final class TaskDependencyTests: XCTestCase {
         XCTAssertFalse(TaskDependencies.isBlocked(blockedByID: nil, openTaskIDs: [a, b]))
     }
 
+    func testDueDateOnUnblockCountsFromCompletionDay() {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let done = cal.date(from: DateComponents(year: 2026, month: 9, day: 30, hour: 15))!
+        XCTAssertEqual(TaskDependencies.dueDateOnUnblock(daysAfter: 3, completedAt: done, calendar: cal),
+                       cal.date(from: DateComponents(year: 2026, month: 10, day: 3)))
+        XCTAssertEqual(TaskDependencies.dueDateOnUnblock(daysAfter: -2, completedAt: done, calendar: cal),
+                       cal.date(from: DateComponents(year: 2026, month: 9, day: 30)))
+    }
+
     func testCycleDetection() {
         let a = UUID(), b = UUID(), c = UUID()
         // b waits on c; c waits on a.

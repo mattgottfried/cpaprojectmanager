@@ -61,6 +61,7 @@ struct BackupFile: Codable {
         var repeatRuleRaw: String; var projectID: UUID?; var clientID: UUID?
         // Batch 6.
         var checklist: String? = nil; var blockedByID: UUID? = nil; var waitingOn: String? = nil
+        var dueInDaysAfterBlocker: Int? = nil
     }
     struct TimeRecord: Codable {
         var id: UUID; var startedAt: Date; var endedAt: Date?; var notes: String; var isBillable: Bool
@@ -243,7 +244,8 @@ enum BackupService {
             BackupFile.TaskRecord(id: t.id, title: t.title, notes: t.notes, isDone: t.isDone, dueDate: t.dueDate, sortIndex: t.sortIndex,
                   completedAt: t.completedAt, createdAt: t.createdAt, isNextAction: t.isNextAction,
                   snoozedUntil: t.snoozedUntil, repeatRuleRaw: t.repeatRuleRaw, projectID: t.project?.id, clientID: t.client?.id,
-                  checklist: t.checklist, blockedByID: t.blockedByID, waitingOn: t.waitingOn)
+                  checklist: t.checklist, blockedByID: t.blockedByID, waitingOn: t.waitingOn,
+                  dueInDaysAfterBlocker: t.dueInDaysAfterBlocker)
         }
         file.timeEntries = all(TimeEntry.self).map { t in
             BackupFile.TimeRecord(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt, notes: t.notes, isBillable: t.isBillable,
@@ -424,6 +426,7 @@ enum BackupService {
             t.completedAt = r.completedAt; t.createdAt = r.createdAt; t.isNextAction = r.isNextAction
             t.snoozedUntil = r.snoozedUntil; t.repeatRuleRaw = r.repeatRuleRaw
             t.checklist = r.checklist ?? ""; t.blockedByID = r.blockedByID; t.waitingOn = r.waitingOn ?? ""
+            t.dueInDaysAfterBlocker = r.dueInDaysAfterBlocker
         }, link: { r, t in
             t.project = r.projectID.flatMap { projects[$0] }
             t.client = r.clientID.flatMap { clients[$0] }

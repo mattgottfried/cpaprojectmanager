@@ -213,6 +213,9 @@ enum PipelineMove {
     struct NewTask: Equatable {
         var title: String
         var dueDate: Date
+        /// The stage's own offset; a task chained behind another is dated from this once
+        /// the earlier task is completed, not from `dueDate`.
+        var dueInDays: Int = 0
     }
 
     struct Plan: Equatable {
@@ -229,7 +232,7 @@ enum PipelineMove {
 
         let tasks = stage.automation.tasks
             .filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
-            .map { NewTask(title: $0.title, dueDate: date(max(0, $0.dueInDays))) }
+            .map { NewTask(title: $0.title, dueDate: date(max(0, $0.dueInDays)), dueInDays: max(0, $0.dueInDays)) }
         return Plan(
             status: stage.kind.legacyStatus,
             isDone: stage.kind.isDone,
