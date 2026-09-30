@@ -41,6 +41,7 @@ struct DocumentPreviewView: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark.circle.fill")
+                        .accessibilityLabel("Close")
                     .font(.title2)
                     .foregroundStyle(.white, .black.opacity(0.5))
                     .padding()

@@ -181,6 +181,7 @@ struct ProjectDetailView: View {
                     .onSubmit(addTask)
                 Button(action: addTask) {
                     Image(systemName: "plus.circle.fill")
+                        .accessibilityLabel("Add task")
                 }
                 .disabled(newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -341,6 +342,7 @@ struct TaskRowView: View {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(task.isDone ? .green : .secondary)
+                    .accessibilityLabel(task.isDone ? "Mark not done" : "Mark done")
             }
             .buttonStyle(.plain)
 

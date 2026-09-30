@@ -259,3 +259,61 @@ final class TaxSeasonTests: XCTestCase {
         XCTAssertEqual(s.daysToDeadline, 45)
     }
 }
+
+final class DataHealthTests: XCTestCase {
+    private func t(_ s: TimeInterval) -> Date { Date(timeIntervalSince1970: s) }
+
+    func testDuplicateInvoiceNumbersAreRenumberedOldestKept() {
+        let a = UUID(), b = UUID(), c = UUID(), d = UUID()
+        let invoices = [
+            HealthInvoice(id: b, number: 1005, createdAt: t(200), isSyncedToQuickBooks: false),
+            HealthInvoice(id: a, number: 1005, createdAt: t(100), isSyncedToQuickBooks: false),
+            HealthInvoice(id: c, number: 1005, createdAt: t(300), isSyncedToQuickBooks: true),
+            HealthInvoice(id: d, number: 1006, createdAt: t(50), isSyncedToQuickBooks: false),
+        ]
+        let report = DataHealth.report(invoices: invoices, templates: [], clients: [], runningTimers: [])
+        XCTAssertEqual(report.duplicateInvoiceNumbers, [1005])
+        XCTAssertEqual(report.renumbers, [InvoiceRenumber(id: b, newNumber: 1007)], "a keeps 1005; b is renumbered past the max")
+        XCTAssertEqual(report.unfixableInvoiceIDs, [c], "QuickBooks-synced copies aren't touched")
+        XCTAssertFalse(report.isHealthy)
+    }
+
+    func testNoDuplicatesIsHealthy() {
+        let invoices = [HealthInvoice(id: UUID(), number: 1, createdAt: t(1), isSyncedToQuickBooks: false),
+                        HealthInvoice(id: UUID(), number: 2, createdAt: t(2), isSyncedToQuickBooks: false)]
+        XCTAssertTrue(DataHealth.report(invoices: invoices, templates: [], clients: [], runningTimers: []).isHealthy)
+    }
+
+    func testDuplicateTemplatesKeepReferencedOrOldest() {
+        let old = UUID(), newer = UUID(), used = UUID(), different = UUID()
+        let templates = [
+            HealthTemplate(id: newer, name: "1040", taskTitles: ["A", "B"], createdAt: t(200), isReferenced: false),
+            HealthTemplate(id: old, name: "1040", taskTitles: ["A", "B"], createdAt: t(100), isReferenced: false),
+            HealthTemplate(id: used, name: "Payroll", taskTitles: ["X"], createdAt: t(300), isReferenced: true),
+            HealthTemplate(id: UUID(), name: "payroll", taskTitles: ["X"], createdAt: t(50), isReferenced: false),
+            HealthTemplate(id: different, name: "1040", taskTitles: ["A"], createdAt: t(1), isReferenced: false),
+        ]
+        let report = DataHealth.report(invoices: [], templates: templates, clients: [], runningTimers: [])
+        XCTAssertTrue(report.duplicateTemplateIDs.contains(newer))
+        XCTAssertFalse(report.duplicateTemplateIDs.contains(old))
+        XCTAssertFalse(report.duplicateTemplateIDs.contains(used), "a template in use is never removed")
+        XCTAssertFalse(report.duplicateTemplateIDs.contains(different), "different steps = a different template")
+        XCTAssertEqual(report.duplicateTemplateIDs.count, 2, "newer 1040 and the unreferenced payroll copy")
+    }
+
+    func testDuplicateClientEmailsAndStaleTimers() {
+        let a = UUID(), b = UUID(), c = UUID()
+        let clients = [
+            HealthClient(id: a, name: "A", email: "Dana@X.com"),
+            HealthClient(id: b, name: "B", email: " dana@x.com "),
+            HealthClient(id: c, name: "C", email: ""),
+            HealthClient(id: UUID(), name: "D", email: ""),
+        ]
+        let now = t(1_000_000)
+        let fresh = HealthTimer(id: UUID(), startedAt: now.addingTimeInterval(-3600))
+        let stale = HealthTimer(id: UUID(), startedAt: now.addingTimeInterval(-20 * 3600))
+        let report = DataHealth.report(invoices: [], templates: [], clients: clients, runningTimers: [fresh, stale], now: now)
+        XCTAssertEqual(Set(report.duplicateClientIDs), [a, b], "blank emails are never duplicates")
+        XCTAssertEqual(report.staleTimerIDs, [stale.id])
+    }
+}

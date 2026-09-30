@@ -27,6 +27,7 @@ struct TimerCard: View {
                 timer.stop(context: context)
             } label: {
                 Image(systemName: "stop.fill")
+                    .accessibilityLabel("Stop timer")
                     .font(.title2)
                     .foregroundStyle(Theme.brand)
                     .frame(width: 52, height: 52)

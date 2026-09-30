@@ -113,3 +113,17 @@ final class AppRouter {
         return true
     }
 }
+
+// MARK: - Per-window routing
+
+/// Each window owns its own `AppRouter`; menu commands act on the focused window's.
+private struct AppRouterFocusKey: FocusedValueKey {
+    typealias Value = AppRouter
+}
+
+extension FocusedValues {
+    var appRouter: AppRouter? {
+        get { self[AppRouterFocusKey.self] }
+        set { self[AppRouterFocusKey.self] = newValue }
+    }
+}

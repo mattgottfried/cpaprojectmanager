@@ -52,6 +52,11 @@ struct MoreView: View {
                         Label("Import from CSV", systemImage: "square.and.arrow.down")
                     }
                     NavigationLink {
+                        DataHealthView()
+                    } label: {
+                        Label("Data Health", systemImage: "stethoscope")
+                    }
+                    NavigationLink {
                         HelpView()
                     } label: {
                         Label("Help & Tips", systemImage: "questionmark.circle.fill")
