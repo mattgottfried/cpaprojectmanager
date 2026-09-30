@@ -70,20 +70,22 @@ struct ReportsView: View {
     private var unbilledByClient: [ClientAmount] { grouped(timeEntries.filter(\.isUnbilled)) }
 
     private struct StatusCount: Identifiable {
-        let flow: StatusFlow
+        let service: ServiceType
         let status: ProjectStatus
         let count: Int
-        var id: String { "\(flow.rawValue)-\(status.rawValue)" }
+        var flow: StatusFlow { StatusFlow.flow(for: service) }
+        var id: String { "\(service.rawValue)-\(status.rawValue)" }
     }
 
-    /// Open-work counts, tax returns and other work listed separately (they use different stages).
+    /// Work by stage, one list per service (each service has its own pipeline).
     private var statusCounts: [StatusCount] {
         var rows: [StatusCount] = []
-        for flow in StatusFlow.allCases {
-            let inFlow = projects.filter { $0.pipelineID == nil && $0.statusFlow == flow }
+        for service in ServiceType.allCases {
+            let flow = StatusFlow.flow(for: service)
+            let ofService = projects.filter { $0.pipelineID == nil && $0.serviceType == service }
             for status in flow.statuses {
-                let count = inFlow.filter { flow.normalize($0.status) == status }.count
-                if count > 0 { rows.append(StatusCount(flow: flow, status: status, count: count)) }
+                let count = ofService.filter { flow.normalize($0.status) == status }.count
+                if count > 0 { rows.append(StatusCount(service: service, status: status, count: count)) }
             }
         }
         return rows
@@ -159,7 +161,7 @@ struct ReportsView: View {
                         ForEach(statusCounts) { entry in
                             HStack {
                                 StatusBadge(status: entry.status, flow: entry.flow)
-                                Text(entry.flow.pipelineName).font(.caption).foregroundStyle(.secondary)
+                                Text(entry.service.label).font(.caption).foregroundStyle(.secondary)
                                 Spacer()
                                 Text("\(entry.count)").font(.subheadline.monospacedDigit())
                             }

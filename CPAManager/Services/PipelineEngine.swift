@@ -31,12 +31,24 @@ enum PipelineEngine {
             return
         }
         let definition = pipeline.definition
-        guard let stage = definition.stage(withKey: startStageKey) ?? definition.firstStage else { return }
+        // A chosen start stage is honored (even a waiting one); otherwise the first real stage.
+        guard let stage = definition.stage(withKey: startStageKey) ?? definition.firstStartStage else { return }
         project.pipelineID = pipeline.id
         enter(project, stage: stage, context: context)
     }
 
-    /// Moves a custom-pipeline job to the next stage. Returns false at the end.
+    /// Puts new work in the custom pipeline chosen for its service type (More ▸ Pipelines),
+    /// if one is set. Built-in pipelines need nothing.
+    static func applyDefault(to project: Project, context: ModelContext, defaults: UserDefaults = .standard) {
+        guard project.pipelineID == nil,
+              let id = PipelineDefaults.pipelineID(for: project.serviceType, defaults: defaults) else { return }
+        let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
+        guard let pipeline = pipelines.first(where: { $0.id == id }) else { return }
+        assign(project, to: pipeline, context: context)
+    }
+
+    /// Moves a custom-pipeline job to the next stage (never into a waiting stage).
+    /// Returns false at the end.
     @discardableResult
     static func advance(_ project: Project, in pipeline: Pipeline, context: ModelContext) -> Bool {
         guard let next = pipeline.definition.next(after: project.stageKey) else { return false }

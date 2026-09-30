@@ -37,6 +37,8 @@ enum WorkflowEngine {
             if let pipeline = pipelines.first(where: { $0.id == pipelineID }) {
                 PipelineEngine.assign(project, to: pipeline, startStageKey: template.startStageKey, context: context)
             }
+        } else {
+            PipelineEngine.applyDefault(to: project, context: context)
         }
         return project
     }

@@ -1,10 +1,9 @@
 Build 5 - what's new (please test):
 
-- Statuses split: tax returns now use Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed, Complete. Everything else uses Not Started, In Progress, Waiting on Client, Completed. Check existing jobs landed on the right status (Awaiting Docs -> Not Started, In Review -> In Progress). Board and Work filter have Tax Return and General.
-- Quotes & Fee Schedule (More). Client hourly rate + flat-fee flag.
-- Task details (i): subtasks, waiting on, can't start until.
-- Settings: upload page link; letters tracked as awaiting signature.
-- More > Import from CSV, Data Health. Tax-season card on Today.
-- Mac/iPad: extra windows.
+- Every service (Tax Return, Bookkeeping, Payroll, Advisory, IRS Notice, Other) has its own pipeline. Tax returns: Not Started, In Progress, On Hold, Awaiting Signature, Ready to File, Filed, Complete. Others: Not Started, In Progress, Waiting on Client, Completed.
+- On Hold / Waiting on Client is never entered by Advance - you choose it. Check Advance skips it.
+- More > Pipelines: pick a custom pipeline per service. Board has a menu to pick the pipeline.
+- Check existing jobs landed on the right status (Awaiting Docs -> Not Started, In Review -> In Progress).
+- Also new: Quotes & Fee Schedule, task details (i), upload link + signature tracking, Import from CSV, Data Health, tax-season card, extra windows.
 
 Report crashes on launch or after updating.

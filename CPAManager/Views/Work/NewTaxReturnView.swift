@@ -85,6 +85,7 @@ struct NewTaxReturnView: View {
         project.receivedDate = receivedDate
         project.nextAction = "Request documents from client"
         context.insert(project)
+        PipelineEngine.applyDefault(to: project, context: context)
 
         if let routingSheet = templates.first(where: { $0.name == "Tax Return Routing Sheet" }) {
             WorkflowEngine.applyTemplate(routingSheet, to: project, startDate: receivedDate, into: context)

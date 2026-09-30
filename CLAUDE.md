@@ -176,9 +176,15 @@ CPAManagerTests/  XCTest for the pure logic above.
   `project.statusFlow` / `statusLabel` / `flow.label(_:)` — never `status.label` for work.
   `awaitingDocs` and `review` are retired; `StatusFlow.normalize` maps them and
   `StatusMigration.run` (on launch, idempotent) rewrites old data.
-- The two built-in pipelines are virtual (`PipelineDefinition.builtIn(flow)`). Custom
-  pipelines keep their own stages; their jobs are never "on hold" (`isOnHold` needs
+- **Every service type has its own built-in pipeline** (virtual: `PipelineDefinition.builtIn(for:)`,
+  named after the service; Tax Return uses the tax stages, the rest the short list). A service can
+  instead default to a *custom* pipeline (More ▸ Pipelines ▸ "Pipeline for each service"; key
+  `PipelineDefaults.key(for:)`, synced) — `PipelineEngine.applyDefault` runs wherever new work is
+  created. Custom pipelines keep their own stages; their jobs are never "on hold" (`isOnHold` needs
   `pipelineID == nil`). `StageKind.waiting` maps to `.waitingOnClient`, `.review` to `.inProgress`.
+- **On Hold / Waiting is manual, always.** Advance skips it (`StatusFlow.next`,
+  `PipelineDefinition.next(after:)`), and new jobs start on `firstStartStage` (never a waiting stage).
+  Only an explicit choice (status/stage picker, board drag, hold button) enters one.
 
 ### Batch 6: quotes, subtasks, signatures, import, tax season, windows, health
 
