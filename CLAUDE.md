@@ -19,6 +19,8 @@ macOS (no Catalyst). Syncs through the user's own iCloud (CloudKit); no server.
   for Swift footguns before calling it done, and say plainly that it wasn't built.
 - **Schema changes:** any new `@Model` or stored property needs a CloudKit schema
   redeploy to Production before the next TestFlight build (see README).
+- **Merging PRs:** always include `[ci skip]` in the merge commit title (Xcode Cloud then
+  doesn't build the merge) unless the owner says otherwise for that merge.
 - **Testing on device:** keep a running "what to test" list in the PR/summary.
 
 ## Architecture
