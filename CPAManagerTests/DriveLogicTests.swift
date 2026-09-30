@@ -39,8 +39,9 @@ final class DriveLogicTests: XCTestCase {
         let bare = DriveFile(id: "ABC123", name: "b", mimeType: "image/png")
         XCTAssertEqual(DriveLinks.fileURL(bare)?.absoluteString, "https://drive.google.com/file/d/ABC123/view")
         XCTAssertNil(DriveLinks.fileURL(DriveFile(id: "bad id", name: "c", mimeType: "x")))
-        XCTAssertNil(DriveLinks.fileURL(DriveFile(id: "ok", name: "d", mimeType: "x", webViewLink: "javascript:alert(1)")).flatMap { $0.scheme == "https" ? nil : $0 },
-                     "only https links are opened")
+        let unsafe = DriveLinks.fileURL(DriveFile(id: "ok", name: "d", mimeType: "x", webViewLink: "javascript:alert(1)"))
+        XCTAssertEqual(unsafe?.scheme, "https", "a non-https link from the API is ignored in favour of the standard one")
+        XCTAssertEqual(unsafe?.absoluteString, "https://drive.google.com/file/d/ok/view")
         XCTAssertEqual(DriveLinks.folderURL(id: "FOLDER1").absoluteString, "https://drive.google.com/drive/folders/FOLDER1")
         XCTAssertEqual(DriveLinks.folderURL(id: "root"), DriveLinks.myDrive)
         XCTAssertEqual(DriveLinks.folderURL(id: "bad/../id"), DriveLinks.myDrive)
