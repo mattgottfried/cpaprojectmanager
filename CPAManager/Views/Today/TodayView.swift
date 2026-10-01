@@ -662,7 +662,8 @@ struct TodayView: View {
                 project: task.project,
                 hourlyRate: RateResolver.rate(clientOverride: task.project?.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
                 isBillable: !(task.project?.client?.isFlatFee ?? false),
-                context: context
+                context: context,
+                task: task
             )
             toast = UndoToastState(message: "Timer started", systemImage: "timer")
         } label: { Label("Start timer", systemImage: "timer") }

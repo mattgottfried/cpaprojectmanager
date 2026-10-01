@@ -13,6 +13,7 @@ extension SettingsKeys {
         uploadPageURL, signatureChaseDays, taxSeasonMode,
         googleGmailEnabled, googleGmailQuery, googleScheduleEnabled, googlePushEnabled,
         googleCalendarID, taskPresets, defaultReturnTemplate, saveToDrive,
+        driveClientsRootID, driveClientsRootName, driveAutoCreateFolders, driveFolderTemplate,
         // Which calendar events this app has pushed — shared so any device can clean up
         // events another device created.
         googleSyncedEvents,

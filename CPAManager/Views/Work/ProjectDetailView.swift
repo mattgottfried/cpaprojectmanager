@@ -40,6 +40,8 @@ struct ProjectDetailView: View {
                 Section("Notes") { Text(project.detail) }
             }
             timeSection
+            StageRulesCard(project: project)
+
             DriveFolderSection(folderID: $project.driveFolderID, folderName: $project.driveFolderName, subject: "job")
             DocumentsSectionView(project: project)
         }

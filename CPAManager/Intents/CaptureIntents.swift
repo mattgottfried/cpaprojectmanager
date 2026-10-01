@@ -150,6 +150,15 @@ struct CPAManagerShortcuts: AppShortcutsProvider {
             systemImageName: "sun.max.fill"
         )
         AppShortcut(
+            intent: WeekSummaryIntent(),
+            phrases: [
+                "What's due this week in \(.applicationName)",
+                "My week in \(.applicationName)",
+            ],
+            shortTitle: "Due This Week",
+            systemImageName: "calendar"
+        )
+        AppShortcut(
             intent: ClientStatusIntent(),
             phrases: [
                 "What's up with \(\.$client) in \(.applicationName)",

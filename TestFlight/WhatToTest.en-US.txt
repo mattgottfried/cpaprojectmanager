@@ -1,8 +1,9 @@
-Build 14 - what's new (please test):
+Build 15 - what's new (please test):
 
-- GOOGLE DRIVE IS NOW WHERE DOCUMENTS LIVE. First: Settings > Google > Reconnect to Google and approve Drive access.
-- Pick a client's (or job's) Drive folder, then add a scan, photo, file, letter PDF, quote PDF or invoice PDF: it is filed into that folder and the app keeps a link. No folder yet? It stays in the app with a note.
-- "Move to Google Drive" (long-press a document, or Add Document > Move in-app files) sends existing files to Drive.
-- Settings > Google > "File new documents in Drive" turns it off.
+- DRIVE FOLDERS: Settings > Google > Folders, routing and file names. Pick the folder for clients; new clients / tax returns get 00-04 folders. Scans, letters, invoices, quotes file by type (03 has a year folder); names follow your pattern.
+- Client > Documents needed: a file in Drive that matches a request offers "Mark received".
+- STAGES: time limit and "Move on only when..." conditions in stage setup; Insights > Over stage time limit; job screen shows days in stage.
+- TASKS: dated comments, Start timer, "Add template tasks..." for many jobs.
+- This Week widget; Siri "what's due this week".
 
-Check: file opens from the link; the file shows in Drive; nothing in Drive was changed or deleted.
+Check Drive folders were not duplicated and nothing in Drive changed.

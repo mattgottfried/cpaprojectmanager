@@ -248,10 +248,10 @@ struct InvoiceDetailView: View {
     private func saveToDocuments(client: Client) {
         guard let url = InvoicePDF.generate(invoice: invoice, firmName: firmName.isEmpty ? "My Firm" : firmName),
               let data = try? Data(contentsOf: url) else { filingNotice = "Couldn't create the PDF."; return }
-        let name = "Invoice \(invoice.displayNumber) - \(client.displayName)"
+        let title = "Invoice \(invoice.displayNumber)"
         Task {
             let result = await DriveFiling.add(
-                data: data, filename: name, fileExtension: "pdf", client: client, project: nil,
+                data: data, title: title, fileExtension: "pdf", kind: .invoice, client: client, project: nil,
                 auth: google, context: context
             )
             filingNotice = result.outcome.reason.map { DriveFilingPlan.notice(for: $0, clientName: client.displayName) }

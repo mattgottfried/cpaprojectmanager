@@ -13,6 +13,8 @@ struct DashboardSnapshot: Codable, Hashable {
         /// True for a standalone/checklist task the widget can complete (vs. a
         /// project, which opens the app). Optional so older snapshots still decode.
         var isTask: Bool? = nil
+        /// High-priority task (shown with a flag in the This Week widget).
+        var isHigh: Bool? = nil
     }
 
     var generatedAt: Date
@@ -24,6 +26,10 @@ struct DashboardSnapshot: Codable, Hashable {
     /// written by an older build still decode.
     var todayItems: [Item]? = nil
     var inboxCount: Int? = nil
+    /// Tasks due today through the next six days (This Week widget). Optional for older snapshots.
+    var weekItems: [Item]? = nil
+    var weekCount: Int? = nil
+    var weekHighCount: Int? = nil
 
     static let empty = DashboardSnapshot(
         generatedAt: .now,

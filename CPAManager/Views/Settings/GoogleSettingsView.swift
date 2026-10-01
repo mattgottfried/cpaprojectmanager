@@ -150,6 +150,11 @@ struct GoogleSettingsView: View {
     private var driveSection: some View {
         Section {
             Toggle("File new documents in Drive", isOn: $saveToDrive)
+            NavigationLink {
+                DriveStructureView()
+            } label: {
+                Label("Folders, routing and file names", systemImage: "folder.badge.gearshape")
+            }
             Button {
                 Task { await testDrive() }
             } label: {

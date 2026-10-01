@@ -63,6 +63,8 @@ struct TasksPageView: View {
     }
 
     @Environment(\.modelContext) private var context
+    @Environment(TimerController.self) private var timer
+    @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
     @Environment(AppRouter.self) private var router
     #if !os(macOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -84,6 +86,8 @@ struct TasksPageView: View {
     @State private var toast: UndoToastState?
     @State private var detailTask: TaskItem?
     @State private var showingNewTask = false
+    @State private var showingBulkTemplate = false
+    @State private var bulkTemplateJobs: Set<UUID> = []
     @State private var showingBulkDate = false
     @State private var dateTask: TaskItem?
     @State private var showingSavePreset = false
@@ -139,6 +143,11 @@ struct TasksPageView: View {
             }
             .sheet(item: $detailTask) { TaskDetailSheet(task: $0) }
             .sheet(isPresented: $showingNewTask) { NewTaskSheet() }
+            .sheet(isPresented: $showingBulkTemplate) {
+                BulkTemplateSheet(preselected: bulkTemplateJobs) { message in
+                    toast = UndoToastState(message: message, systemImage: "checkmark.circle")
+                }
+            }
             .sheet(isPresented: $showingBulkDate) {
                 BulkDateSheet(title: "Set Due Date") { date in
                     let chosen = selectedTasks
@@ -205,6 +214,8 @@ struct TasksPageView: View {
                         }
                         .buttonStyle(.bordered)
                     }
+                    Button { bulkTemplateJobs = []; showingBulkTemplate = true } label: { Label("Add template tasks…", systemImage: "list.bullet.rectangle.portrait") }
+                        .buttonStyle(.bordered)
                     Button { export(shown) } label: { Label("Export", systemImage: "square.and.arrow.up") }
                         .buttonStyle(.bordered)
                     Text("\(shown.count) task\(shown.count == 1 ? "" : "s")")
@@ -559,6 +570,7 @@ struct TasksPageView: View {
         Button { openDetails(row) } label: { Label("Details…", systemImage: "info.circle") }
         if !row.isDone { Button { complete(row) } label: { Label("Mark done", systemImage: "checkmark.circle") } }
         else { Button { complete(row) } label: { Label("Mark not done", systemImage: "arrow.uturn.backward") } }
+        Button { startTimer(row) } label: { Label("Start timer", systemImage: "timer") }
         Button { dateTask = task(for: row) } label: { Label("Set due date…", systemImage: "calendar") }
         Menu("Priority") { ForEach(Priority.allCases) { p in Button(p.label) { setPriority(p, for: row) } } }
         Menu("Status") { ForEach(TaskStatus.allCases) { s in Button(s.label) { setStatus(s, for: row) } } }
@@ -586,6 +598,10 @@ struct TasksPageView: View {
             } label: { Label("Complete", systemImage: "checkmark.circle") }
             Menu {
                 Button { showingBulkDate = true } label: { Label("Set due date…", systemImage: "calendar") }
+                Button {
+                    bulkTemplateJobs = Set(selectedTasks.compactMap { $0.project?.id })
+                    showingBulkTemplate = true
+                } label: { Label("Add template tasks to their jobs…", systemImage: "list.bullet.rectangle.portrait") }
                 Menu("Priority") {
                     ForEach(Priority.allCases) { p in
                         Button(p.label) {
@@ -610,6 +626,19 @@ struct TasksPageView: View {
     // MARK: Actions
 
     private func task(for row: TaskTableRow) -> TaskItem? { tasks.first { $0.id == row.id } }
+
+    /// Starts the timer on the task's job (time lands on the job; the entry remembers the task).
+    private func startTimer(_ row: TaskTableRow) {
+        guard let task = task(for: row) else { return }
+        timer.start(
+            project: task.project,
+            hourlyRate: RateResolver.rate(clientOverride: task.project?.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+            isBillable: !(task.project?.client?.isFlatFee ?? false),
+            context: context,
+            task: task
+        )
+        toast = UndoToastState(message: "Timer started on \"\(task.title)\"", systemImage: "timer")
+    }
 
     private func openDetails(_ row: TaskTableRow) { detailTask = task(for: row) }
 

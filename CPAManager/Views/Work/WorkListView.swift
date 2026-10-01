@@ -15,6 +15,7 @@ struct WorkListView: View {
     @State private var selection = ListSelection<UUID>()
     @State private var toast: UndoToastState?
     @State private var showingBulkDate = false
+    @State private var showingBulkTemplate = false
     @AppStorage("workShowsBoard") private var showBoard = false
 
     enum WorkFilter: String, CaseIterable, Identifiable {
@@ -181,6 +182,12 @@ struct WorkListView: View {
                     NotificationScheduler.rescheduleAll(context: context)
                 }
             }
+            .sheet(isPresented: $showingBulkTemplate) {
+                BulkTemplateSheet(preselected: Set(selectedProjects.map(\.id))) { message in
+                    toast = UndoToastState(message: message, systemImage: "checkmark.circle")
+                    selection.finish()
+                }
+            }
             .undoToast($toast)
         }
     }
@@ -209,6 +216,7 @@ struct WorkListView: View {
                     }
                 } label: { Label("Mark complete", systemImage: "checkmark.circle") }
                 Button { showingBulkDate = true } label: { Label("Set due date…", systemImage: "calendar") }
+                Button { showingBulkTemplate = true } label: { Label("Add template tasks…", systemImage: "list.bullet.rectangle.portrait") }
             } label: { Label("Update", systemImage: "ellipsis.circle") }
             Button(role: .destructive) {
                 deleteProjects(selectedProjects)

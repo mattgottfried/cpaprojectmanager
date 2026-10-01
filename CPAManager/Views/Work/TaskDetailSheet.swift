@@ -8,8 +8,12 @@ struct TaskDetailSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query private var allTasks: [TaskItem]
+    @Query private var timeEntries: [TimeEntry]
+    @Environment(TimerController.self) private var timer
+    @AppStorage(SettingsKeys.defaultHourlyRate) private var defaultHourlyRate = 150.0
 
     @State private var newItem = ""
+    @State private var newComment = ""
     @State private var editingText = false
 
     private var openTasks: [TaskItem] { allTasks.filter { !$0.isDone } }
@@ -32,7 +36,13 @@ struct TaskDetailSheet: View {
             Form {
                 Section {
                     TextField("Title", text: $task.title)
-                    TextField("Notes", text: $task.notes, axis: .vertical).lineLimit(1...5)
+                    if task.notes.isEmpty || !task.notes.contains("[[") {
+                        TextField("Notes", text: $task.notes, axis: .vertical).lineLimit(1...5)
+                    } else {
+                        DisclosureGroup("Edit notes as text") {
+                            TextEditor(text: $task.notes).frame(minHeight: 90).font(.callout)
+                        }
+                    }
                     Toggle("Due date", isOn: hasDue)
                     if task.dueDate != nil {
                         DatePicker("Due", selection: dueBinding, displayedComponents: .date)
@@ -64,6 +74,47 @@ struct TaskDetailSheet: View {
                 }
 
                 Section {
+                    ForEach(TaskComments.parse(task.notes)) { comment in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(comment.text)
+                            if let date = comment.date {
+                                Text(date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    HStack {
+                        TextField("Add a comment", text: $newComment, axis: .vertical).onSubmit(addComment)
+                        Button(action: addComment) { Image(systemName: "paperplane.fill") }
+                            .buttonStyle(.borderless)
+                            .disabled(newComment.trimmingCharacters(in: .whitespaces).isEmpty)
+                            .accessibilityLabel("Add comment")
+                    }
+                } header: {
+                    Text("Comments")
+                } footer: {
+                    Text("A dated thread kept in this task's notes.")
+                }
+
+                Section {
+                    LabeledContent("Time on this task", value: TaskTime.label(seconds: loggedSeconds))
+                    Button {
+                        timer.start(
+                            project: task.project,
+                            hourlyRate: RateResolver.rate(clientOverride: task.project?.client?.hourlyRateOverride ?? 0, defaultRate: defaultHourlyRate),
+                            isBillable: !(task.project?.client?.isFlatFee ?? false),
+                            context: context,
+                            task: task
+                        )
+                    } label: { Label(timer.isRunning ? "Timer already running" : "Start timer", systemImage: "play.circle.fill") }
+                    .disabled(timer.isRunning)
+                } header: {
+                    Text("Time")
+                } footer: {
+                    Text("Time is logged on the task's job and counts toward its invoice.")
+                }
+
+                Section {
                     TextField("Waiting on… (e.g. client's W-2)", text: $task.waitingOn)
                     Picker("Can't start until", selection: blockerBinding) {
                         Text("Nothing").tag(UUID?.none)
@@ -92,6 +143,16 @@ struct TaskDetailSheet: View {
     }
     private var blockerBinding: Binding<UUID?> {
         Binding(get: { task.blockedByID }, set: { task.blockedByID = $0 })
+    }
+
+    private var loggedSeconds: Double {
+        let mine = timeEntries.filter { $0.taskID == task.id }
+        return TaskTime.seconds(startedAt: mine.map(\.startedAt), endedAt: mine.map(\.endedAt))
+    }
+
+    private func addComment() {
+        task.notes = TaskComments.adding(newComment, to: task.notes)
+        newComment = ""
     }
 
     private func addItem() {

@@ -5,6 +5,7 @@ import Contacts
 /// Add or edit a client. Pass an existing `client` to edit; omit it to create.
 struct ClientFormView: View {
     @Environment(\.modelContext) private var context
+    @Environment(GoogleAuthService.self) private var google
     @Environment(\.dismiss) private var dismiss
 
     var client: Client?
@@ -205,6 +206,8 @@ struct ClientFormView: View {
             newClient.birthday = hasBirthday ? birthday : nil
             newClient.anniversary = hasAnniversary ? anniversary : nil
             context.insert(newClient)
+            let auth = google, store = context, created = newClient
+            Task { await DriveFolders.autoCreateIfNeeded(created, auth: auth, context: store) }
         }
         try? context.save()
         dismiss()

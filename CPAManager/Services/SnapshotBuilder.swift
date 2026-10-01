@@ -103,6 +103,25 @@ enum SnapshotBuilder {
             FetchDescriptor<InboxItem>(predicate: #Predicate<InboxItem> { $0.isProcessed == false })
         )) ?? 0
 
+        // This Week: open, unblocked tasks due in the next seven days.
+        var weekEntries: [WeekEntry] = []
+        if let tasks = try? context.fetch(FetchDescriptor<TaskItem>()) {
+            let openTaskIDs = Set(tasks.filter { !$0.isDone }.map(\.id))
+            let inputs = tasks.filter { $0.project?.status.isComplete != true }.map { task in
+                WeekTaskInput(
+                    id: task.id, title: task.title, subtitle: task.project?.title ?? task.client?.displayName ?? "",
+                    dueDate: task.dueDate, isDone: task.isDone,
+                    isBlocked: TaskDependencies.isBlocked(blockedByID: task.blockedByID, openTaskIDs: openTaskIDs),
+                    isHigh: task.priority == .high, snoozedUntil: task.snoozedUntil
+                )
+            }
+            weekEntries = WeekAgenda.entries(inputs)
+        }
+        let weekItems: [DashboardSnapshot.Item] = weekEntries.prefix(12).map { entry in
+            .init(id: entry.id, title: entry.title, subtitle: entry.subtitle, dueDate: entry.dueDate,
+                  isOverdue: false, isTask: true, isHigh: entry.isHigh)
+        }
+
         let snapshot = DashboardSnapshot(
             generatedAt: .now,
             dueTodayCount: dueToday,
@@ -110,7 +129,10 @@ enum SnapshotBuilder {
             openProjectCount: openCount,
             upcoming: Array(upcoming),
             todayItems: Array(todayItems.prefix(12)),
-            inboxCount: inboxCount
+            inboxCount: inboxCount,
+            weekItems: weekItems,
+            weekCount: weekEntries.count,
+            weekHighCount: weekEntries.filter(\.isHigh).count
         )
         snapshot.save()
 

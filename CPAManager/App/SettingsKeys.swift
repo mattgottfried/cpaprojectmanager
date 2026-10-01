@@ -43,6 +43,12 @@ enum SettingsKeys {
 
     /// File new documents into the client's Google Drive folder (default on).
     static let saveToDrive = "saveToDrive"
+    /// Where new client folders are created in Drive, and whether that happens automatically.
+    static let driveClientsRootID = "driveClientsRootID"
+    static let driveClientsRootName = "driveClientsRootName"
+    static let driveAutoCreateFolders = "driveAutoCreateFolders"
+    /// JSON `DriveFolderTemplate`: the numbered folders, routing by document type, naming pattern.
+    static let driveFolderTemplate = "driveFolderTemplate"
 
     // Automatic backups (per device; deliberately not synced).
     static let autoBackupEnabled = "autoBackupEnabled"

@@ -64,7 +64,7 @@ extension BulkActions {
 }
 
 enum InsightsService {
-    static func jobs(projects: [Project], pipelines: [Pipeline]) -> [InsightsJob] {
+    static func jobs(projects: [Project], pipelines: [Pipeline], context: ModelContext? = nil, now: Date = .now) -> [InsightsJob] {
         projects.map { project in
             let info = PipelineEngine.info(for: project, in: pipelines)
             var latest = project.createdAt
@@ -75,12 +75,17 @@ enum InsightsService {
             for entry in project.timeEntries ?? [] { latest = max(latest, entry.startedAt) }
             for document in project.documents ?? [] { latest = max(latest, document.createdAt) }
             let status = project.status
+            var over = 0
+            if let context, !status.isComplete {
+                let limit = StageRules.timeLimit(for: project, pipelines: pipelines, context: context)
+                over = StageClock.daysOver(limitDays: limit, enteredAt: project.stageEnteredAt, now: now)
+            }
             return InsightsJob(
                 id: project.id, title: project.title, clientName: project.clientName,
                 serviceTypeRaw: project.serviceTypeRaw, stageName: info.name, stageOrder: stageOrder(project, pipelines: pipelines),
                 isComplete: status.isComplete,
                 isInProgress: ![.notStarted, .waitingOnClient, .complete].contains(status),
-                dueDate: project.dueDate, lastActivity: latest
+                dueDate: project.dueDate, lastActivity: latest, stageDaysOver: over
             )
         }
     }

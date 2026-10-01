@@ -32,6 +32,10 @@ final class Project {
     /// `Pipeline` this job lives in, with the current stage in `stageKey`.
     var pipelineID: UUID? = nil
     var stageKey: String = ""
+    /// When the job entered the stage it is in now, and which stage that was (the stage key for a
+    /// custom pipeline, the status for a built-in one). Drives stage time limits.
+    var stageEnteredAt: Date? = nil
+    var stageEnteredKey: String = ""
 
     /// The invoice made from this job (`BillingService.createInvoice`).
     var invoiceID: UUID? = nil

@@ -8,6 +8,31 @@ struct StageAutomationEditor: View {
 
     var body: some View {
         Toggle("Automove: go to the next stage when all these tasks are done", isOn: $automation.autoMove)
+        Toggle("Time limit for this stage", isOn: Binding(
+            get: { automation.timeLimitDays != nil },
+            set: { automation.timeLimitDays = $0 ? 7 : nil }
+        ))
+        if let limit = automation.timeLimitDays {
+            Stepper("Over the limit after \(limit) day\(limit == 1 ? "" : "s")", value: Binding(
+                get: { limit },
+                set: { automation.timeLimitDays = $0 }
+            ), in: 1...365)
+        }
+        DisclosureGroup("Move on only when… (\(automation.conditions.count))") {
+            ForEach(StageCondition.allCases) { condition in
+                Toggle(condition.label, isOn: Binding(
+                    get: { automation.conditions.contains(condition) },
+                    set: { on in
+                        if on, !automation.conditions.contains(condition) { automation.conditions.append(condition) }
+                        if !on { automation.conditions.removeAll { $0 == condition } }
+                    }
+                ))
+            }
+            if !automation.conditions.isEmpty && !automation.autoMove {
+                Text("These apply when Automove is on.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
         Toggle("Reset job due date on entry", isOn: Binding(
             get: { automation.setDueInDays != nil },
             set: { automation.setDueInDays = $0 ? 14 : nil }
