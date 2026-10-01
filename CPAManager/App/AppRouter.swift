@@ -125,6 +125,10 @@ final class AppRouter {
         guard url.scheme == "cpamanager" else { return false }
         switch url.host {
         case "today":   go(to: .today)
+        case "tasks":
+            // The Tasks page lives inside Today (segmented switcher); remember the choice.
+            UserDefaults.standard.set(TodayMode.tasks.rawValue, forKey: TodayMode.storageKey)
+            go(to: .today)
         case "capture": go(to: .today, focus: .newTask)
         case "inbox":   go(to: .inbox)
         case "review":  go(to: .review)

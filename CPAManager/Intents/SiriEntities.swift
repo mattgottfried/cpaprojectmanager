@@ -125,3 +125,26 @@ struct TodaySummaryIntent: AppIntent {
         return .result(dialog: IntentDialog(stringLiteral: text))
     }
 }
+
+/// "Hey Siri, what's due this week in CPA Manager?"
+struct WeekSummaryIntent: AppIntent {
+    static var title: LocalizedStringResource = "What's Due This Week"
+    static var description = IntentDescription("Hear what's overdue and what's due in the next seven days.", categoryName: "Today")
+    static var openAppWhenRun = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let context = Persistence.shared.container.mainContext
+        let tasks = ((try? context.fetch(FetchDescriptor<TaskItem>())) ?? []).filter { $0.project?.status.isComplete != true }
+        let openIDs = Set(tasks.filter { !$0.isDone }.map(\.id))
+        let inputs = tasks.map { task in
+            WeekTaskInput(
+                id: task.id, title: task.title, subtitle: task.project?.title ?? "", dueDate: task.dueDate, isDone: task.isDone,
+                isBlocked: TaskDependencies.isBlocked(blockedByID: task.blockedByID, openTaskIDs: openIDs),
+                isHigh: task.priority == .high, snoozedUntil: task.snoozedUntil
+            )
+        }
+        let text = Briefing.week(overdue: WeekAgenda.overdueCount(inputs), entries: WeekAgenda.entries(inputs))
+        return .result(dialog: IntentDialog(stringLiteral: text))
+    }
+}
