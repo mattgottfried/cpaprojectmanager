@@ -16,6 +16,8 @@ final class TimeEntry {
     var createdAt: Date = Date.now
     /// Set once this entry has been added to an invoice's line items.
     var invoiceID: UUID? = nil
+    /// The task this time was logged against, when the timer was started from a task.
+    var taskID: UUID? = nil
 
     var project: Project? = nil
 

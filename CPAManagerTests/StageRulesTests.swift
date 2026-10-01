@@ -223,3 +223,111 @@ final class StageRulesEngineTests: XCTestCase {
         XCTAssertFalse(facts.hasInvoice)
     }
 }
+
+final class TaskCommentTests: XCTestCase {
+    private var utc: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }
+    private func date(_ d: Int, hour: Int, minute: Int) -> Date {
+        utc.date(from: DateComponents(year: 2026, month: 9, day: d, hour: hour, minute: minute))!
+    }
+
+    func testAddingAppendsADatedEntryAndParsesBack() {
+        var notes = ""
+        notes = TaskComments.adding("Called the client", to: notes, at: date(30, hour: 14, minute: 5), calendar: utc)
+        notes = TaskComments.adding("  Sent the engagement letter ", to: notes, at: date(30, hour: 9, minute: 30), calendar: utc)
+        XCTAssertEqual(notes, "[[2026-09-30 14:05]] Called the client\n[[2026-09-30 09:30]] Sent the engagement letter")
+
+        let parsed = TaskComments.parse(notes, calendar: utc)
+        XCTAssertEqual(parsed.map(\.text), ["Called the client", "Sent the engagement letter"])
+        XCTAssertEqual(parsed.first?.date, date(30, hour: 14, minute: 5))
+        XCTAssertEqual(parsed.map(\.id), [0, 1])
+    }
+
+    func testBlankCommentChangesNothing() {
+        XCTAssertEqual(TaskComments.adding("   ", to: "keep me", calendar: utc), "keep me")
+    }
+
+    func testOlderPlainNotesBecomeTheFirstUndatedComment() {
+        let notes = TaskComments.adding("New one", to: "Client prefers email\nand mornings", at: date(30, hour: 8, minute: 0), calendar: utc)
+        let parsed = TaskComments.parse(notes, calendar: utc)
+        XCTAssertEqual(parsed.count, 2)
+        XCTAssertNil(parsed[0].date)
+        XCTAssertEqual(parsed[0].text, "Client prefers email\nand mornings")
+        XCTAssertEqual(parsed[1].text, "New one")
+    }
+
+    func testMultilineCommentsStayTogetherAndLookalikesAreNotStamps() {
+        let notes = "[[2026-09-30 08:00]] First line\nsecond line\n[[not a stamp]] still the same comment"
+        let parsed = TaskComments.parse(notes, calendar: utc)
+        XCTAssertEqual(parsed.count, 1)
+        XCTAssertEqual(parsed[0].text, "First line\nsecond line\n[[not a stamp]] still the same comment")
+        XCTAssertEqual(TaskComments.count("", calendar: utc), 0)
+    }
+
+    func testTimeTotalsCountRunningEntries() {
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        let total = TaskTime.seconds(
+            startedAt: [start, start.addingTimeInterval(7200)],
+            endedAt: [start.addingTimeInterval(1800), nil],
+            now: start.addingTimeInterval(7200 + 600)
+        )
+        XCTAssertEqual(total, 1800 + 600)
+        XCTAssertEqual(TaskTime.label(seconds: 0), "none yet")
+        XCTAssertEqual(TaskTime.label(seconds: 20), "under a minute")
+        XCTAssertEqual(TaskTime.label(seconds: 45 * 60), "45 min")
+        XCTAssertEqual(TaskTime.label(seconds: 2 * 3600), "2 h")
+        XCTAssertEqual(TaskTime.label(seconds: 5400), "1 h 30 min")
+    }
+}
+
+final class BulkTemplateLogicTests: XCTestCase {
+    func testSkipsTitlesAJobAlreadyHasOpen() {
+        let indices = BulkTemplate.newStepIndices(
+            templateTitles: ["Request documents", "Prepare return", "Review"],
+            openTaskTitles: ["request DOCUMENTS ", "Other"]
+        )
+        XCTAssertEqual(indices, [1, 2])
+        XCTAssertEqual(BulkTemplate.newStepIndices(templateTitles: ["A"], openTaskTitles: []), [0])
+        XCTAssertEqual(BulkTemplate.newStepIndices(templateTitles: ["A"], openTaskTitles: ["a"]), [])
+    }
+
+    func testSummaryWording() {
+        XCTAssertEqual(BulkTemplate.summary(jobs: 3, tasks: 9, skippedJobs: 0), "Added 9 tasks to 3 jobs")
+        XCTAssertEqual(BulkTemplate.summary(jobs: 1, tasks: 1, skippedJobs: 0), "Added 1 task to 1 job")
+        XCTAssertEqual(BulkTemplate.summary(jobs: 2, tasks: 4, skippedJobs: 1), "Added 4 tasks to 2 jobs (1 already had them)")
+        XCTAssertEqual(BulkTemplate.summary(jobs: 0, tasks: 0, skippedJobs: 2), "No new tasks added — every job already has them")
+    }
+}
+
+@MainActor
+final class BulkTemplateServiceTests: XCTestCase {
+    func testAppliesToManyJobsChainedAndWithoutDuplicates() throws {
+        let config = ModelConfiguration(schema: Persistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        let context = try ModelContainer(for: Persistence.schema, configurations: config).mainContext
+
+        let template = WorkflowTemplate(name: "Setup")
+        context.insert(template)
+        for (index, title) in ["Request documents", "Prepare"].enumerated() {
+            context.insert(TemplateTask(title: title, sortIndex: index, dayOffset: index * 3, template: template))
+        }
+        let a = Project(title: "A"), b = Project(title: "B")
+        context.insert(a); context.insert(b)
+        context.insert(TaskItem(title: "request documents", project: b))
+
+        let result = BulkTemplateService.apply(template, to: [a, b], context: context)
+        XCTAssertEqual(result.jobs, 2)
+        XCTAssertEqual(result.tasks, 3, "A gets both steps, B already had the first")
+        XCTAssertEqual(a.taskList.count, 2)
+        XCTAssertEqual(b.taskList.count, 2)
+        let prepare = try XCTUnwrap(a.taskList.first { $0.title == "Prepare" })
+        XCTAssertNotNil(prepare.blockedByID, "the second step waits on the first")
+        XCTAssertNil(prepare.dueDate, "and is dated when the first is done")
+
+        let again = BulkTemplateService.apply(template, to: [a, b], context: context)
+        XCTAssertEqual(again.tasks, 0, "re-running adds nothing")
+        XCTAssertEqual(again.skippedJobs, 2)
+    }
+}

@@ -79,6 +79,8 @@ struct BackupFile: Codable {
         var id: UUID; var startedAt: Date; var endedAt: Date?; var notes: String; var isBillable: Bool
         var hourlyRate: Double; var projectTitle: String; var clientName: String; var createdAt: Date
         var invoiceID: UUID?; var projectID: UUID?
+        // Batch 10.
+        var taskID: UUID? = nil
     }
     struct DocumentRecord: Codable {
         var id: UUID; var filename: String; var fileExtension: String; var data: Data?; var createdAt: Date
@@ -274,7 +276,7 @@ enum BackupService {
         file.timeEntries = all(TimeEntry.self).map { t in
             BackupFile.TimeRecord(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt, notes: t.notes, isBillable: t.isBillable,
                   hourlyRate: t.hourlyRate, projectTitle: t.projectTitle, clientName: t.clientName,
-                  createdAt: t.createdAt, invoiceID: t.invoiceID, projectID: t.project?.id)
+                  createdAt: t.createdAt, invoiceID: t.invoiceID, projectID: t.project?.id, taskID: t.taskID)
         }
         file.documents = all(Document.self).map { d in
             BackupFile.DocumentRecord(id: d.id, filename: d.filename, fileExtension: d.fileExtension, data: includeFiles && !d.data.isEmpty ? d.data : nil,
@@ -471,7 +473,7 @@ enum BackupService {
             t.id = r.id; t.startedAt = r.startedAt; t.endedAt = r.endedAt; t.notes = r.notes
             t.isBillable = r.isBillable; t.hourlyRate = r.hourlyRate
             t.projectTitle = r.projectTitle; t.clientName = r.clientName
-            t.createdAt = r.createdAt; t.invoiceID = r.invoiceID
+            t.createdAt = r.createdAt; t.invoiceID = r.invoiceID; t.taskID = r.taskID
         }, link: { r, t in t.project = r.projectID.flatMap { projects[$0] } })
 
         _ = merge(Document.self, id: \.id, records: file.documents, recordID: { $0.id }, make: { Document() }, fill: { r, d in

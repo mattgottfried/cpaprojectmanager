@@ -44,28 +44,34 @@ enum WorkflowEngine {
     }
 
     /// Append a template's tasks onto an existing project (used by "Apply template").
+    @discardableResult
     static func applyTemplate(
         _ template: WorkflowTemplate,
         to project: Project,
         startDate: Date? = nil,
+        skipTitles: Set<String> = [],
         into context: ModelContext
-    ) {
+    ) -> Int {
         let base = startDate ?? project.startDate ?? .now
-        addTasks(from: template, to: project, baseDate: base, startIndex: project.taskList.count, into: context)
+        let added = addTasks(from: template, to: project, baseDate: base, startIndex: project.taskList.count,
+                             skipTitles: skipTitles, into: context)
         if project.templateName == nil { project.templateName = template.name }
+        return added
     }
 
+    @discardableResult
     private static func addTasks(
         from template: WorkflowTemplate,
         to project: Project,
         baseDate: Date,
         startIndex: Int,
+        skipTitles: Set<String> = [],
         into context: ModelContext
-    ) {
+    ) -> Int {
         let cal = Calendar.current
         // Steps go one at a time: only the first is dated. Each later step waits on the one
         // before it and is dated when that one is completed (`TaskCompletion.complete`).
-        let steps = template.taskList
+        let steps = template.taskList.filter { !skipTitles.contains($0.title.lowercased()) }
         let delays = TaskDependencies.chainDelays(offsets: steps.map(\.dayOffset))
         var previous: TaskItem?
         for (offset, templateTask) in steps.enumerated() {
@@ -83,6 +89,7 @@ enum WorkflowEngine {
             context.insert(item)
             previous = item
         }
+        return steps.count
     }
 
     static func defaultTitle(template: WorkflowTemplate, client: Client?) -> String {

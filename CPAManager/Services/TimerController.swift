@@ -24,15 +24,18 @@ final class TimerController {
 
     // MARK: Start / stop
 
-    func start(project: Project?, hourlyRate: Double, isBillable: Bool, context: ModelContext) {
+    /// `task` (optional) tags the entry so a task can show the time spent on it.
+    func start(project: Project?, hourlyRate: Double, isBillable: Bool, context: ModelContext, task: TaskItem? = nil) {
         if isRunning { stop(context: context) }
 
         let entry = TimeEntry(
             startedAt: .now,
+            notes: task?.title ?? "",
             isBillable: isBillable,
             hourlyRate: hourlyRate,
             project: project
         )
+        entry.taskID = task?.id
         context.insert(entry)
         try? context.save()
 
