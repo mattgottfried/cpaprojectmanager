@@ -268,6 +268,26 @@ CPAManagerTests/  XCTest for the pure logic above.
 - **Default return template**: `SettingsKeys.defaultReturnTemplate` (synced); New Tax Return
   starts from it (falls back to the "Tax Return Routing Sheet" template) and lets you change it.
 
+### Batch 10: Drive folders, stage rules, task tools, week widget
+
+- **Drive folder structure** (`DriveFolderLogic.swift` pure, `DriveFolders` store-facing, `Views/Settings/DriveStructureView`):
+  `DriveFolderTemplate` (numbered slots like "03 - Deliverables", `yearFolders`, routes `DocumentKind` → slot,
+  `namePattern` with `{year} {client} {title} {date}`) is one synced JSON setting (`driveFolderTemplate`);
+  client folders are created under `driveClientsRootID` (`ensureClientFolder`, optional auto on new client /
+  new tax return). Existing folders are found by exact name or leading number (`FolderMatch`) before anything is
+  created. `DriveFiling.add(title:kind:…)` renders the name and files by kind (job folder wins, no routing).
+  `RequestMatcher` suggests marking open `DocumentRequest`s received from files in the client's upload folder.
+- **Stage rules** (`StageRulesLogic.swift` pure, `StageRules` store-facing): `StageAutomation` gained
+  `timeLimitDays` and `conditions` (`StageCondition`: every task done, documents received, invoice paid,
+  signatures complete). `Project.stageEnteredAt/Key` is the stage clock, stamped in
+  `PipelineEngine.runAutomation` and reconciled on launch; `StageRules.sweep` (foreground) moves jobs whose
+  stage has automove and whose tasks + conditions are satisfied. Insights has "Over stage time limit".
+- **Task tools**: comments are a dated thread inside `TaskItem.notes` (`TaskComments`, "[[yyyy-MM-dd HH:mm]] text"),
+  `TimeEntry.taskID` ties time to a task, `BulkTemplateService` applies a template to many jobs (skips tasks a job
+  already has open, chained).
+- **This Week**: `WeekAgenda` (pure) feeds `DashboardSnapshot.weekItems` (widget `ThisWeekWidget`, link
+  `cpamanager://tasks`) and `WeekSummaryIntent` ("what's due this week").
+
 ### Cloud sync (Firestore) — replaced CloudKit mirroring
 
 - `Persistence` opens a **purely local** store (`cloudKitDatabase: .none`). `Services/Sync/`

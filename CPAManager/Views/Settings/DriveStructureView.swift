@@ -61,7 +61,10 @@ struct DriveStructureView: View {
                 .onDelete { offsets in update { $0.slots.remove(atOffsets: offsets) } }
                 .onMove { from, to in update { $0.slots.move(fromOffsets: from, toOffset: to) } }
                 Button {
-                    update { $0.slots.append(ClientFolderSlot(name: "\(String(format: "%02d", $0.slots.count)) - New folder")) }
+                    update { t in
+                        let number = t.slots.count
+                        t.slots.append(ClientFolderSlot(name: String(format: "%02d - New folder", number)))
+                    }
                 } label: { Label("Add folder", systemImage: "plus") }
                 ForEach(template.problems, id: \.self) { problem in
                     Label(problem, systemImage: "exclamationmark.triangle.fill")

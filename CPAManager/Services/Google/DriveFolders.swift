@@ -6,11 +6,11 @@ import SwiftData
 /// second device, never makes duplicates. It only ever creates folders.
 @MainActor
 enum DriveFolders {
-    static var template: DriveFolderTemplate {
+    nonisolated static var template: DriveFolderTemplate {
         DriveFolderTemplate.decode(UserDefaults.standard.string(forKey: SettingsKeys.driveFolderTemplate) ?? "")
     }
-    static var rootID: String { UserDefaults.standard.string(forKey: SettingsKeys.driveClientsRootID) ?? "" }
-    static var autoCreate: Bool { UserDefaults.standard.bool(forKey: SettingsKeys.driveAutoCreateFolders) }
+    nonisolated static var rootID: String { UserDefaults.standard.string(forKey: SettingsKeys.driveClientsRootID) ?? "" }
+    nonisolated static var autoCreate: Bool { UserDefaults.standard.bool(forKey: SettingsKeys.driveAutoCreateFolders) }
 
     /// The folder called `name` inside `parentID`, created if it isn't there.
     static func ensureChild(named name: String, in parentID: String, api: GoogleAPI) async throws -> String {

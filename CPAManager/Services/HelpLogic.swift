@@ -215,12 +215,34 @@ enum HelpCatalog {
             keywords: "tasks table insights dashboard workflow board calendar filter presets overdue"
         ),
         HelpTopic(
+            id: "drivefolders", title: "Drive folders and file names", systemImage: "folder.badge.gearshape",
+            summary: "Numbered client folders, filing by document type, and naming.",
+            body: """
+            Settings ▸ Google ▸ Folders, routing and file names. Choose the Drive folder that holds your clients, and a client's folder (with 00 Permanent, 01 Intake, 02 Source Documents, 03 Deliverables with a year folder, 04 Invoices & Engagements by default) is created when you add a client or start a tax return, or from the client's Drive section. Folders are recognised by their number, so existing ones are reused, never duplicated.
+
+            Scans and client files go to 02, letters, invoices and quotes to 04, finished returns to 03 ▸ the tax year. A job with its own Drive folder files there instead. File names come from a pattern such as "{year} - {client} - {title}". When a file shows up in a client's upload folder that matches something under "Documents needed", the app offers to mark it received.
+            """,
+            keywords: "google drive folders structure year naming pattern routing client folder auto create received documents needed"
+        ),
+        HelpTopic(
+            id: "tasktools", title: "Task comments, time and bulk templates", systemImage: "text.bubble",
+            summary: "Notes thread, timers and adding a checklist to many jobs.",
+            body: """
+            Open a task's details for a dated comment thread and a Start timer button; the time is logged on the task's job and the task shows its total. On the Tasks page, "Add template tasks…" (or the same action in Select mode, and on the Work list) adds a template's tasks to many jobs at once, skipping tasks a job already has open and chaining each job's new tasks so only the first is dated.
+
+            The This Week widget lists tasks due in the next seven days; ask Siri "What's due this week in CPA Manager".
+            """,
+            keywords: "comments notes thread timer time bulk template tasks widget siri week"
+        ),
+        HelpTopic(
             id: "automove", title: "Automove to the next stage", systemImage: "arrow.right.circle",
             summary: "Move a job on when a stage's tasks are all done.",
             body: """
             In a stage's task setup (More ▸ Pipelines ▸ Set up stage tasks, or a custom pipeline's stage), switch on "Automove". When every task that stage created is completed, the job moves to the next stage and that stage's tasks are created. Waiting / On Hold stages are never entered automatically. Tasks that didn't come from a stage (or an older stage) never trigger it.
+
+            Two more options live in the same place. "Time limit for this stage" counts the days a job sits in the stage; past the limit it shows on the job and under Insights ▸ Over stage time limit. "Move on only when…" adds conditions to automove: every task done, requested documents received, the job's invoice paid, no document waiting for a signature. When a condition becomes true later (a payment arrives) the job moves the next time the app opens.
             """,
-            keywords: "automove automatic advance next stage complete tasks taxdome"
+            keywords: "automove automatic advance next stage complete tasks taxdome time limit conditions overdue stage clock"
         ),
         HelpTopic(
             id: "stagetasks", title: "Tasks for each stage", systemImage: "list.bullet.rectangle",
@@ -316,6 +338,8 @@ enum Tips {
         "Give each stage of a service its own tasks under More ▸ Pipelines ▸ Set up stage tasks.",
         "Pick a client's Google Drive folder and its newest files show on their screen.",
         "Deleted the wrong thing? Undo appears at the bottom for a few seconds.",
+        "Give a stage a time limit and jobs that linger show up in Insights.",
+        "Add the This Week widget, or ask Siri what's due this week.",
         "Extensions lists who still needs a decision for the tax year.",
     ]
 

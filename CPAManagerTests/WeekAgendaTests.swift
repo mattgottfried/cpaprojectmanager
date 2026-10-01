@@ -36,7 +36,7 @@ final class WeekAgendaTests: XCTestCase {
             task("snooze over", due: day(10, 1), snoozed: day(9, 29)),
             task("fine", due: day(10, 1)),
         ]
-        XCTAssertEqual(WeekAgenda.entries(tasks, now: now, calendar: utc).map(\.title), ["snooze over", "fine"])
+        XCTAssertEqual(WeekAgenda.entries(tasks, now: now, calendar: utc).map(\.title), ["fine", "snooze over"])
         XCTAssertEqual(WeekAgenda.overdueCount([task("late done", due: day(9, 1), done: true), task("late blocked", due: day(9, 1), blocked: true)], now: now, calendar: utc), 0)
     }
 
