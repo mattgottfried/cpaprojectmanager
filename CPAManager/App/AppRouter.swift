@@ -89,6 +89,13 @@ enum CaptureFocus: Equatable {
     case newTask, inboxCapture
 }
 
+/// What the global "New" button can start. These open as sheets from the app shell, so they
+/// work from any screen.
+enum CreateKind: String, Identifiable {
+    case taxReturn, client, project
+    var id: String { rawValue }
+}
+
 /// Shared navigation state so menu commands, keyboard shortcuts, widget links, and
 /// the sidebar all drive the same selection.
 @Observable
@@ -98,6 +105,8 @@ final class AppRouter {
     /// A record to open once its screen is showing (Spotlight, Siri, notifications, search).
     var pendingLink: DeepLink?
     var showingQuickOpen = false
+    /// A creation sheet the shell should show (set by the New button, menu commands, links).
+    var creating: CreateKind?
     /// Bumped by ⌘R to ask the shell to sync integrations right now.
     var refreshTick = 0
 
@@ -130,6 +139,7 @@ final class AppRouter {
             UserDefaults.standard.set(TodayMode.tasks.rawValue, forKey: TodayMode.storageKey)
             go(to: .today)
         case "capture": go(to: .today, focus: .newTask)
+        case "newreturn": creating = .taxReturn
         case "inbox":   go(to: .inbox)
         case "review":  go(to: .review)
         case "leads":   go(to: .leads)

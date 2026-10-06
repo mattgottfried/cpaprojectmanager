@@ -43,6 +43,13 @@ struct RootView: View {
         .task { bootstrap() }
         .task { decideOnboarding() }
         .sheet(isPresented: $showingOnboarding) { OnboardingView() }
+        .sheet(item: Bindable(router).creating) { kind in
+            switch kind {
+            case .taxReturn: NewTaxReturnView()
+            case .client:    ClientFormView()
+            case .project:   ProjectFormView()
+            }
+        }
         .onOpenURL { router.handle(url: $0) }
         .onContinueUserActivity(CSSearchableItemActionType) { activity in
             if let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String,
@@ -117,6 +124,12 @@ struct RootView: View {
                 .tabItem { Label("More", systemImage: "ellipsis.circle.fill") }
                 .tag(CompactTab.more)
         }
+        // The big New button, on every tab, above the tab bar.
+        .overlay(alignment: .bottomTrailing) {
+            GlobalNewMenu(style: .floating)
+                .padding(.trailing, 16)
+                .padding(.bottom, 62)
+        }
     }
 
     // MARK: iPad / Mac — sidebar
@@ -149,6 +162,12 @@ struct RootView: View {
                 Section {
                     sidebarRow(.settings)
                 }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                GlobalNewMenu(style: .sidebar)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
             }
             .navigationTitle("CPA Manager")
             .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)

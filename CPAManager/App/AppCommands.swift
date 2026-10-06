@@ -12,6 +12,11 @@ struct AppCommands: Commands {
             Button("New Task") { router?.go(to: .today, focus: .newTask) }
                 .keyboardShortcut("n", modifiers: .command)
                 .disabled(router == nil)
+            Button("New Tax Return") { router?.creating = .taxReturn }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+                .disabled(router == nil)
+            Button("New Client") { router?.creating = .client }
+                .disabled(router == nil)
             Button("Capture to Inbox") { router?.go(to: .inbox, focus: .inboxCapture) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(router == nil)
