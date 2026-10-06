@@ -182,6 +182,12 @@ Then, one-time setup in Xcode (**Signing & Capabilities** tab):
 
 Pick an iPhone simulator (or your device) and **Run**.
 
+**Mac widgets:** the Mac app embeds a widget extension (`CPAWidgetsMac`) with the same Today and
+This Week widgets. On the Mac, pick your **Team** for the `CPAWidgetsMac` and `CPAManagerMac`
+targets and enable **App Groups** on both with `<TeamID>.group.com.gottfriedcpa.ProjectManager`
+(macOS group IDs start with the Team ID; `AppGroup.swift` has the same value). Then in
+Notification Center ▸ **Edit Widgets**, search "CPA".
+
 ### Changing the bundle identifier / container
 
 The placeholders use the prefix `com.gottfriedcpa.ProjectManager`. If you use your

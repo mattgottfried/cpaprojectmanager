@@ -9,7 +9,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.1"
-    CURRENT_PROJECT_VERSION: "15"
+    CURRENT_PROJECT_VERSION: "16"
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: X796Z5UW4P
@@ -196,6 +196,8 @@ targets:
         product: FirebaseAuth
       - package: Firebase
         product: FirebaseFirestore
+      # Embeds the Mac widget extension (Notification Center / desktop widgets).
+      - target: CPAWidgetsMac
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gottfriedcpa.ProjectManager
@@ -221,6 +223,37 @@ targets:
           - CFBundleURLName: com.gottfriedcpa.ProjectManager
             CFBundleURLSchemes:
               - cpamanager
+
+  # Mac widgets (Today + This Week): the iOS widget views compiled for macOS, embedded in the Mac
+  # app. Same bundle ID as the iOS widget extension (the Mac app shares the iOS app's ID).
+  CPAWidgetsMac:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: CPAWidgets/DueTodayWidget.swift
+      - path: CPAWidgets/ThisWeekWidget.swift
+      - path: CPAWidgets/CompleteTaskIntent.swift
+      - path: CPAWidgetsMac
+        excludes:
+          - "*.entitlements"
+      # Shared source (snapshot, theme, formatters, app group). The ActivityKit timer types
+      # compile to nothing on macOS.
+      - path: CPAManager/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gottfriedcpa.ProjectManager.Widgets
+        CODE_SIGN_ENTITLEMENTS: CPAWidgetsMac/CPAWidgetsMac.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
+    info:
+      path: CPAWidgetsMac/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: CPA Widgets
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
   CPAManagerMacTests:
     type: bundle.unit-test

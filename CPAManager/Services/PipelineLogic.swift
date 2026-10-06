@@ -70,19 +70,23 @@ struct StageAutomation: Codable, Equatable {
     var timeLimitDays: Int? = nil
     /// Must all be true before automove moves the job on.
     var conditions: [StageCondition] = []
+    /// Make me a reminder task if a job sits in this stage this many days. nil = the default
+    /// (7 days for a waiting-on-client stage, none elsewhere); 0 = switched off.
+    var remindAfterDays: Int? = nil
 
     init(tasks: [StageTask] = [], setDueInDays: Int? = nil, autoMove: Bool = false,
-         timeLimitDays: Int? = nil, conditions: [StageCondition] = []) {
+         timeLimitDays: Int? = nil, conditions: [StageCondition] = [], remindAfterDays: Int? = nil) {
         self.tasks = tasks
         self.setDueInDays = setDueInDays
         self.autoMove = autoMove
         self.timeLimitDays = timeLimitDays
         self.conditions = conditions
+        self.remindAfterDays = remindAfterDays
     }
 
     // Older saved pipelines have no `autoMove` (or even `tasks`); read them as "off"/empty
     // instead of failing to decode the whole stage list.
-    private enum CodingKeys: String, CodingKey { case tasks, setDueInDays, autoMove, timeLimitDays, conditions }
+    private enum CodingKeys: String, CodingKey { case tasks, setDueInDays, autoMove, timeLimitDays, conditions, remindAfterDays }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -91,9 +95,10 @@ struct StageAutomation: Codable, Equatable {
         autoMove = try c.decodeIfPresent(Bool.self, forKey: .autoMove) ?? false
         timeLimitDays = try c.decodeIfPresent(Int.self, forKey: .timeLimitDays)
         conditions = try c.decodeIfPresent([StageCondition].self, forKey: .conditions) ?? []
+        remindAfterDays = try c.decodeIfPresent(Int.self, forKey: .remindAfterDays)
     }
 
-    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil && !autoMove && timeLimitDays == nil && conditions.isEmpty }
+    var isEmpty: Bool { tasks.isEmpty && setDueInDays == nil && !autoMove && timeLimitDays == nil && conditions.isEmpty && remindAfterDays == nil }
 }
 
 /// The automove rule: a job moves on when the task just completed belongs to its current

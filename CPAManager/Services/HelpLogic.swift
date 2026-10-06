@@ -230,7 +230,7 @@ enum HelpCatalog {
             body: """
             Open a task's details for a dated comment thread and a Start timer button; the time is logged on the task's job and the task shows its total. On the Tasks page, "Add template tasks…" (or the same action in Select mode, and on the Work list) adds a template's tasks to many jobs at once, skipping tasks a job already has open and chaining each job's new tasks so only the first is dated.
 
-            The This Week widget lists tasks due in the next seven days; ask Siri "What's due this week in CPA Manager".
+            The This Week widget lists tasks due in the next seven days; ask Siri "What's due this week in CPA Manager". Both widgets (Today and This Week) are also on the Mac: right-click the desktop or open Notification Center ▸ Edit Widgets and search "CPA".
             """,
             keywords: "comments notes thread timer time bulk template tasks widget siri week"
         ),
@@ -241,6 +241,8 @@ enum HelpCatalog {
             In a stage's task setup (More ▸ Pipelines ▸ Set up stage tasks, or a custom pipeline's stage), switch on "Automove". When every task that stage created is completed, the job moves to the next stage and that stage's tasks are created. Waiting / On Hold stages are never entered automatically. Tasks that didn't come from a stage (or an older stage) never trigger it.
 
             Two more options live in the same place. "Time limit for this stage" counts the days a job sits in the stage; past the limit it shows on the job and under Insights ▸ Over stage time limit. "Move on only when…" adds conditions to automove: every task done, requested documents received, the job's invoice paid, no document waiting for a signature. When a condition becomes true later (a payment arrives) the job moves the next time the app opens.
+
+            "Remind me if a job sits here" makes you a follow-up task (due today) when a job stays in the stage that many days — once per stay. Stages where you're waiting on the client (Waiting on Client, Awaiting Signature, or a custom "waiting" stage) remind after 7 days by default; switch it off or change the days in the stage setup.
             """,
             keywords: "automove automatic advance next stage complete tasks taxdome time limit conditions overdue stage clock"
         ),

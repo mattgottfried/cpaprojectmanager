@@ -114,3 +114,33 @@ enum StageSweep {
         return StageConditions.allMet(conditions, facts: facts)
     }
 }
+
+/// "Still waiting on the client" reminders: a job that sits in a waiting stage for a week makes
+/// you a task to follow up. One reminder per stay in a stage.
+enum StageReminder {
+    static let defaultWaitingDays = 7
+
+    /// The days to wait before reminding, or nil for no reminder. Unset means 7 days for a waiting
+    /// stage and none elsewhere; 0 (or less) is an explicit "off".
+    static func effectiveDays(configured: Int?, isWaiting: Bool) -> Int? {
+        if let configured { return configured > 0 ? configured : nil }
+        return isWaiting ? defaultWaitingDays : nil
+    }
+
+    /// True when the job has been in the stage for `days` and hasn't been reminded for this stay.
+    static func isDue(days: Int?, enteredAt: Date?, remindedFor: Date?, now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let days, days > 0, let enteredAt else { return false }
+        if let remindedFor, remindedFor == enteredAt { return false }
+        guard let inStage = StageClock.daysInStage(enteredAt: enteredAt, now: now, calendar: calendar) else { return false }
+        return inStage >= days
+    }
+
+    /// "Follow up with Dana Lee: 2025 Dana Lee 1040 has been waiting 7 days".
+    static func title(client: String, job: String, days: Int) -> String {
+        let who = client.trimmingCharacters(in: .whitespaces)
+        let work = job.trimmingCharacters(in: .whitespaces)
+        let waiting = "has been waiting \(days) day\(days == 1 ? "" : "s")"
+        if who.isEmpty { return "Follow up: \(work.isEmpty ? "this job" : work) \(waiting)" }
+        return "Follow up with \(who): \(work.isEmpty ? "this job" : work) \(waiting)"
+    }
+}

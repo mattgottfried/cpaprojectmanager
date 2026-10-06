@@ -331,3 +331,98 @@ final class BulkTemplateServiceTests: XCTestCase {
         XCTAssertEqual(again.skippedJobs, 2)
     }
 }
+
+final class StageReminderLogicTests: XCTestCase {
+    func testDefaultsAndOverrides() {
+        XCTAssertEqual(StageReminder.effectiveDays(configured: nil, isWaiting: true), 7, "waiting stages remind after a week by default")
+        XCTAssertNil(StageReminder.effectiveDays(configured: nil, isWaiting: false))
+        XCTAssertEqual(StageReminder.effectiveDays(configured: 3, isWaiting: false), 3)
+        XCTAssertEqual(StageReminder.effectiveDays(configured: 14, isWaiting: true), 14)
+        XCTAssertNil(StageReminder.effectiveDays(configured: 0, isWaiting: true), "0 switches the default off")
+    }
+
+    func testDueOncePerStay() {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let entered = utc.date(from: DateComponents(year: 2026, month: 9, day: 1, hour: 9))!
+        func at(_ day: Int) -> Date { utc.date(from: DateComponents(year: 2026, month: 9, day: day, hour: 15))! }
+        XCTAssertFalse(StageReminder.isDue(days: 7, enteredAt: entered, remindedFor: nil, now: at(7), calendar: utc), "6 days in")
+        XCTAssertTrue(StageReminder.isDue(days: 7, enteredAt: entered, remindedFor: nil, now: at(8), calendar: utc), "7 days in")
+        XCTAssertFalse(StageReminder.isDue(days: 7, enteredAt: entered, remindedFor: entered, now: at(20), calendar: utc), "already reminded for this stay")
+        let reentered = utc.date(from: DateComponents(year: 2026, month: 9, day: 10, hour: 9))!
+        XCTAssertTrue(StageReminder.isDue(days: 7, enteredAt: reentered, remindedFor: entered, now: at(20), calendar: utc), "a new stay re-arms it")
+        XCTAssertFalse(StageReminder.isDue(days: nil, enteredAt: entered, remindedFor: nil, now: at(20), calendar: utc))
+        XCTAssertFalse(StageReminder.isDue(days: 7, enteredAt: nil, remindedFor: nil, now: at(20), calendar: utc))
+    }
+
+    func testTitles() {
+        XCTAssertEqual(StageReminder.title(client: "Dana Lee", job: "2025 Dana Lee 1040", days: 7),
+                       "Follow up with Dana Lee: 2025 Dana Lee 1040 has been waiting 7 days")
+        XCTAssertEqual(StageReminder.title(client: "", job: "Books", days: 1), "Follow up: Books has been waiting 1 day")
+    }
+}
+
+@MainActor
+final class StageReminderEngineTests: XCTestCase {
+    private func makeContext() throws -> ModelContext {
+        let config = ModelConfiguration(schema: Persistence.schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+        return try ModelContainer(for: Persistence.schema, configurations: config).mainContext
+    }
+
+    func testAWaitingStageMakesOneFollowUpTaskAfterAWeek() throws {
+        let context = try makeContext()
+        let pipeline = Pipeline(definition: PipelineDefinition(name: "P", stages: [
+            PipelineStage(name: "Work", kind: .working),
+            PipelineStage(name: "Waiting on client", kind: .waiting),
+            PipelineStage(name: "Done", kind: .done),
+        ]))
+        context.insert(pipeline)
+        let client = Client(name: "Dana Lee")
+        context.insert(client)
+        let job = Project(title: "Dana 1040", client: client)
+        context.insert(job)
+        // Start in the waiting stage explicitly (advance never lands on one).
+        PipelineEngine.assign(job, to: pipeline, startStageKey: pipeline.stages[1].id, context: context)
+        let entered = Date.now.addingTimeInterval(-8 * 86_400)
+        job.stageEnteredAt = entered
+        job.stageEnteredKey = pipeline.stages[1].id
+
+        XCTAssertEqual(StageRules.reminderDays(for: job, pipelines: [pipeline], context: context), 7)
+        XCTAssertEqual(StageRules.fireReminders(context: context), 1)
+        let reminder = try XCTUnwrap(job.taskList.first { $0.title.hasPrefix("Follow up with Dana Lee") })
+        XCTAssertNotNil(reminder.dueDate, "due today so it lands on Today")
+        XCTAssertEqual(StageRules.fireReminders(context: context), 0, "once per stay")
+
+        // Leaving and re-entering the stage starts a new stay.
+        PipelineEngine.enter(job, stage: pipeline.stages[0], context: context)
+        PipelineEngine.enter(job, stage: pipeline.stages[1], context: context)
+        job.stageEnteredAt = Date.now.addingTimeInterval(-8 * 86_400)
+        XCTAssertEqual(StageRules.fireReminders(context: context), 1)
+    }
+
+    func testBuiltInWaitingOnClientRemindsByDefaultAndCanBeSwitchedOff() throws {
+        let context = try makeContext()
+        let job = Project(title: "Books", serviceType: .bookkeeping)
+        context.insert(job)
+        job.status = .waitingOnClient
+        job.stageEnteredKey = job.statusFlow.normalize(job.status).rawValue
+        job.stageEnteredAt = Date.now.addingTimeInterval(-9 * 86_400)
+        XCTAssertEqual(StageRules.reminderDays(for: job, pipelines: [], context: context), 7)
+
+        BuiltInSetupService.save(StageAutomation(remindAfterDays: 0), service: .bookkeeping,
+                                 stageKey: ProjectStatus.waitingOnClient.rawValue, context: context)
+        XCTAssertNil(StageRules.reminderDays(for: job, pipelines: [], context: context))
+        XCTAssertEqual(StageRules.fireReminders(context: context), 0)
+    }
+
+    func testOtherStagesDoNotRemindUnlessAsked() throws {
+        let context = try makeContext()
+        let job = Project(title: "J")
+        context.insert(job)
+        job.status = .inProgress
+        job.stageEnteredKey = ProjectStatus.inProgress.rawValue
+        job.stageEnteredAt = Date.now.addingTimeInterval(-30 * 86_400)
+        XCTAssertNil(StageRules.reminderDays(for: job, pipelines: [], context: context))
+        XCTAssertEqual(StageRules.fireReminders(context: context), 0)
+    }
+}

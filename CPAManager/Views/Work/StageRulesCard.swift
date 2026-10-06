@@ -16,11 +16,18 @@ struct StageRulesCard: View {
             : StageClock.summary(limitDays: setup.timeLimitDays, enteredAt: project.stageEnteredAt)
         let waiting = setup.conditions.isEmpty ? nil
             : StageConditions.waitingSummary(setup.conditions, facts: StageRules.facts(for: project, context: context))
-        if !project.status.isComplete, clock != nil || waiting != nil {
+        let remindDays = StageRules.reminderDays(for: project, pipelines: pipelines, context: context)
+        let reminded = project.stageRemindedAt != nil && project.stageRemindedAt == project.stageEnteredAt
+        if !project.status.isComplete, clock != nil || waiting != nil || remindDays != nil {
             Section {
                 if let clock {
                     Label(clock, systemImage: over ? "exclamationmark.triangle.fill" : "clock")
                         .foregroundStyle(over ? Theme.color(.bad) : Color.secondary)
+                }
+                if let remindDays {
+                    Label(reminded ? "Follow-up reminder made" : "Reminds you after \(remindDays) day\(remindDays == 1 ? "" : "s") here",
+                          systemImage: reminded ? "bell.badge.fill" : "bell")
+                        .foregroundStyle(.secondary)
                 }
                 if let waiting {
                     Label(waiting + (setup.autoMove ? " — then it moves on by itself" : ""), systemImage: "hourglass")

@@ -1,9 +1,8 @@
-Build 15 - what's new (please test):
+Build 16 - what's new (please test):
 
-- DRIVE FOLDERS: Settings > Google > Folders, routing and file names. Pick the folder for clients; new clients / tax returns get 00-04 folders. Scans, letters, invoices, quotes file by type (03 has a year folder); names follow your pattern.
-- Client > Documents needed: a file in Drive that matches a request offers "Mark received".
-- STAGES: time limit and "Move on only when..." conditions in stage setup; Insights > Over stage time limit; job screen shows days in stage.
-- TASKS: dated comments, Start timer, "Add template tasks..." for many jobs.
-- This Week widget; Siri "what's due this week".
+- BIG "NEW" BUTTON on every page: top of the sidebar (iPad/Mac), floating above the tabs (iPhone). New Tax Return is first; also New Client, Project, Task, Capture. Mac: File > New Tax Return (Shift-Cmd-T).
+- WAITING REMINDERS: a job that sits in Waiting on Client / Awaiting Signature (or any stage with "Remind me if a job sits here") makes you a follow-up task after 7 days, once per stay.
+- MAC WIDGETS: Today and This Week (Edit Widgets > search CPA). Check the check-circle completes a task next time the app opens.
+- Plus build 15: Drive folders, stage time limits/conditions, task comments/time, bulk template tasks, This Week widget, Siri.
 
-Check Drive folders were not duplicated and nothing in Drive changed.
+Mac: first launch may ask nothing new; if widgets stay empty, open the Mac app once.

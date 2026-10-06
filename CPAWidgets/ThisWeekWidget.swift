@@ -34,7 +34,11 @@ struct ThisWeekWidget: Widget {
         }
         .configurationDisplayName("This Week")
         .description("Tasks due in the next seven days. Tap to open your Tasks page.")
+        #if os(macOS)
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        #else
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
+        #endif
     }
 }
 

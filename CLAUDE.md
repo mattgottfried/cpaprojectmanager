@@ -282,6 +282,10 @@ CPAManagerTests/  XCTest for the pure logic above.
   signatures complete). `Project.stageEnteredAt/Key` is the stage clock, stamped in
   `PipelineEngine.runAutomation` and reconciled on launch; `StageRules.sweep` (foreground) moves jobs whose
   stage has automove and whose tasks + conditions are satisfied. Insights has "Over stage time limit".
+- **Waiting reminders**: `StageAutomation.remindAfterDays` (nil = 7 days for waiting stages, 0 = off);
+  `StageRules.fireReminders` (foreground) makes one follow-up task per stay (`Project.stageRemindedAt` ==
+  `stageEnteredAt` marks it done). **Global New button**: `GlobalNewMenu` (sidebar top / iPhone floating);
+  `AppRouter.creating: CreateKind?` shows the sheets from `RootView`.
 - **Task tools**: comments are a dated thread inside `TaskItem.notes` (`TaskComments`, "[[yyyy-MM-dd HH:mm]] text"),
   `TimeEntry.taskID` ties time to a task, `BulkTemplateService` applies a template to many jobs (skips tasks a job
   already has open, chained).
@@ -339,8 +343,11 @@ CPAManagerTests/  XCTest for the pure logic above.
   `GroupedList` = `List` on iOS, grouped `Form` on Mac (use for detail screens made of sections);
   `deleteMenu` adds right-click Delete (the Mac has no swipe-to-delete — any list with
   `.onDelete` should also get one).
-- `AppGroup.sharedDefaults` is `.standard` on macOS (no extensions there, and an
-  unentitled group container makes macOS prompt the user).
+- **Mac widgets** (`CPAWidgetsMac`, embedded in `CPAManagerMac`): the Today and This Week widgets
+  compiled for macOS (`CPAWidgetsMacBundle` is the entry point; no Live Activity / controls).
+  The Mac app and widgets share data through the App Group, whose macOS ID is Team-ID-prefixed
+  (`AppGroup.identifier`, `$(TeamIdentifierPrefix)group.com.gottfriedcpa.ProjectManager` in both
+  entitlements) — keep those three in sync. Widget taps use the same `PendingActions` queue.
 
 ## Rules that already bit us
 
