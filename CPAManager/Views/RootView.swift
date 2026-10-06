@@ -302,6 +302,7 @@ struct RootView: View {
         RecurringInvoiceService.run(context: context)
         StageRules.reconcileAll(context: context)
         StageRules.sweep(context: context)
+        StageRules.fireReminders(context: context)
         SnapshotBuilder.rebuild(context: context)
         AutoBackupService.runIfDue(context: context)
         cloud.syncNow()

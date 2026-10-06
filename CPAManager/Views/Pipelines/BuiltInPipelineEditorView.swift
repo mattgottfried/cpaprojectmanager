@@ -5,9 +5,25 @@ import SwiftData
 /// the tasks. Shared by custom pipelines and the built-in ones.
 struct StageAutomationEditor: View {
     @Binding var automation: StageAutomation
+    /// A stage where you're waiting on the client: reminders default to 7 days.
+    var isWaiting = false
+
+    private var reminderDays: Int? {
+        StageReminder.effectiveDays(configured: automation.remindAfterDays, isWaiting: isWaiting)
+    }
 
     var body: some View {
         Toggle("Automove: go to the next stage when all these tasks are done", isOn: $automation.autoMove)
+        Toggle("Remind me if a job sits here", isOn: Binding(
+            get: { reminderDays != nil },
+            set: { automation.remindAfterDays = $0 ? StageReminder.defaultWaitingDays : 0 }
+        ))
+        if let days = reminderDays {
+            Stepper("Make me a follow-up task after \(days) day\(days == 1 ? "" : "s")", value: Binding(
+                get: { days },
+                set: { automation.remindAfterDays = $0 }
+            ), in: 1...90)
+        }
         Toggle("Time limit for this stage", isOn: Binding(
             get: { automation.timeLimitDays != nil },
             set: { automation.timeLimitDays = $0 ? 7 : nil }
@@ -83,7 +99,7 @@ struct BuiltInPipelineEditorView: View {
                             get: { expanded == stage.id },
                             set: { expanded = $0 ? stage.id : nil }
                         )) {
-                            StageAutomationEditor(automation: binding(for: stage.id))
+                            StageAutomationEditor(automation: binding(for: stage.id), isWaiting: stage.kind == .waiting)
                         } label: {
                             HStack(spacing: 8) {
                                 Circle().fill(stage.color.color).frame(width: 10, height: 10)

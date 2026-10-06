@@ -36,6 +36,9 @@ final class Project {
     /// custom pipeline, the status for a built-in one). Drives stage time limits.
     var stageEnteredAt: Date? = nil
     var stageEnteredKey: String = ""
+    /// The `stageEnteredAt` a "still waiting" reminder task was already made for, so each stay in
+    /// a stage produces at most one.
+    var stageRemindedAt: Date? = nil
 
     /// The invoice made from this job (`BillingService.createInvoice`).
     var invoiceID: UUID? = nil

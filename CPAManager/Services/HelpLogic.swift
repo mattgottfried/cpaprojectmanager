@@ -241,6 +241,8 @@ enum HelpCatalog {
             In a stage's task setup (More ▸ Pipelines ▸ Set up stage tasks, or a custom pipeline's stage), switch on "Automove". When every task that stage created is completed, the job moves to the next stage and that stage's tasks are created. Waiting / On Hold stages are never entered automatically. Tasks that didn't come from a stage (or an older stage) never trigger it.
 
             Two more options live in the same place. "Time limit for this stage" counts the days a job sits in the stage; past the limit it shows on the job and under Insights ▸ Over stage time limit. "Move on only when…" adds conditions to automove: every task done, requested documents received, the job's invoice paid, no document waiting for a signature. When a condition becomes true later (a payment arrives) the job moves the next time the app opens.
+
+            "Remind me if a job sits here" makes you a follow-up task (due today) when a job stays in the stage that many days — once per stay. Stages where you're waiting on the client (Waiting on Client, Awaiting Signature, or a custom "waiting" stage) remind after 7 days by default; switch it off or change the days in the stage setup.
             """,
             keywords: "automove automatic advance next stage complete tasks taxdome time limit conditions overdue stage clock"
         ),

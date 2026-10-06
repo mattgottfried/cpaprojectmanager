@@ -58,7 +58,7 @@ struct PipelineEditorView: View {
                             Picker("Color", selection: $stage.color) {
                                 ForEach(StageColor.allCases) { Text($0.label).tag($0) }
                             }
-                            automationEditor($stage.automation)
+                            automationEditor($stage.automation, isWaiting: stage.kind == .waiting)
                         } label: {
                             HStack {
                                 Circle().fill(stage.color.color).frame(width: 10, height: 10)
@@ -110,8 +110,8 @@ struct PipelineEditorView: View {
     }
 
     @ViewBuilder
-    private func automationEditor(_ automation: Binding<StageAutomation>) -> some View {
-        StageAutomationEditor(automation: automation)
+    private func automationEditor(_ automation: Binding<StageAutomation>, isWaiting: Bool) -> some View {
+        StageAutomationEditor(automation: automation, isWaiting: isWaiting)
     }
 
     private func loadOnce() {

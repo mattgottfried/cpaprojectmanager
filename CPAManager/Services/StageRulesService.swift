@@ -48,6 +48,51 @@ enum StageRules {
         return changed
     }
 
+    // MARK: Waiting reminders
+
+    /// Whether the job's stage is one where you're waiting on someone else: a custom stage of
+    /// kind "waiting", or the built-in Waiting on Client / Awaiting Signature statuses.
+    static func isWaitingStage(_ project: Project, pipelines: [Pipeline]) -> Bool {
+        if let custom = PipelineEngine.pipeline(for: project, in: pipelines) {
+            return custom.definition.stage(withKey: project.stageKey)?.kind == .waiting
+        }
+        let status = project.statusFlow.normalize(project.status)
+        return status == .waitingOnClient || status == .awaitingSignature
+    }
+
+    /// Days before the stage makes a reminder task, if any.
+    static func reminderDays(for project: Project, pipelines: [Pipeline], context: ModelContext) -> Int? {
+        let setup = automation(for: project, pipelines: pipelines, context: context)
+        return StageReminder.effectiveDays(configured: setup.remindAfterDays, isWaiting: isWaitingStage(project, pipelines: pipelines))
+    }
+
+    /// Creates a follow-up task (due today) for every open job that has sat in a stage past its
+    /// reminder days, once per stay. Returns how many were made.
+    @discardableResult
+    static func fireReminders(context: ModelContext, now: Date = .now) -> Int {
+        let projects = (try? context.fetch(FetchDescriptor<Project>())) ?? []
+        let pipelines = (try? context.fetch(FetchDescriptor<Pipeline>())) ?? []
+        var made = 0
+        for project in projects where !project.status.isComplete {
+            let days = reminderDays(for: project, pipelines: pipelines, context: context)
+            guard StageReminder.isDue(days: days, enteredAt: project.stageEnteredAt, remindedFor: project.stageRemindedAt, now: now),
+                  let days else { continue }
+            let task = TaskItem(
+                title: StageReminder.title(client: project.clientName == "No client" ? "" : project.clientName, job: project.title, days: days),
+                dueDate: now, sortIndex: (project.tasks ?? []).map(\.sortIndex).max().map { $0 + 1 } ?? 0, project: project
+            )
+            context.insert(task)
+            project.stageRemindedAt = project.stageEnteredAt
+            made += 1
+        }
+        if made > 0 {
+            try? context.save()
+            SnapshotBuilder.rebuild(context: context)
+            NotificationScheduler.rescheduleAll(context: context)
+        }
+        return made
+    }
+
     // MARK: Conditions
 
     static func facts(for project: Project, context: ModelContext) -> JobFacts {
