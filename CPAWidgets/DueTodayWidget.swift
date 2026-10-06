@@ -36,10 +36,14 @@ struct DueTodayWidget: Widget {
         }
         .configurationDisplayName("Today")
         .description("Overdue, due today, and next-up work. Tap a circle to check it off; tap + to add a task.")
+        #if os(macOS)
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        #else
         .supportedFamilies([
             .systemSmall, .systemMedium, .systemLarge,
             .accessoryCircular, .accessoryRectangular, .accessoryInline,
         ])
+        #endif
     }
 }
 

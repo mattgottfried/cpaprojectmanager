@@ -230,7 +230,7 @@ enum HelpCatalog {
             body: """
             Open a task's details for a dated comment thread and a Start timer button; the time is logged on the task's job and the task shows its total. On the Tasks page, "Add template tasks…" (or the same action in Select mode, and on the Work list) adds a template's tasks to many jobs at once, skipping tasks a job already has open and chaining each job's new tasks so only the first is dated.
 
-            The This Week widget lists tasks due in the next seven days; ask Siri "What's due this week in CPA Manager".
+            The This Week widget lists tasks due in the next seven days; ask Siri "What's due this week in CPA Manager". Both widgets (Today and This Week) are also on the Mac: right-click the desktop or open Notification Center ▸ Edit Widgets and search "CPA".
             """,
             keywords: "comments notes thread timer time bulk template tasks widget siri week"
         ),

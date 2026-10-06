@@ -343,8 +343,11 @@ CPAManagerTests/  XCTest for the pure logic above.
   `GroupedList` = `List` on iOS, grouped `Form` on Mac (use for detail screens made of sections);
   `deleteMenu` adds right-click Delete (the Mac has no swipe-to-delete — any list with
   `.onDelete` should also get one).
-- `AppGroup.sharedDefaults` is `.standard` on macOS (no extensions there, and an
-  unentitled group container makes macOS prompt the user).
+- **Mac widgets** (`CPAWidgetsMac`, embedded in `CPAManagerMac`): the Today and This Week widgets
+  compiled for macOS (`CPAWidgetsMacBundle` is the entry point; no Live Activity / controls).
+  The Mac app and widgets share data through the App Group, whose macOS ID is Team-ID-prefixed
+  (`AppGroup.identifier`, `$(TeamIdentifierPrefix)group.com.gottfriedcpa.ProjectManager` in both
+  entitlements) — keep those three in sync. Widget taps use the same `PendingActions` queue.
 
 ## Rules that already bit us
 

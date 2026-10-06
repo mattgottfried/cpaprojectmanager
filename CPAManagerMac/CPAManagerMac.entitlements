@@ -6,6 +6,12 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Shared with the Mac widgets (dashboard snapshot, "complete task" queue). macOS group
+	     IDs start with the Team ID; iOS uses the "group." form. See AppGroup.swift. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(TeamIdentifierPrefix)group.com.gottfriedcpa.ProjectManager</string>
+	</array>
 	<!-- Firebase Auth stores its session in the keychain; sandboxed Mac apps need a group. -->
 	<key>keychain-access-groups</key>
 	<array>

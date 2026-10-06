@@ -6,16 +6,19 @@ import Foundation
 /// the CPAManager and CPAWidgets targets, and the entitlements files. If you change
 /// the bundle prefix, update it here too.
 enum AppGroup {
+    #if os(macOS)
+    /// macOS group IDs start with the Team ID (`$(TeamIdentifierPrefix)` in the entitlements) —
+    /// that form needs no extra approval prompt. Must match CPAManagerMac.entitlements and
+    /// CPAWidgetsMac.entitlements. (The Team ID is in project.yml; it is not a secret.)
+    static let identifier = "X796Z5UW4P.group.com.gottfriedcpa.ProjectManager"
+    #else
     static let identifier = "group.com.gottfriedcpa.ProjectManager"
+    #endif
     static let snapshotKey = "dashboardSnapshot"
 
+    /// Shared between the app and its widgets on every platform (the Mac app now has a widget
+    /// extension too, so it uses the group container like iOS does).
     static var sharedDefaults: UserDefaults? {
-        #if os(macOS)
-        // No widget or share extension on the Mac app, so there's nothing to share with —
-        // and touching a group container without the entitlement makes macOS prompt.
-        return UserDefaults.standard
-        #else
-        return UserDefaults(suiteName: identifier)
-        #endif
+        UserDefaults(suiteName: identifier)
     }
 }
