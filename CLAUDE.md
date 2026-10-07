@@ -286,6 +286,8 @@ CPAManagerTests/  XCTest for the pure logic above.
   `StageRules.fireReminders` (foreground) makes one follow-up task per stay (`Project.stageRemindedAt` ==
   `stageEnteredAt` marks it done). **Global New button**: `GlobalNewMenu` (sidebar top / iPhone floating);
   `AppRouter.creating: CreateKind?` shows the sheets from `RootView`.
+- **Running timer bar**: `RunningTimerBar` (sidebar bottom on iPad/Mac, floating bottom-left above the tab bar on
+  iPhone) shows the running `TimerController` with a live clock and Stop; hidden when nothing runs.
 - **Task tools**: comments are a dated thread inside `TaskItem.notes` (`TaskComments`, "[[yyyy-MM-dd HH:mm]] text"),
   `TimeEntry.taskID` ties time to a task, `BulkTemplateService` applies a template to many jobs (skips tasks a job
   already has open, chained).

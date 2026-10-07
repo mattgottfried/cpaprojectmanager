@@ -340,6 +340,7 @@ enum Tips {
         "Give each stage of a service its own tasks under More ▸ Pipelines ▸ Set up stage tasks.",
         "Pick a client's Google Drive folder and its newest files show on their screen.",
         "Deleted the wrong thing? Undo appears at the bottom for a few seconds.",
+        "Start a timer and it stays on screen (sidebar, or above the tabs) so you can stop it from anywhere.",
         "Give a stage a time limit and jobs that linger show up in Insights.",
         "Add the This Week widget, or ask Siri what's due this week.",
         "Extensions lists who still needs a decision for the tax year.",

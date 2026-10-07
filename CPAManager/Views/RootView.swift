@@ -130,6 +130,13 @@ struct RootView: View {
                 .padding(.trailing, 16)
                 .padding(.bottom, 62)
         }
+        // The running timer, bottom left, so it can be stopped from any tab.
+        .overlay(alignment: .bottomLeading) {
+            RunningTimerBar(style: .floating)
+                .padding(.leading, 16)
+                .padding(.bottom, 62)
+        }
+        .animation(.default, value: timer.isRunning)
     }
 
     // MARK: iPad / Mac — sidebar
@@ -169,6 +176,12 @@ struct RootView: View {
                     .padding(.top, 6)
                     .padding(.bottom, 8)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                RunningTimerBar(style: .sidebar)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            }
+            .animation(.default, value: timer.isRunning)
             .navigationTitle("CPA Manager")
             .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 280)
         } detail: {
